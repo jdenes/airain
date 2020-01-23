@@ -1,0 +1,2 @@
+# currotrade
+Un petit projet
