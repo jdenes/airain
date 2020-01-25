@@ -7,6 +7,7 @@ from sklearn import svm
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from datetime import datetime, timedelta
 
 def fetchExchangeRate(from_currency, to_currency, freq, api_key) : 
 
@@ -45,7 +46,7 @@ def structure_data():
 	df.to_csv('./data/csv/dataset.csv', encoding='utf-8')
 
 
-def simple_prediction(h=30):
+def simple_prediction(h=10):
 
 	df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
 	saved_label = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
@@ -61,30 +62,42 @@ def simple_prediction(h=30):
 
 	X = df.loc[:,df.columns!='goes_up'].to_numpy()
 	y = df['goes_up'].to_numpy()
+	print(X.shape, y.shape)
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
 	
 	clf = svm.SVC(gamma='scale')
-	# clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(500, 5000, 1000, 250, 1000, 500, 50))
+	# clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(500, 1000, 500, 50))
 	clf.fit(X_train, y_train)
 	y_pred = clf.predict(X_test)
 	
-	# print(" Result:\n", accuracy_score(y_test, y_pred))
 	return accuracy_score(y_test, y_pred)
 
 
-def hard_prediction(h=10):
-	df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
-	saved_labels = (df['EURGBP 1. open'] - df['EURGBP 4. close']).shift(-1)
-	# print(df)
-
+def hard_prediction(h=10, mode='now'):
+	
+	if mode =='now':
+		df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)	
+	else:
+		df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
+		df.index = pd.to_datetime(df.index, format='%d/%m/%Y')
+		idx = list(pd.date_range(df.index.min(), df.index.max()))
+		df = df.reindex(idx, method='ffill')
+		df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
+	
+	saved_labels = (df['EURGBP 1. open'] - df['EURGBP 4. close']).apply(np.sign).shift(-1).drop(df.index.max())
+	df = df.drop(df.index.max())
+	print(df.shape, saved_labels.shape)
+	
 	data, labels = [], []
-	from datetime import datetime, timedelta
 	for i, row in df.iterrows():
 		end = datetime.strptime(i, '%Y-%m-%d %H:%M:%S')
-		start = end - timedelta(minutes=(h-1)*5)
-		slicing = df[str(start):str(end)]
-		if len(slicing) == h:
+		if mode == 'now':
+			ind = [str(end - timedelta(minutes=x*5)) for x in range(h)]
+		else:
+			ind = [str(end - timedelta(days=x)) for x in range(h)]
+		if all(x in df.index for x in ind):
+			slicing = df.loc[ind]
 			data.append(np.array(slicing))
 			labels.append(saved_labels[i])
 
@@ -93,14 +106,15 @@ def hard_prediction(h=10):
 	print(X.shape, y.shape)
 
 	import tensorflow as tf
-	BATCH_SIZE = 256
+	BATCH_SIZE = 1000
 	BUFFER_SIZE = 10000
+	
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
 
-
-	train_data = tf.data.Dataset.from_tensor_slices((X, y))
+	train_data = tf.data.Dataset.from_tensor_slices((X_train, y_train))
 	train_data = train_data.cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE).repeat()
 
-	val_data = tf.data.Dataset.from_tensor_slices((X, y))
+	val_data = tf.data.Dataset.from_tensor_slices((X_test, y_test))
 	val_data = val_data.batch(BATCH_SIZE).repeat()
 
 	single_step_model = tf.keras.models.Sequential()
@@ -113,7 +127,8 @@ def hard_prediction(h=10):
                                             validation_data=val_data,
                                             validation_steps=50)
 
-	print(single_step_model.predict(X))
+	y_pred = np.sign(single_step_model.predict(X_test).T[0])
+	return np.equal(y_test, y_pred).mean()
 
 
 	# to_add = pd.DataFrame()
@@ -145,11 +160,14 @@ def back_test(X, y):
 if __name__ == "__main__" : 
 	
 	freq = '5'
-	h = 10
+	h = 30
 	api_key = "H2T4H92C43D9DT3D"
+	
 	# for from_currency, to_currency in [('EUR', 'GBP'), ('GBP', 'EUR')]:
 	# 	fetchExchangeRate(from_currency, to_currency, freq, api_key)
-	
 	# structure_data()
-	score = hard_prediction(h=h)
+	
+	score = hard_prediction(h=h, mode='now')
+	# score = simple_prediction(h=h)
 	print(score)
+	
