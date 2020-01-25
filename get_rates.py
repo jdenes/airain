@@ -1,4 +1,4 @@
-import requests, json
+import os, requests, json
 from datetime import date
 import pandas as pd
 import numpy as np
@@ -7,6 +7,7 @@ from sklearn import svm
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 from datetime import datetime, timedelta
 
 def fetchExchangeRate(from_currency, to_currency, freq, api_key) : 
@@ -46,9 +47,13 @@ def structure_data():
 	df.to_csv('./data/csv/dataset.csv', encoding='utf-8')
 
 
-def simple_prediction(h=10):
+def simple_prediction(h=10, mode='now'):
 
-	df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
+	if mode == 'now':
+		df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
+	else:
+		df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
+	
 	saved_label = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
 
 	to_add = pd.DataFrame()
@@ -66,11 +71,13 @@ def simple_prediction(h=10):
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
 	
-	clf = svm.SVC(gamma='scale')
+	# clf = RandomForestClassifier(n_estimators=1000)
+	clf = svm.SVC(gamma='scale', kernel='poly', degree=7)
 	# clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(500, 1000, 500, 50))
 	clf.fit(X_train, y_train)
 	y_pred = clf.predict(X_test)
 	
+	print(y_train.mean())
 	return accuracy_score(y_test, y_pred)
 
 
@@ -107,7 +114,7 @@ def hard_prediction(h=10, mode='now'):
 
 	import tensorflow as tf
 	BATCH_SIZE = 1000
-	BUFFER_SIZE = 10000
+	BUFFER_SIZE = 100000
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
 
@@ -117,40 +124,19 @@ def hard_prediction(h=10, mode='now'):
 	val_data = tf.data.Dataset.from_tensor_slices((X_test, y_test))
 	val_data = val_data.batch(BATCH_SIZE).repeat()
 
-	single_step_model = tf.keras.models.Sequential()
-	single_step_model.add(tf.keras.layers.LSTM(32, input_shape=X.shape[-2:]))
-	single_step_model.add(tf.keras.layers.Dense(1))
-	single_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
+	model = tf.keras.models.Sequential()
+	model.add(tf.keras.layers.LSTM(50, input_shape=X.shape[-2:]))
+	model.add(tf.keras.layers.Dense(1))
+	model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
+	
+	history = model.fit(train_data, epochs=10,
+									steps_per_epoch=200,
+									validation_data=val_data,
+									validation_steps=50)
 
-	single_step_history = single_step_model.fit(train_data, epochs=10,
-                                            steps_per_epoch=200,
-                                            validation_data=val_data,
-                                            validation_steps=50)
-
-	y_pred = np.sign(single_step_model.predict(X_test).T[0])
+	y_pred = np.sign(model.predict(X_test).T[0])
+	print(y_test, y_pred)
 	return np.equal(y_test, y_pred).mean()
-
-
-	# to_add = pd.DataFrame()
-	# for i in range(1,h):
-	# 	shifted_df = df.shift(i)
-	# 	to_add = pd.concat([to_add, shifted_df], axis=1, sort=True)
-	# df = pd.concat([df, to_add], axis=1, sort=True)
-
-	# master = []
-	# for i, row in df.iterrows():
-	# 	three_d = []
-	# 	for value in ['open', 'high', 'low', 'close']:
-	# 		two_d = []
-	# 		for pair in ['EURGPB', 'GBPEUR']:
-	# 			one_d = row[[c for c in row.columns if (value in c) and (pair in c)]].values
-	# 			two_d.append(one_d)
-	# 		three_d.append(two_d)
-	# 	master.append(three_d)
-
-	# X = np.array(master)
-	# print(X.shape)
-
 
 def back_test(X, y):
 
@@ -163,11 +149,13 @@ if __name__ == "__main__" :
 	h = 30
 	api_key = "H2T4H92C43D9DT3D"
 	
-	# for from_currency, to_currency in [('EUR', 'GBP'), ('GBP', 'EUR')]:
-	# 	fetchExchangeRate(from_currency, to_currency, freq, api_key)
-	# structure_data()
+	if False:
+		for from_currency, to_currency in [('EUR', 'GBP'), ('GBP', 'EUR')]:
+			fetchExchangeRate(from_currency, to_currency, freq, api_key)
+		structure_data()
 	
-	score = hard_prediction(h=h, mode='now')
-	# score = simple_prediction(h=h)
+	# score = hard_prediction(h=h, mode='now')
+	# print(score)
+	score = simple_prediction(h=h, mode='now')
 	print(score)
 	
