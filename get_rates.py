@@ -108,9 +108,11 @@ def simple_prediction(h=10, data='crypto', mode='now'):
 
 	X = df.loc[:,df.columns!='goes_up'].to_numpy()
 	y = df['goes_up'].to_numpy()
-	print("X and y data shape:", X.shape, y.shape)
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
+	x_mean, x_max = X_train.mean(axis=0), X_train.max(axis=0)
+	X_train, X_test = (X_train - x_mean) / x_max, (X_test - x_mean) / x_max
+	print("X and y data shape:", X.shape, y.shape)
 	
 	# clf = RandomForestClassifier(n_estimators=1000)
 	clf = svm.SVC(gamma='scale', kernel='rbf')
@@ -161,13 +163,11 @@ def hard_prediction(h=10, data='crypto', mode='now', gpu=True):
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
 	x_mean, x_max = X_train.mean(axis=0), X_train.max(axis=0)
 	X_train, X_test = (X_train - x_mean) / x_max, (X_test - x_mean) / x_max
-
 	print("X and y data shape:", X.shape, y.shape)
-	print(list(y_train))
 
 	BATCH_SIZE = 1000
 	BUFFER_SIZE = 100000
-	EPOCHS = 1
+	EPOCHS = 3
 	STEPS = 2000
 	VALSTEPS = 500
 	
@@ -197,10 +197,9 @@ def hard_prediction(h=10, data='crypto', mode='now', gpu=True):
 
 	y_pred = model.predict(X_test)
 	np.save('data/essai.npy', y_pred)
-	y_test = y_test.flatten()
 	print(y_test, y_pred)
 	print("Baseline: average 'goes_up' value:", y_test.mean())
-	# return np.equal(y_test, y_pred).mean()
+	return accuracy_score(np.sign(y_test.flatten()), np.sign(y_pred.flatten()))
 
 def back_test(X, y):
 
@@ -225,8 +224,8 @@ if __name__ == "__main__" :
 		structure_cryptodata()
 
 	
-	score = hard_prediction(h=h, data='crypto', mode='long', gpu=True)
+	# score = hard_prediction(h=h, data='crypto', mode='long', gpu=True)
 	# print(score)
-	# score = simple_prediction(h=h, data='crypto', mode='now')
+	score = simple_prediction(h=h, data='crypto', mode='now')
 	print("Final model score:", score)
 	
