@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from datetime import datetime, timedelta
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 
 def fetchCryptoRate(from_currency, to_currency, start, end, freq):
@@ -47,10 +48,10 @@ def fetchExchangeRate(from_currency, to_currency, freq, api_key) :
 		json.dump(result, outfile)
 
 
-def structure_cryptodata():
+def structure_cryptodata(freq):
 
 	df = pd.DataFrame()
-	for f in glob.glob('./data/raw/crypto/*-*-USDCBTC5.json'):
+	for f in glob.glob('./data/raw/crypto/*-*-USDCBTC' + str(freq) + '.json'):
 		with open(f) as json_file:
 			data = json.load(json_file)
 			df1 = pd.DataFrame.from_dict(data).set_index('date')
@@ -124,13 +125,13 @@ def simple_prediction(h=10, data='crypto', mode='now'):
 	return accuracy_score(y_test, y_pred)
 
 
-def hard_prediction(h=10, data='crypto', mode='now', gpu=True):
+def hard_prediction(h=10, data='crypto', mode='now', freq=5, gpu=True):
 	
 	if not gpu: os.environ["CUDA_VISIBLE_DEVICES"]="-1"    
 	
 	if data == 'crypto':
 		df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
-		saved_label = (df['weightedAverage'].shift(-1) - df['weightedAverage'])#.apply(lambda x: np.sign(x) if pd.notnull(x) else x)
+		saved_label = df['weightedAverage'].shift(-1) #- df['weightedAverage'])#.apply(lambda x: np.sign(x) if pd.notnull(x) else x)
 	else:
 		if mode =='now':
 			df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)	
@@ -142,13 +143,17 @@ def hard_prediction(h=10, data='crypto', mode='now', gpu=True):
 			df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
 		saved_label = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
 	df, saved_label = df[pd.notnull(saved_label)], saved_label[pd.notnull(saved_label)]
-	print("Available data shape:", df.shape)
+	df = (df - df.min(axis=0)) / (df.max(axis=0) - df.min(axis=0))
 	
+	print("Available data shape:", df.shape)
+	print(df.describe())
+	
+	from tqdm import tqdm
 	data, labels = [], []
-	for i, row in df.iterrows():
+	for i, row in tqdm(df.iterrows()):
 		end = datetime.strptime(i, '%Y-%m-%d %H:%M:%S')
 		if mode == 'now':
-			ind = [str(end - timedelta(minutes=x*5)) for x in range(h)]
+			ind = [str(end - timedelta(minutes=x*freq)) for x in range(h)]
 		else:
 			ind = [str(end - timedelta(days=x)) for x in range(h)]
 		if all(x in df.index for x in ind):
@@ -158,29 +163,32 @@ def hard_prediction(h=10, data='crypto', mode='now', gpu=True):
 
 	X = np.array(data)
 	y = np.array(labels)
+	
+	y_min, y_max = y.min(), y.max()
+	y = 2*(y - y_min) / (y_max - y_min) - 1
 	# y = y.reshape((len(y), 1))
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
-	x_mean, x_max = X_train.mean(axis=0), X_train.max(axis=0)
-	X_train, X_test = (X_train - x_mean) / x_max, (X_test - x_mean) / x_max
-	print("X and y data shape:", X.shape, y.shape)
+	X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.10)
+	print("Train:", X_train.shape, "Validation:", X_val.shape, "Test:", X_test.shape)
 
 	BATCH_SIZE = 1000
 	BUFFER_SIZE = 100000
-	EPOCHS = 3
-	STEPS = 2000
-	VALSTEPS = 500
+	EPOCHS = 50
+	STEPS = 500
+	VALSTEPS = 50
 	
 	train_data = tf.data.Dataset.from_tensor_slices((X_train, y_train))
 	train_data = train_data.cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE).repeat()
 
-	val_data = tf.data.Dataset.from_tensor_slices((X_test, y_test))
+	val_data = tf.data.Dataset.from_tensor_slices((X_val, y_val))
 	val_data = val_data.batch(BATCH_SIZE).repeat()
 
 	model = tf.keras.models.Sequential()
-	model.add(tf.keras.layers.LSTM(50, input_shape=X.shape[-2:]))
+	model.add(tf.keras.layers.LSTM(50, input_shape=X.shape[-2:], return_sequences=True))
+	model.add(tf.keras.layers.LSTM(16, activation='relu'))
 	model.add(tf.keras.layers.Dense(1))
-	model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
+	model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
 	
 	# model = tf.keras.models.Sequential()
 	# model.add(tf.keras.layers.LSTM(200, activation='relu', input_shape=X.shape[-2:]))
@@ -190,15 +198,20 @@ def hard_prediction(h=10, data='crypto', mode='now', gpu=True):
 	# model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1)))
 	# model.compile(loss='mse', optimizer='adam')
 	
+	print(model.summary())
+
 	history = model.fit(train_data, epochs=EPOCHS,
 									steps_per_epoch=STEPS,
 									validation_steps=VALSTEPS,
 									validation_data=val_data)
 
-	y_pred = model.predict(X_test)
-	np.save('data/essai.npy', y_pred)
-	print(y_test, y_pred)
-	print("Baseline: average 'goes_up' value:", y_test.mean())
+	y_pred = model.predict(X_test).flatten()
+	y_trans = (y_pred + 1)*(y_max - y_min)/2 + y_min
+	y_comp = (y_test + 1)*(y_max - y_min)/2 + y_min
+
+	plt.plot(y_comp, y_trans, '.')
+	plt.show()
+
 	return accuracy_score(np.sign(y_test.flatten()), np.sign(y_pred.flatten()))
 
 def back_test(X, y):
@@ -210,8 +223,8 @@ if __name__ == "__main__" :
 	
 	freq = 5
 	end = '2020-01-27 00:00:00'
-	start = '2019-01-27 00:00:00'
-	h = 30
+	start = '2018-01-27 00:00:00'
+	h = 20
 	api_key = "H2T4H92C43D9DT3D"
 	
 	if False:
@@ -221,11 +234,11 @@ if __name__ == "__main__" :
 	
 	if False:
 		fetchCryptoRate('USDC', 'BTC', start, end, freq)
-		structure_cryptodata()
+		structure_cryptodata(freq)
 
 	
-	# score = hard_prediction(h=h, data='crypto', mode='long', gpu=True)
+	score = hard_prediction(h=h, data='crypto', mode='now', freq=freq, gpu=True)
 	# print(score)
-	score = simple_prediction(h=h, data='crypto', mode='now')
+	# score = simple_prediction(h=h, data='crypto', mode='now')
 	print("Final model score:", score)
 	
