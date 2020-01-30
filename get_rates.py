@@ -48,10 +48,10 @@ def fetchExchangeRate(from_currency, to_currency, freq, api_key) :
 		json.dump(result, outfile)
 
 
-def structure_cryptodata(freq):
+def structure_cryptodata(from_curr, to_curr, freq):
 
 	df = pd.DataFrame()
-	for f in glob.glob('./data/raw/crypto/*-*-USDCBTC' + str(freq) + '.json'):
+	for f in glob.glob('./data/raw/crypto/*-*-' + from_curr + to_curr + str(freq) + '.json'):
 		with open(f) as json_file:
 			data = json.load(json_file)
 			df1 = pd.DataFrame.from_dict(data).set_index('date')
@@ -174,7 +174,7 @@ def hard_prediction(h=10, data='crypto', mode='now', freq=5, gpu=True):
 
 	BATCH_SIZE = 1000
 	BUFFER_SIZE = 100000
-	EPOCHS = 50
+	EPOCHS = 20
 	STEPS = 500
 	VALSTEPS = 50
 	
@@ -209,10 +209,13 @@ def hard_prediction(h=10, data='crypto', mode='now', freq=5, gpu=True):
 	y_trans = (y_pred + 1)*(y_max - y_min)/2 + y_min
 	y_comp = (y_test + 1)*(y_max - y_min)/2 + y_min
 
+	plt.plot((y_trans-y_comp)/y_comp, '.')
+	plt.show()
+
 	plt.plot(y_comp, y_trans, '.')
 	plt.show()
 
-	return accuracy_score(np.sign(y_test.flatten()), np.sign(y_pred.flatten()))
+	return ((y_comp-y_trans)/y_comp).mean()
 
 def back_test(X, y):
 
@@ -223,18 +226,20 @@ if __name__ == "__main__" :
 	
 	freq = 5
 	end = '2020-01-27 00:00:00'
-	start = '2018-01-27 00:00:00'
+	start = '2018-07-10 00:00:00'
 	h = 20
 	api_key = "H2T4H92C43D9DT3D"
+	from_curr = 'USDC'
+	to_curr = 'BTC'
 	
 	if False:
-		for from_currency, to_currency in [('EUR', 'GBP'), ('GBP', 'EUR')]:
-			fetchExchangeRate(from_currency, to_currency, freq, api_key)
+		for x, y in [('EUR', 'GBP'), ('GBP', 'EUR')]:
+			fetchExchangeRate(x, y, freq, api_key)
 		structure_data()
 	
-	if False:
-		fetchCryptoRate('USDC', 'BTC', start, end, freq)
-		structure_cryptodata(freq)
+	if True:
+		fetchCryptoRate(from_curr, to_curr, start, end, freq)
+		structure_cryptodata(from_curr, to_curr, freq)
 
 	
 	score = hard_prediction(h=h, data='crypto', mode='now', freq=freq, gpu=True)
