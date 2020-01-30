@@ -14,6 +14,24 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 
 
+def load_data(datatype='crypto'):
+	
+	if datatype == 'crypto':
+		df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
+		labels = df['weightedAverage'].shift(-1)
+	elif datatype =='currency_now':
+		df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
+		labels = df['EURGBP 4. close'].shift(-1)
+	else:
+		df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
+		df.index = pd.to_datetime(df.index, format='%d/%m/%Y')
+		idx = list(pd.date_range(df.index.min(), df.index.max()))
+		df = df.reindex(idx, method='ffill')
+		df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
+		labels = df['EURGBP 4. close'].shift(-1)
+
+	return df[pd.notnull(labels)], labels[pd.notnull(labels)]
+
 def fetchCryptoRate(from_currency, to_currency, start, end, freq):
 	
 	base_url = "https://poloniex.com/public?command=returnChartData" + "&currencyPair=" + from_currency + "_" + to_currency
@@ -89,14 +107,14 @@ def simple_prediction(h=10, data='crypto', mode='now'):
 
 	if data == 'crypto':
 		df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
-		saved_label = (df['weightedAverage'].shift(-1) >= df['weightedAverage']).astype(int)
+		labels = (df['weightedAverage'].shift(-1) >= df['weightedAverage']).astype(int)
 	else:
 		if mode == 'now':
 			df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
 		else:
 			df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
-		saved_label = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
-	df, saved_label = df[pd.notnull(saved_label)], saved_label[pd.notnull(saved_label)]
+		labels = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
+	df, labels = df[pd.notnull(labels)], labels[pd.notnull(labels)]
 	print("Available data shape:", df.shape)
 	
 	to_add = pd.DataFrame()
@@ -104,7 +122,7 @@ def simple_prediction(h=10, data='crypto', mode='now'):
 		shifted_df = df.shift(i)
 		to_add = pd.concat([to_add, shifted_df], axis=1, sort=True)
 	df = pd.concat([df, to_add], axis=1, sort=True)
-	df['goes_up'] = saved_label
+	df['goes_up'] = labels
 	df = df.dropna()
 
 	X = df.loc[:,df.columns!='goes_up'].to_numpy()
@@ -129,27 +147,17 @@ def hard_prediction(h=10, data='crypto', mode='now', freq=5, gpu=True):
 	
 	if not gpu: os.environ["CUDA_VISIBLE_DEVICES"]="-1"    
 	
-	if data == 'crypto':
-		df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
-		saved_label = df['weightedAverage'].shift(-1) #- df['weightedAverage'])#.apply(lambda x: np.sign(x) if pd.notnull(x) else x)
-	else:
-		if mode =='now':
-			df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)	
-		else:
-			df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
-			df.index = pd.to_datetime(df.index, format='%d/%m/%Y')
-			idx = list(pd.date_range(df.index.min(), df.index.max()))
-			df = df.reindex(idx, method='ffill')
-			df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
-		saved_label = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
-	df, saved_label = df[pd.notnull(saved_label)], saved_label[pd.notnull(saved_label)]
+	df, labels = load_data(datatype='crypto')
+	
 	df = (df - df.min(axis=0)) / (df.max(axis=0) - df.min(axis=0))
+	y_min, y_max = labels.min(), labels.max()
+	labels = 2*(labels - y_min) / (y_max - y_min) - 1
 	
 	print("Available data shape:", df.shape)
 	print(df.describe())
 	
 	from tqdm import tqdm
-	data, labels = [], []
+	X, y = [], []
 	for i, row in tqdm(df.iterrows()):
 		end = datetime.strptime(i, '%Y-%m-%d %H:%M:%S')
 		if mode == 'now':
@@ -158,14 +166,48 @@ def hard_prediction(h=10, data='crypto', mode='now', freq=5, gpu=True):
 			ind = [str(end - timedelta(days=x)) for x in range(h)]
 		if all(x in df.index for x in ind):
 			slicing = df.loc[ind]
-			data.append(np.array(slicing))
-			labels.append(saved_label[i])
-
-	X = np.array(data)
-	y = np.array(labels)
+			X.append(np.array(slicing))
+			y.append(labels[i])
+	X = np.array(X)
+	y = np.array(y)
+			
+	# if data == 'crypto':
+		# df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
+		# saved_label = df['weightedAverage'].shift(-1) #- df['weightedAverage'])#.apply(lambda x: np.sign(x) if pd.notnull(x) else x)
+	# else:
+		# if mode =='now':
+			# df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)	
+		# else:
+			# df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
+			# df.index = pd.to_datetime(df.index, format='%d/%m/%Y')
+			# idx = list(pd.date_range(df.index.min(), df.index.max()))
+			# df = df.reindex(idx, method='ffill')
+			# df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
+		# saved_label = (df['EURGBP 1. open'] >= df['EURGBP 4. close']).astype(int).shift(-1)
+	# df, saved_label = df[pd.notnull(saved_label)], saved_label[pd.notnull(saved_label)]
+	# df = (df - df.min(axis=0)) / (df.max(axis=0) - df.min(axis=0))
 	
-	y_min, y_max = y.min(), y.max()
-	y = 2*(y - y_min) / (y_max - y_min) - 1
+	# print("Available data shape:", df.shape)
+	# print(df.describe())
+	
+	# from tqdm import tqdm
+	# data, labels = [], []
+	# for i, row in tqdm(df.iterrows()):
+		# end = datetime.strptime(i, '%Y-%m-%d %H:%M:%S')
+		# if mode == 'now':
+			# ind = [str(end - timedelta(minutes=x*freq)) for x in range(h)]
+		# else:
+			# ind = [str(end - timedelta(days=x)) for x in range(h)]
+		# if all(x in df.index for x in ind):
+			# slicing = df.loc[ind]
+			# data.append(np.array(slicing))
+			# labels.append(saved_label[i])
+
+	# X = np.array(data)
+	# y = np.array(labels)
+	
+	# y_min, y_max = y.min(), y.max()
+	# y = 2*(y - y_min) / (y_max - y_min) - 1
 	# y = y.reshape((len(y), 1))
 	
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10)
@@ -174,8 +216,8 @@ def hard_prediction(h=10, data='crypto', mode='now', freq=5, gpu=True):
 
 	BATCH_SIZE = 1000
 	BUFFER_SIZE = 100000
-	EPOCHS = 20
-	STEPS = 500
+	EPOCHS = 10
+	STEPS = 200
 	VALSTEPS = 50
 	
 	train_data = tf.data.Dataset.from_tensor_slices((X_train, y_train))
