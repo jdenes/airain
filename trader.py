@@ -1,5 +1,5 @@
-from get_rates import load_data
-
+from utils import load_data, fetch_crypto_rate, fetch_exchange_rate, structure_crypto, structure_currencies
+from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error, mean_squared_error, r2_score
 
 class Trader(object):
 
@@ -84,7 +84,7 @@ class LstmTrader(Trader):
 		X, y = [], []
 		for i, row in tqdm(df.iterrows()):
 			end = datetime.strptime(i, '%Y-%m-%d %H:%M:%S')
-			if mode == 'now':
+			if self.datatype == 'short_currency':
 				ind = [str(end - timedelta(minutes=x*freq)) for x in range(h)]
 			else:
 				ind = [str(end - timedelta(days=x)) for x in range(h)]
