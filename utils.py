@@ -128,11 +128,11 @@ def compute_metrics(y_true, y_pred):
     mse = mean_squared_error(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
 
-    return {'max_abs_rel_error': are.max(),
-            'mean_abs_rel_error': are.mean(),
-            'r2': r2,
-            'explained_var': evs,
-            'max_error': me,
-            'mean_squared_error': mse,
-            'mean_absolute_error': mae
+    return {'max_abs_rel_error':    are.max(),
+            'mean_abs_rel_error':   are.mean(),
+            'r2':                   r2,
+            'explained_var':        evs,
+            'max_error':            me,
+            'mean_squared_error':   mse,
+            'mean_absolute_error':  mae
             }

@@ -229,7 +229,7 @@ class MlTrader(Trader):
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
 
         history = pd.DataFrame()
-        for i in range(1, self.h):
+        for i in tqdm(range(1, self.h)):
             shifted_df = df.shift(i)
             history = pd.concat([history, shifted_df], axis=1, sort=True)
         df = pd.concat([df, history], axis=1, sort=True)
@@ -256,16 +256,6 @@ class MlTrader(Trader):
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
-
-    def train(self):
-        """
-        Using prepared data, trains model depending on agent type.
-        """
-
-        self.model = RandomForestRegressor(n_estimators=10)
-        # self.model = svm.SVR(gamma='scale', kernel='rbf')
-        # self.model = MLPRegressor(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(500, 1000, 500, 50))
-        self.model.fit(self.X_train, self.y_train)
 
     def test(self, plot=False):
         """
@@ -300,3 +290,74 @@ class MlTrader(Trader):
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
         """
         pass
+
+
+class ForestTrader(MlTrader):
+    """
+    A trader-forecaster based on random forest.
+    """
+
+    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+        """
+        Initialize method.
+        """
+
+        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        self.n_estimators = None
+
+    def train(self, n_estimators=10):
+        """
+        Using prepared data, trains model depending on agent type.
+        """
+
+        self.n_estimators = n_estimators
+        self.model = RandomForestRegressor(n_estimators=self.n_estimators)
+        self.model.fit(self.X_train, self.y_train)
+
+
+class SvmTrader(MlTrader):
+    """
+    A trader-forecaster based on support vector regression.
+    """
+
+    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+        """
+        Initialize method.
+        """
+
+        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        self.kernel = None
+        self.gamma = None
+
+    def train(self, gamma='scale', kernel='rbf'):
+        """
+        Using prepared data, trains model depending on agent type.
+        """
+
+        self.kernel = kernel
+        self.gamma = gamma
+        self.model = svm.SVR(gamma='scale', kernel='rbf')
+        self.model.fit(self.X_train, self.y_train)
+
+
+class NeuralTrader(MlTrader):
+    """
+    A trader-forecaster based on simple ANN.
+    """
+
+    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+        """
+        Initialize method.
+        """
+
+        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        self.layers = None
+
+    def train(self, layers=(50, 100, 500, 50)):
+        """
+        Using prepared data, trains model depending on agent type.
+        """
+
+        self.layers = layers
+        self.model = MLPRegressor(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=self.layers)
+        self.model.fit(self.X_train, self.y_train)

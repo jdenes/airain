@@ -1,6 +1,7 @@
-from traders import LstmTrader, MlTrader
+from traders import LstmTrader, NeuralTrader, SvmTrader, ForestTrader
 from utils import load_data, fetch_crypto_rate, fetch_exchange_rate, structure_crypto, structure_currencies
-
+from tabulate import tabulate
+import pandas as pd
 
 if __name__ == "__main__":
 
@@ -34,10 +35,13 @@ if __name__ == "__main__":
     # print("Final model scores:", score)
 
     df, labels = load_data(datatype='crypto')
-    # trader = LstmTrader()
-    trader = MlTrader()
-    trader.ingest_traindata(df, labels)
-    # trader.train(epochs=2, steps=50)
-    trader.train()
-    score = trader.test(plot=True)
-    print(score)
+    scores = []
+
+    for trader_model in [SvmTrader]:
+        trader = trader_model()
+        trader.ingest_traindata(df, labels)
+        # trader.train(epochs=2, steps=50)
+        trader.train()
+        scores.append(trader.test(plot=False))
+
+    print(tabulate(pd.DataFrame(scores, index=[0]), headers="keys", tablefmt="fancy_grid"))
