@@ -38,7 +38,7 @@ class Trader(object):
         self.X_test = None
         self.y_test = None
 
-    def transform_data(self, df, labels):
+    def transform_data(self, df, labels, get_current=False):
         """
         Converts .csv file to appropriate data format for training for this agent type.
         """
@@ -60,19 +60,56 @@ class Trader(object):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        pass
+        y_pred = self.model.predict(self.X_test).flatten()
+        y_test = self.y_test
+
+        if self.normalize:
+            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
+            y_test = (y_test + 1) * (self.y_max - self.y_min) / 2 + self.y_min
+
+        if plot:
+            plt.plot((y_pred - y_test) / y_test, '.')
+            plt.show()
+            plt.plot(y_test, y_pred, '.')
+            plt.show()
+
+        return compute_metrics(y_test, y_pred)
 
     def predict(self, X):
         """
-        Once the model is trained, predicts output if given appropriate data.
+        Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        pass
+        y_pred = self.model.predict(X).flatten()
+        if self.normalize:
+            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
+        return y_pred
 
-    def backtest(self, data, initial_gamble):
+    def backtest(self, df, labels, initial_gamble=100):
         """
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
+        /!\ WORKING ON CRYPTO DATA ONLY FOR NOW.
         """
-        pass
+
+        X, y, price = self.transform_data(df, labels, get_current=True)
+        y_pred = self.predict(X)
+
+        policy = (y_pred > price).astype(int)
+        next_compo = []
+        for p in policy:
+            if p == 1: next_compo.append((0, 1))
+            else: next_compo.append((1, 0))
+        print(pd.DataFrame(next_compo).mean(0))
+
+        def evaluate(x, p): return x[0] + (x[1] * p)
+
+        ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
+        for i in range(len(price)):
+            last_portfolio = ppp[-1]['portfolio']
+            value = evaluate(last_portfolio, price[i])
+            next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
+            ppp.append({'portfolio': next_portfolio, 'value': value})
+
+        return pd.DataFrame(ppp)
 
 
 class LstmTrader(Trader):
@@ -98,10 +135,11 @@ class LstmTrader(Trader):
         self.X_val = None
         self.y_val = None
 
-    def transform_data(self, df, labels):
+    def transform_data(self, df, labels, get_current=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
+        current = df['weightedAverage'].reset_index(drop=True)
         df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
 
         if self.normalize:
@@ -109,14 +147,18 @@ class LstmTrader(Trader):
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
 
         df, labels = df.to_numpy(), labels.to_numpy()
-        X, y = [], []
+        X, y, c = [], [], []
 
         for i in tqdm(range(self.h-1, len(df))):
             ind = [int(i - self.h + x + 1) for x in range(self.h)]
             X.append(df[ind])
             y.append(labels[i])
+            c.append(current[i])
 
-        return np.array(X), np.array(y)
+        if get_current:
+            return np.array(X), np.array(y), np.array(c)
+        else:
+            return np.array(X), np.array(y)
 
     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
         """
@@ -171,45 +213,18 @@ class LstmTrader(Trader):
                        validation_steps=self.valsteps,
                        validation_data=val_data)
 
-    def test(self, plot=False):
-        """
-        Once model is trained, uses test data to output performance metrics.
-        """
-        y_pred = self.model.predict(self.X_test).flatten()
-        y_test = self.y_test
-
-        if self.normalize:
-            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
-            y_test = (y_test + 1) * (self.y_max - self.y_min) / 2 + self.y_min
-
-        if plot:
-            plt.plot((y_pred - y_test) / y_test, '.')
-            plt.show()
-            plt.plot(y_test, y_pred, '.')
-            plt.show()
-
-        return compute_metrics(y_test, y_pred)
-
-    def predict(self, X):
-        """
-        Once the model is trained, predicts output if given appropriate (transformed) data.
-        """
-        y_pred = self.model.predict(X).flatten()
-        if self.normalize:
-            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
-        return y_pred
-
 
 class MlTrader(Trader):
     """
     A trader-forecaster based on a traditional machine learning algorithm.
     """
 
-    def transform_data(self, df, labels):
+    def transform_data(self, df, labels, get_current=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
 
+        current = df['weightedAverage']
         if self.normalize:
             df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
@@ -219,13 +234,17 @@ class MlTrader(Trader):
             shifted_df = df.shift(i)
             history = pd.concat([history, shifted_df], axis=1, sort=True)
         df = pd.concat([df, history], axis=1, sort=True)
-        df['labels'] = labels
+        df['labels'], df['current'] = labels, current
         df = df.dropna()
 
-        X = df.loc[:, df.columns != 'labels'].to_numpy()
+        X = df.drop(['labels', 'current'], axis=1).to_numpy()
         y = df['labels'].to_numpy()
+        c = df['current'].to_numpy()
 
-        return X, y
+        if get_current:
+            return X, y, c
+        else:
+            return X, y
 
     def ingest_traindata(self, df, labels, testsize=0.1):
         """
@@ -242,34 +261,6 @@ class MlTrader(Trader):
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
-
-    def test(self, plot=False):
-        """
-        Once model is trained, uses test data to output performance metrics.
-        """
-        y_pred = self.model.predict(self.X_test).flatten()
-        y_test = self.y_test
-
-        if self.normalize:
-            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
-            y_test = (y_test + 1) * (self.y_max - self.y_min) / 2 + self.y_min
-
-        if plot:
-            plt.plot((y_pred - y_test) / y_test, '.')
-            plt.show()
-            plt.plot(y_test, y_pred, '.')
-            plt.show()
-
-        return compute_metrics(y_test, y_pred)
-
-    def predict(self, X):
-        """
-        Once the model is trained, predicts output if given appropriate (transformed) data.
-        """
-        y_pred = self.model.predict(X).flatten()
-        if self.normalize:
-            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
-        return y_pred
 
 
 class ForestTrader(MlTrader):

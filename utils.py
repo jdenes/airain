@@ -8,16 +8,16 @@ import requests
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error, mean_squared_error, r2_score
 
 
-def load_data(datatype='crypto', shift=1):
+def load_data(filename, datatype='crypto', shift=1):
     """
     Given a data source in 'crypto', 'long_currency' or 'short-currency', loads appropriate csv file.
     """
 
     if datatype == 'crypto':
-        df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
+        df = pd.read_csv(filename, encoding='utf-8', index_col=0)
         labels = df['weightedAverage'].shift(-shift)
     elif datatype == 'short_currency':
-        df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
+        df = pd.read_csv(filename, encoding='utf-8', index_col=0)
         labels = df['EURGBP 4. close'].shift(-shift)
     else:
         df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
@@ -73,7 +73,7 @@ def fetch_exchange_rate(from_currency, to_currency, freq, api_key):
         json.dump(result, outfile)
 
 
-def structure_crypto(from_curr, to_curr, freq):
+def structure_crypto(filename, from_curr, to_curr, freq):
     """
     Once cryptocurrencies rate json file are obtained, structures it into standard csv.
     """
@@ -85,7 +85,7 @@ def structure_crypto(from_curr, to_curr, freq):
             df1 = pd.DataFrame.from_dict(data).set_index('date')
             df1.index = pd.to_datetime(df1.index, unit='s')
             df = df.combine_first(df1)
-    df.to_csv('./data/csv/dataset_crypto.csv', encoding='utf-8')
+    df.to_csv(filename, encoding='utf-8')
 
 
 def structure_currencies(from_curr, to_curr, freq):
