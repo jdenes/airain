@@ -5,6 +5,7 @@
       <w>datatype</w>
       <w>testsize</w>
       <w>traindata</w>
+      <w>valsize</w>
     </words>
   </dictionary>
 </component>

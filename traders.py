@@ -8,8 +8,6 @@ from sklearn import svm
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-
-from datetime import datetime, timedelta
 from tqdm import tqdm
 
 from utils import compute_metrics
@@ -20,16 +18,14 @@ class Trader(object):
     A general trader-forecaster to inherit from.
     """
 
-    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
         """
         Initialize method.
         """
 
-        self.freq = freq
         self.h = h
         self.forecast = forecast
         self.seed = seed
-        self.datatype = datatype
         self.normalize = normalize
 
         self.model = None
@@ -84,12 +80,12 @@ class LstmTrader(Trader):
     A trader-forecaster based on a LSTM neural network.
     """
 
-    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
         """
         Initialize method.
         """
 
-        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
 
         self.batch_size = None
         self.buffer_size = None
@@ -106,29 +102,25 @@ class LstmTrader(Trader):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
+        df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
 
         if self.normalize:
             df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
 
+        df, labels = df.to_numpy(), labels.to_numpy()
         X, y = [], []
 
-        for i, row in tqdm(df.iterrows()):
-            end = datetime.strptime(i, '%Y-%m-%d %H:%M:%S')
-            if self.datatype in ['short_currency', 'crypto']:
-                ind = [str(end - timedelta(minutes=x*self.freq)) for x in range(self.h)]
-            else:
-                ind = [str(end - timedelta(days=x)) for x in range(self.h)]
-            if all(x in df.index for x in ind):
-                slicing = df.loc[ind]
-                X.append(np.array(slicing))
-                y.append(labels[i])
+        for i in tqdm(range(self.h-1, len(df))):
+            ind = [int(i - self.h + x + 1) for x in range(self.h)]
+            X.append(df[ind])
+            y.append(labels[i])
 
         return np.array(X), np.array(y)
 
     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
         """
-        Loads data from csv file depending on datatype.
+        Loads data from csv file depending on data type.
         """
 
         self.testsize = testsize
@@ -207,12 +199,6 @@ class LstmTrader(Trader):
             y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
         return y_pred
 
-    def backtest(self, data, initial_gamble):
-        """
-        Given a dataset of any accepted format, simulates and returns portfolio evolution.
-        """
-        pass
-
 
 class MlTrader(Trader):
     """
@@ -285,24 +271,18 @@ class MlTrader(Trader):
             y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
         return y_pred
 
-    def backtest(self, data, initial_gamble):
-        """
-        Given a dataset of any accepted format, simulates and returns portfolio evolution.
-        """
-        pass
-
 
 class ForestTrader(MlTrader):
     """
     A trader-forecaster based on random forest.
     """
 
-    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
         """
         Initialize method.
         """
 
-        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
         self.n_estimators = None
 
     def train(self, n_estimators=10):
@@ -320,12 +300,12 @@ class SvmTrader(MlTrader):
     A trader-forecaster based on support vector regression.
     """
 
-    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
         """
         Initialize method.
         """
 
-        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
         self.kernel = None
         self.gamma = None
 
@@ -345,12 +325,12 @@ class NeuralTrader(MlTrader):
     A trader-forecaster based on simple ANN.
     """
 
-    def __init__(self, freq=5, h=10, seed=123, forecast=1, datatype='crypto', normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
         """
         Initialize method.
         """
 
-        super().__init__(freq=freq, h=h, seed=seed, forecast=forecast, datatype=datatype, normalize=normalize)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
         self.layers = None
 
     def train(self, layers=(50, 100, 500, 50)):

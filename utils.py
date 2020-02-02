@@ -8,24 +8,24 @@ import requests
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error, mean_squared_error, r2_score
 
 
-def load_data(datatype='crypto'):
+def load_data(datatype='crypto', shift=1):
     """
     Given a data source in 'crypto', 'long_currency' or 'short-currency', loads appropriate csv file.
     """
 
     if datatype == 'crypto':
         df = pd.read_csv('./data/csv/dataset_crypto.csv', encoding='utf-8', index_col=0)
-        labels = df['weightedAverage'].shift(-1)
+        labels = df['weightedAverage'].shift(-shift)
     elif datatype == 'short_currency':
         df = pd.read_csv('./data/csv/dataset.csv', encoding='utf-8', index_col=0)
-        labels = df['EURGBP 4. close'].shift(-1)
+        labels = df['EURGBP 4. close'].shift(-shift)
     else:
         df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
         df.index = pd.to_datetime(df.index, format='%d/%m/%Y')
         idx = list(pd.date_range(df.index.min(), df.index.max()))
         df = df.reindex(idx, method='ffill')
         df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
-        labels = df['EURGBP 4. close'].shift(-1)
+        labels = df['EURGBP 4. close'].shift(-shift)
 
     return df[pd.notnull(labels)], labels[pd.notnull(labels)]
 

@@ -34,14 +34,14 @@ if __name__ == "__main__":
     # score = simple_prediction(h=h, data='crypto')
     # print("Final model scores:", score)
 
-    df, labels = load_data(datatype='crypto')
+    df, labels = load_data(datatype='crypto', shift=1)
     scores = []
 
-    for trader_model in [SvmTrader]:
+    for trader_model in [ForestTrader]:
         trader = trader_model()
         trader.ingest_traindata(df, labels)
         # trader.train(epochs=2, steps=50)
         trader.train()
-        scores.append(trader.test(plot=False))
+        scores.append(trader.test(plot=True))
 
     print(tabulate(pd.DataFrame(scores, index=[0]), headers="keys", tablefmt="fancy_grid"))
