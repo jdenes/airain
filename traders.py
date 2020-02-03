@@ -84,7 +84,7 @@ class Trader(object):
             y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
         return y_pred
 
-    def backtest(self, df, labels, initial_gamble=100):
+    def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
         """
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
         /!\ WORKING ON CRYPTO DATA ONLY FOR NOW.
@@ -101,14 +101,19 @@ class Trader(object):
         print(pd.DataFrame(next_compo).mean(0))
 
         def evaluate(x, p): return x[0] + (x[1] * p)
+        count = 0
 
         ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
             last_portfolio = ppp[-1]['portfolio']
-            value = evaluate(last_portfolio, price[i])
+            value = evaluate(last_portfolio, price[i]) * (1 - fees)
+            if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
+                value = value * (1 - fees)
+                count += 1
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
             ppp.append({'portfolio': next_portfolio, 'value': value})
 
+        print(count)
         return pd.DataFrame(ppp)
 
 
@@ -232,8 +237,8 @@ class MlTrader(Trader):
         history = pd.DataFrame()
         for i in tqdm(range(1, self.h)):
             shifted_df = df.shift(i)
-            history = pd.concat([history, shifted_df], axis=1, sort=True)
-        df = pd.concat([df, history], axis=1, sort=True)
+            history = pd.concat([history, shifted_df], axis=1)
+        df = pd.concat([df, history], axis=1)
         df['labels'], df['current'] = labels, current
         df = df.dropna()
 

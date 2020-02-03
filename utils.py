@@ -30,90 +30,63 @@ def load_data(filename, datatype='crypto', shift=1):
     return df[pd.notnull(labels)], labels[pd.notnull(labels)]
 
 
-def fetch_crypto_rate(from_currency, to_currency, start, end, freq):
+def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
     """
     Given currencies and start/end dates, as well as frequency, gets exchange rates from Poloniex API.
     """
 
-    base_url = "https://poloniex.com/public?command=returnChartData" + "&currencyPair=" + from_currency + "_" + to_currency
+    base_url = "https://poloniex.com/public?command=returnChartData"
+    base_url += "&currencyPair=" + from_currency + "_" + to_currency
+    data = []
 
     start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
     tmp1 = start
-    tmp2 = start + timedelta(weeks=12)
+    if end - start < timedelta(weeks=12):
+        tmp2 = end
+    else:
+        tmp2 = start + timedelta(weeks=12)
     while tmp2 <= end:
         x1, x2 = datetime.timestamp(tmp1), datetime.timestamp(tmp2)
         main_url = base_url + "&start=" + str(x1) + "&end=" + str(x2) + "&period=" + str(freq * 60)
         print('Fetching:', main_url)
-        req_ob = requests.get(main_url)
-        result = req_ob.json()
-
-        d1, d2 = tmp1.strftime("%Y%m%d"), tmp2.strftime("%Y%m%d")
-        with open('data/raw/crypto/' + d1 + '-' + d2 + '-' + from_currency + to_currency + str(freq) + '.json', 'w') as outfile:
-            json.dump(result, outfile)
+        res = requests.get(main_url).json()
+        if res[0]['date'] != 0:
+            data += res
 
         tmp1, tmp2 = tmp1 + timedelta(weeks=12), tmp2 + timedelta(weeks=12)
         if tmp1 < end < tmp2:
             tmp2 = end
 
+    df = pd.DataFrame.from_dict(data).set_index('date')
+    df.index = pd.to_datetime(df.index, unit='s').tz_localize('UTC').tz_convert('Europe/Paris')
+    df.to_csv(filename, encoding='utf-8')
 
-def fetch_exchange_rate(from_currency, to_currency, freq, api_key):
+
+def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     """
     Given a currency pair, gets all possible historic data from Alphavantage.
     """
 
     base_url = r"https://www.alphavantage.co/query?function=FX_INTRADAY"
-    main_url = base_url + "&from_symbol=" + from_currency + "&to_symbol=" + to_currency
-    main_url = main_url + "&interval=" + str(freq) + "min&outputsize=full" + "&apikey=" + api_key
-    print('Fetching:', main_url)
-    req_ob = requests.get(main_url)
-    result = req_ob.json()
+    base_url += "&interval=" + str(freq) + "min&outputsize=full" + "&apikey=" + api_key
 
-    with open('data/raw/' + str(date.today()) + '-' + from_currency + to_currency + str(freq) + '.json',
-              'w') as outfile:
-        json.dump(result, outfile)
+    url = base_url + "&from_symbol=" + from_currency + "&to_symbol=" + to_currency
+    print('Fetching:', url)
+    data = requests.get(url).json()["Time Series FX (" + str(freq) + "min)"]
+    df1 = pd.DataFrame.from_dict(data, orient='index')
+    df1.columns = [(from_currency + to_currency + ' ' + x[3:]) for x in df1.columns]
 
+    url = base_url + "&from_symbol=" + to_currency + "&to_symbol=" + from_currency
+    print('Fetching:', url)
+    data = requests.get(url).json()["Time Series FX (" + str(freq) + "min)"]
+    df2 = pd.DataFrame.from_dict(data, orient='index')
+    df2.columns = [(to_currency + from_currency + ' ' + x[3:]) for x in df2.columns]
 
-def structure_crypto(filename, from_curr, to_curr, freq):
-    """
-    Once cryptocurrencies rate json file are obtained, structures it into standard csv.
-    """
-
-    df = pd.DataFrame()
-    for f in glob.glob('./data/raw/crypto/*-*-' + from_curr + to_curr + str(freq) + '.json'):
-        with open(f) as json_file:
-            data = json.load(json_file)
-            df1 = pd.DataFrame.from_dict(data).set_index('date')
-            df1.index = pd.to_datetime(df1.index, unit='s')
-            df = df.combine_first(df1)
-    df.to_csv(filename, encoding='utf-8')
-
-
-def structure_currencies(from_curr, to_curr, freq):
-    """
-    Once currencies exchange rate json file are obtained, structures it into standard csv.
-    """
-
-    dfA = pd.DataFrame()
-    for f in glob.glob('./data/raw/*-*-' + from_curr + to_curr + str(freq) + '.json'):
-        with open(f) as json_file:
-            data = json.load(json_file)
-            df1 = pd.DataFrame.from_dict(data["Time Series FX (" + str(freq) + "min)"], orient='index')
-            dfA = dfA.combine_first(df1)
-    dfA.columns = [(from_curr + to_curr + ' ' + x) for x in dfA.columns]
-
-    dfB = pd.DataFrame()
-    for f in glob.glob('./data/raw/*-*-' + to_curr + from_curr + str(freq) + '.json'):
-        with open(f) as json_file:
-            data = json.load(json_file)
-            df1 = pd.DataFrame.from_dict(data["Time Series FX (" + str(freq) + "min)"], orient='index')
-            dfB = dfB.combine_first(df1)
-    dfB.columns = [(to_curr + from_curr + ' ' + x) for x in dfB.columns]
-
-    if not dfA.index.equals(dfB.index):
+    if not df1.index.equals(df2.index):
         print('Warning: index not aligned btw exchange rate and reverse exchange rate.')
-    df = pd.concat([dfA, dfB], axis=1, sort=True).dropna()
 
-    df.to_csv('./data/csv/dataset.csv', encoding='utf-8')
+    df = pd.concat([df1, df2], axis=1, sort=True).dropna()
+    df.to_csv(filename, encoding='utf-8')
 
 
 def compute_metrics(y_true, y_pred):
