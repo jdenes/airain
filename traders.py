@@ -118,6 +118,34 @@ class Trader(object):
         return pd.DataFrame(ppp)
 
 
+class Dummy(Trader):
+
+    def __init__(self):
+        super().__init__()
+
+    def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
+
+        price = df['EURGBPclose']
+
+        next_compo = []
+        for p in range(len(price)):
+            next_compo.append((0, 1))
+        print(pd.DataFrame(next_compo).mean(0))
+
+        def evaluate(x, p): return x[0] + (x[1] * p)
+
+        ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
+        for i in range(len(price)):
+            last_portfolio = ppp[-1]['portfolio']
+            value = evaluate(last_portfolio, price[i]) * (1 - fees)
+            if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
+                value = value * (1 - fees)
+            next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
+            ppp.append({'portfolio': next_portfolio, 'value': value})
+
+        return pd.DataFrame(ppp)
+
+
 class LstmTrader(Trader):
     """
     A trader-forecaster based on a LSTM neural network.

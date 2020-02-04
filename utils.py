@@ -16,7 +16,6 @@ def load_data(filename, shift=1):
     df = df.loc[~df.index.duplicated(keep='last')]
     labels = df['EURGBPclose'].shift(-shift)
     # labels = df['weightedAverage'].shift(-shift)
-    print(df.shape)
 
     return df[pd.notnull(labels)], labels[pd.notnull(labels)]
 

@@ -1,4 +1,4 @@
-from traders import LstmTrader, NeuralTrader, SvmTrader, ForestTrader
+from traders import LstmTrader, NeuralTrader, SvmTrader, ForestTrader, Dummy
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate
 from tabulate import tabulate
 import pandas as pd
@@ -28,8 +28,10 @@ if __name__ == "__main__":
         # trader.train(epochs=40, steps=500)
         trader.train()
         scores.append(trader.test(plot=False))
-        backtest = trader.backtest(df, labels, 100, 0.0)
+        backtest = trader.backtest(df, labels, 1000, 0.0)
+        baseline = Dummy().backtest(df, labels, 1000, 0.0)
         plt.plot(backtest['value'])
+        plt.plot(baseline['value'])
         plt.show()
 
     print(tabulate(pd.DataFrame(scores, index=[0]), headers="keys", tablefmt="fancy_grid"))
