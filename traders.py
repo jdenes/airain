@@ -93,7 +93,8 @@ class Trader(object):
         X, y, price = self.transform_data(df, labels, get_current=True)
         y_pred = self.predict(X)
 
-        policy = (y_pred > price).astype(int)
+        # TODO: policy should be to change only if gain even with the fees
+        policy = (y_pred * (1 - fees) > price).astype(int)
         next_compo = []
         for p in policy:
             if p == 1: next_compo.append((0, 1))
@@ -113,7 +114,7 @@ class Trader(object):
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
             ppp.append({'portfolio': next_portfolio, 'value': value})
 
-        print(count)
+        # print(count)
         return pd.DataFrame(ppp)
 
 
@@ -229,7 +230,9 @@ class MlTrader(Trader):
         Given data and labels, transforms it into suitable format and return them.
         """
 
-        current = df['weightedAverage']
+        # current = df['weightedAverage']
+        current = df['EURGBPclose']
+
         if self.normalize:
             df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
@@ -266,6 +269,7 @@ class MlTrader(Trader):
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
+        print('Available data shapes: train:', self.X_train.shape, ' and test:', self.X_test.shape)
 
 
 class ForestTrader(MlTrader):

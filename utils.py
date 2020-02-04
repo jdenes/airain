@@ -1,5 +1,4 @@
-import glob
-import json
+import os
 from datetime import date, datetime, timedelta
 
 import numpy as np
@@ -8,24 +7,16 @@ import requests
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error, mean_squared_error, r2_score
 
 
-def load_data(filename, datatype='crypto', shift=1):
+def load_data(filename, shift=1):
     """
     Given a data source in 'crypto', 'long_currency' or 'short-currency', loads appropriate csv file.
     """
 
-    if datatype == 'crypto':
-        df = pd.read_csv(filename, encoding='utf-8', index_col=0)
-        labels = df['weightedAverage'].shift(-shift)
-    elif datatype == 'short_currency':
-        df = pd.read_csv(filename, encoding='utf-8', index_col=0)
-        labels = df['EURGBP 4. close'].shift(-shift)
-    else:
-        df = pd.read_csv('./data/csv/dataset_long.csv', encoding='utf-8', index_col=0)
-        df.index = pd.to_datetime(df.index, format='%d/%m/%Y')
-        idx = list(pd.date_range(df.index.min(), df.index.max()))
-        df = df.reindex(idx, method='ffill')
-        df.index = df.index.strftime('%Y-%m-%d %H:%M:%S')
-        labels = df['EURGBP 4. close'].shift(-shift)
+    df = pd.read_csv(filename, encoding='utf-8', index_col=0)
+    df = df.loc[~df.index.duplicated(keep='last')]
+    labels = df['EURGBPclose'].shift(-shift)
+    # labels = df['weightedAverage'].shift(-shift)
+    print(df.shape)
 
     return df[pd.notnull(labels)], labels[pd.notnull(labels)]
 
@@ -51,7 +42,7 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
         print('Fetching:', main_url)
         res = requests.get(main_url).json()
         if res[0]['date'] != 0:
-            data += res
+            data += requests.get(main_url).json()
 
         tmp1, tmp2 = tmp1 + timedelta(weeks=12), tmp2 + timedelta(weeks=12)
         if tmp1 < end < tmp2:
@@ -74,19 +65,25 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     print('Fetching:', url)
     data = requests.get(url).json()["Time Series FX (" + str(freq) + "min)"]
     df1 = pd.DataFrame.from_dict(data, orient='index')
-    df1.columns = [(from_currency + to_currency + ' ' + x[3:]) for x in df1.columns]
+    df1.columns = [(from_currency + to_currency + x[3:]) for x in df1.columns]
 
     url = base_url + "&from_symbol=" + to_currency + "&to_symbol=" + from_currency
     print('Fetching:', url)
     data = requests.get(url).json()["Time Series FX (" + str(freq) + "min)"]
     df2 = pd.DataFrame.from_dict(data, orient='index')
-    df2.columns = [(to_currency + from_currency + ' ' + x[3:]) for x in df2.columns]
+    df2.columns = [(to_currency + from_currency + x[3:]) for x in df2.columns]
 
     if not df1.index.equals(df2.index):
         print('Warning: index not aligned btw exchange rate and reverse exchange rate.')
 
     df = pd.concat([df1, df2], axis=1, sort=True).dropna()
-    df.to_csv(filename, encoding='utf-8')
+
+    if os.path.exists(filename):
+        old = pd.read_csv(filename, encoding='utf-8', index_col=0)
+        new = pd.concat([old, df]).drop_duplicates(keep='last')
+        new.to_csv(filename, encoding='utf-8')
+    else:
+        df.to_csv(filename, encoding='utf-8')
 
 
 def compute_metrics(y_true, y_pred):

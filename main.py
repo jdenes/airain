@@ -11,15 +11,15 @@ if __name__ == "__main__":
     api_key = "H2T4H92C43D9DT3D"
     from_curr, to_curr = 'USDC', 'BTC'
 
-    # start, end = '2018-07-01 00:00:00', '2019-11-30 00:00:00'
+    start, end = '2018-07-01 00:00:00', '2019-08-31 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
-    # start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
-    # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
-    # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', freq, api_key)
 
-    df, labels = load_data(filename='./data/dataset_crypto_train.csv', datatype='crypto', shift=1)
-    print(df.shape, labels.shape)
-    df1, labels1 = load_data(filename='./data/dataset_crypto_test.csv', datatype='crypto', shift=1)
+    start, end = '2019-09-01 00:00:00', '2020-02-01 00:00:00'
+    # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
+    fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', freq, api_key)
+
+    df, labels = load_data(filename='./data/dataset_eurgbp.csv', shift=1)
+    # df1, labels1 = load_data(filename='./data/dataset_crypto_test.csv', shift=1)
     scores = []
 
     for trader_model in [ForestTrader]:
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         # trader.train(epochs=40, steps=500)
         trader.train()
         scores.append(trader.test(plot=False))
-        backtest = trader.backtest(df1, labels1, 1000, 0.0001)
+        backtest = trader.backtest(df, labels, 100, 0.0)
         plt.plot(backtest['value'])
         plt.show()
 
