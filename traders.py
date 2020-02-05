@@ -8,7 +8,6 @@ from sklearn import svm
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 
 from utils import compute_metrics
 
@@ -99,7 +98,6 @@ class Trader(object):
         next_compo = [(0, 1) if p == 1 else (1, 0) for p in policy]
 
         def evaluate(x, p): return x[0] + (x[1] * p)
-        count = 0
 
         ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
@@ -107,11 +105,9 @@ class Trader(object):
             value = evaluate(last_portfolio, price[i]) * (1 - fees)
             if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
                 value = value * (1 - fees)
-                count += 1
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
             ppp.append({'portfolio': next_portfolio, 'value': value})
 
-        # print(count)
         return pd.DataFrame(ppp)
 
 ####################################################################################
@@ -124,10 +120,11 @@ class Dummy(Trader):
 
     def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
 
-        price = df['EURGBPclose']
+        # price = df['EURGBPclose']
+        price = df['weightedAverage'][self.h-1:]
 
         next_compo = []
-        for p in range(len(price)):
+        for _ in range(len(price)):
             next_compo.append((0, 1))
 
         def evaluate(x, p): return x[0] + (x[1] * p)
@@ -153,10 +150,11 @@ class Randommy(Trader):
 
     def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
 
-        price = df['EURGBPclose']
+        # price = df['EURGBPclose']
+        price = df['weightedAverage'][self.h-1:]
 
         next_compo = []
-        for p in range(len(price)):
+        for _ in range(len(price)):
             next_compo.append([(0, 1), (1, 0)][np.random.choice(2)])
 
         def evaluate(x, p): return x[0] + (x[1] * p)
@@ -203,6 +201,7 @@ class LstmTrader(Trader):
         Given data and labels, transforms it into suitable format and return them.
         """
         current = df['weightedAverage'].reset_index(drop=True)
+        # current = df['EURGBPclose'].reset_index(drop=True)
         df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
 
         if self.normalize:
@@ -212,7 +211,7 @@ class LstmTrader(Trader):
         df, labels = df.to_numpy(), labels.to_numpy()
         X, y, c = [], [], []
 
-        for i in tqdm(range(self.h-1, len(df))):
+        for i in range(self.h-1, len(df)):
             ind = [int(i - self.h + x + 1) for x in range(self.h)]
             X.append(df[ind])
             y.append(labels[i])
@@ -289,15 +288,15 @@ class MlTrader(Trader):
         Given data and labels, transforms it into suitable format and return them.
         """
 
-        # current = df['weightedAverage']
-        current = df['EURGBPclose']
+        current = df['weightedAverage']
+        # current = df['EURGBPclose']
 
         if self.normalize:
             df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
 
         history = pd.DataFrame()
-        for i in tqdm(range(1, self.h)):
+        for i in range(1, self.h):
             shifted_df = df.shift(i)
             history = pd.concat([history, shifted_df], axis=1)
         df = pd.concat([df, history], axis=1)

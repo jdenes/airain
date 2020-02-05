@@ -7,36 +7,42 @@ import matplotlib.pyplot as plt
 if __name__ == "__main__":
 
     freq = 5
-    h = 20
+    h = 10
+    initial_gamble = 200
+    fees = 0.0
     api_key = "H2T4H92C43D9DT3D"
     from_curr, to_curr = 'USDC', 'BTC'
 
-    start, end = '2018-07-01 00:00:00', '2019-08-31 00:00:00'
+    start, end = '2018-07-01 00:00:00', '2019-10-31 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
 
-    start, end = '2019-09-01 00:00:00', '2020-02-01 00:00:00'
-    # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
+    start, end = '2020-01-01 00:00:00', '2020-02-01 10:00:00'
+    fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
+
     fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', freq, api_key)
 
-    df, labels = load_data(filename='./data/dataset_eurgbp.csv', shift=1)
-    # df1, labels1 = load_data(filename='./data/dataset_crypto_test.csv', shift=1)
-    scores = []
+    df, labels = load_data(filename='./data/dataset_crypto_train.csv', shift=1)
+    df1, labels1 = load_data(filename='./data/dataset_crypto_test.csv', shift=1)
 
-    for trader_model in [ForestTrader]:
+    scores = []
+    x = df1.index[h-2:]
+
+    for i, trader_model in enumerate([ForestTrader]):
         trader = trader_model()
         trader.ingest_traindata(df, labels)
-        # trader.train(epochs=40, steps=500)
         trader.train()
         scores.append(trader.test(plot=False))
-        backtest = trader.backtest(df, labels, 1000, 0.0)
-        baseline = Dummy().backtest(df, labels, 1000, 0.0)
-        random = Randommy().backtest(df, labels, 1000, 0.0)
-        plt.plot(backtest['value'], label='Huorn')
+        backtest = trader.backtest(df1, labels1, initial_gamble, fees)
+        plt.plot(backtest['value'], label=['Huorn', 'LSTM', 'SVM'][i])
 
-    plt.plot(baseline['value'], label='Pure GBP')
+    baseline = Dummy().backtest(df1, labels1, initial_gamble, fees)
+    random = Randommy().backtest(df1, labels1, initial_gamble, fees)
+
+    plt.plot(baseline['value'], label='Pure BTC')
     plt.plot(random['value'], label='Random')
     plt.legend()
+    plt.grid()
     plt.show()
 
-    print(tabulate(pd.DataFrame(scores, index=[0]), headers="keys", tablefmt="fancy_grid"))
-    backtest['value'].to_csv('./figures/wowmoney.csv', header=True)
+    print(tabulate(pd.DataFrame(scores), headers="keys", tablefmt="fancy_grid"))
+    # print(backtest['value'], backtest['portfolio'])

@@ -3,9 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -14,7 +14,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/currotrade$main.coverage" NAME="main Coverage Results" MODIFIED="1580899691334" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/currotrade$main.coverage" NAME="main Coverage Results" MODIFIED="1580941261012" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="FUSProjectUsageTrigger">
     <session id="807931200">
@@ -36,14 +36,14 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="py" value="6149" />
-          <entry key="txt" value="91" />
+          <entry key="py" value="6893" />
+          <entry key="txt" value="114" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="PLAIN_TEXT" value="91" />
-          <entry key="Python" value="6149" />
+          <entry key="PLAIN_TEXT" value="114" />
+          <entry key="Python" value="6893" />
         </counts>
       </usages-collector>
     </session>
@@ -53,11 +53,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="41">
-              <caret line="24" column="39" lean-forward="true" selection-start-line="24" selection-start-column="39" selection-end-line="24" selection-end-column="39" />
+            <state relative-caret-position="117">
+              <caret line="35" column="17" selection-start-line="35" selection-start-column="17" selection-end-line="35" selection-end-column="17" />
               <folding>
                 <element signature="e#0#86#0" expanded="true" />
-                <marker date="1580898837557" expanded="true" signature="762:768" ph="..." />
+                <marker date="1580940996767" expanded="true" signature="801:807" ph="..." />
               </folding>
             </state>
           </provider>
@@ -66,13 +66,13 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/traders.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="117">
-              <caret line="156" lean-forward="true" selection-start-line="156" selection-end-line="156" />
+            <state relative-caret-position="108">
+              <caret line="396" column="27" selection-start-line="396" selection-start-column="25" selection-end-line="396" selection-end-column="27" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
-                <marker date="1580898686415" expanded="true" signature="3687:5671" ph="..." />
-                <marker date="1580898686415" expanded="true" signature="11228:11233" ph="..." />
-                <marker date="1580898686415" expanded="true" signature="11228:11285" ph="..." />
+                <marker date="1580938687682" expanded="true" signature="3597:5683" ph="..." />
+                <marker date="1580938687682" expanded="true" signature="11289:11294" ph="..." />
+                <marker date="1580938687682" expanded="true" signature="11289:11346" ph="..." />
               </folding>
             </state>
           </provider>
@@ -81,8 +81,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/utils.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-405">
-              <caret line="18" lean-forward="true" selection-start-line="18" selection-end-line="18" />
+            <state relative-caret-position="90">
+              <caret line="75" column="27" selection-start-line="75" selection-start-column="27" selection-end-line="75" selection-end-column="27" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -95,14 +95,18 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>\t</find>
-      <find>backtest</find>
       <find>datatype</find>
       <find>freq</find>
       <find>transform</find>
       <find>weightedAverage</find>
       <find>ingest_traindata</find>
       <find>self.model.pre</find>
+      <find>print(len(price</find>
+      <find>backtest</find>
+      <find>EURGBPclose</find>
+      <find>tqdm</find>
       <find>transform_data</find>
+      <find>h=</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -219,11 +223,19 @@
       <option name="project" value="LOCAL" />
       <updated>1580838575846</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Added random simulation">
+      <created>1580901446795</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1580901446795</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1295" height="735" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info id="Favorites" side_tool="true" />
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16842106" />
@@ -236,14 +248,14 @@
       <window_info anchor="bottom" id="Event Log" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32890365" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32890365" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.3986711" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="right" id="Database" />
       <window_info anchor="right" id="R Packages" />
-      <window_info active="true" anchor="right" id="SciView" visible="true" weight="0.27854252" />
+      <window_info anchor="right" id="SciView" visible="true" weight="0.2777328" />
       <window_info anchor="right" id="R Graphics" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -259,13 +271,14 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Improved code indus for MlTraders" />
     <MESSAGE value="Improved data fetching + test with EUR-GBP" />
-    <option name="LAST_COMMIT_MESSAGE" value="Improved data fetching + test with EUR-GBP" />
+    <MESSAGE value="Added random simulation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added random simulation" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/utils.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-405">
-          <caret line="18" lean-forward="true" selection-start-line="18" selection-end-line="18" />
+        <state relative-caret-position="90">
+          <caret line="75" column="27" selection-start-line="75" selection-start-column="27" selection-end-line="75" selection-end-column="27" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
@@ -274,24 +287,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/traders.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="117">
-          <caret line="156" lean-forward="true" selection-start-line="156" selection-end-line="156" />
+        <state relative-caret-position="108">
+          <caret line="396" column="27" selection-start-line="396" selection-start-column="25" selection-end-line="396" selection-end-column="27" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
-            <marker date="1580898686415" expanded="true" signature="3687:5671" ph="..." />
-            <marker date="1580898686415" expanded="true" signature="11228:11233" ph="..." />
-            <marker date="1580898686415" expanded="true" signature="11228:11285" ph="..." />
+            <marker date="1580938687682" expanded="true" signature="3597:5683" ph="..." />
+            <marker date="1580938687682" expanded="true" signature="11289:11294" ph="..." />
+            <marker date="1580938687682" expanded="true" signature="11289:11346" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="41">
-          <caret line="24" column="39" lean-forward="true" selection-start-line="24" selection-start-column="39" selection-end-line="24" selection-end-column="39" />
+        <state relative-caret-position="117">
+          <caret line="35" column="17" selection-start-line="35" selection-start-column="17" selection-end-line="35" selection-end-column="17" />
           <folding>
             <element signature="e#0#86#0" expanded="true" />
-            <marker date="1580898837557" expanded="true" signature="762:768" ph="..." />
+            <marker date="1580940996767" expanded="true" signature="801:807" ph="..." />
           </folding>
         </state>
       </provider>

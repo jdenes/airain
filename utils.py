@@ -14,8 +14,8 @@ def load_data(filename, shift=1):
 
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
     df = df.loc[~df.index.duplicated(keep='last')]
-    labels = df['EURGBPclose'].shift(-shift)
-    # labels = df['weightedAverage'].shift(-shift)
+    # labels = df['EURGBPclose'].shift(-shift)
+    labels = df['weightedAverage'].shift(-shift)
 
     return df[pd.notnull(labels)], labels[pd.notnull(labels)]
 
@@ -79,10 +79,10 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
 
     if os.path.exists(filename):
         old = pd.read_csv(filename, encoding='utf-8', index_col=0)
-        new = pd.concat([old, df]).drop_duplicates(keep='last')
-        new.to_csv(filename, encoding='utf-8')
-    else:
-        df.to_csv(filename, encoding='utf-8')
+        df = pd.concat([old, df]).drop_duplicates(keep='last')
+
+    df.to_csv(filename, encoding='utf-8')
+    print('New available EUR-GBP data shape:', df.shape)
 
 
 def compute_metrics(y_true, y_pred):
@@ -92,16 +92,17 @@ def compute_metrics(y_true, y_pred):
 
     are = np.abs(y_pred - y_true) / np.abs(y_true)
     r2 = r2_score(y_true, y_pred)
-    evs = explained_variance_score(y_true, y_pred)
     me = max_error(y_true, y_pred)
     mse = mean_squared_error(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
+    pred_shift = np.array(y_pred[:-1] > y_true[1:]).astype(int)
+    true_shift = np.array(y_true[:-1] > y_true[1:]).astype(int)
 
     return {'max_abs_rel_error':    are.max(),
             'mean_abs_rel_error':   are.mean(),
-            'r2':                   r2,
-            'explained_var':        evs,
+            'mean_absolute_error':  mae,
             'max_error':            me,
             'mean_squared_error':   mse,
-            'mean_absolute_error':  mae
+            'r2':                   r2,
+            'change_accuracy':           (pred_shift == true_shift).mean()
             }
