@@ -12,6 +12,8 @@ from tqdm import tqdm
 
 from utils import compute_metrics
 
+####################################################################################
+
 
 class Trader(object):
     """
@@ -42,9 +44,9 @@ class Trader(object):
         """
         Converts .csv file to appropriate data format for training for this agent type.
         """
-        pass
+        return None, None, None
 
-    def ingest_traindata(self, df, labels, testsize):
+    def ingest_traindata(self, df, labels, testsize=0.1):
         """
         Converts data file and ingest for training, depending on agent type.
         """
@@ -60,11 +62,10 @@ class Trader(object):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        y_pred = self.model.predict(self.X_test).flatten()
+        y_pred = self.predict(self.X_test)
         y_test = self.y_test
 
         if self.normalize:
-            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
             y_test = (y_test + 1) * (self.y_max - self.y_min) / 2 + self.y_min
 
         if plot:
@@ -95,11 +96,7 @@ class Trader(object):
 
         # TODO: policy should be to change only if gain even with the fees
         policy = (y_pred * (1 - fees) > price).astype(int)
-        next_compo = []
-        for p in policy:
-            if p == 1: next_compo.append((0, 1))
-            else: next_compo.append((1, 0))
-        print(pd.DataFrame(next_compo).mean(0))
+        next_compo = [(0, 1) if p == 1 else (1, 0) for p in policy]
 
         def evaluate(x, p): return x[0] + (x[1] * p)
         count = 0
@@ -117,6 +114,8 @@ class Trader(object):
         # print(count)
         return pd.DataFrame(ppp)
 
+####################################################################################
+
 
 class Dummy(Trader):
 
@@ -130,7 +129,6 @@ class Dummy(Trader):
         next_compo = []
         for p in range(len(price)):
             next_compo.append((0, 1))
-        print(pd.DataFrame(next_compo).mean(0))
 
         def evaluate(x, p): return x[0] + (x[1] * p)
 
@@ -144,6 +142,37 @@ class Dummy(Trader):
             ppp.append({'portfolio': next_portfolio, 'value': value})
 
         return pd.DataFrame(ppp)
+
+####################################################################################
+
+
+class Randommy(Trader):
+
+    def __init__(self):
+        super().__init__()
+
+    def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
+
+        price = df['EURGBPclose']
+
+        next_compo = []
+        for p in range(len(price)):
+            next_compo.append([(0, 1), (1, 0)][np.random.choice(2)])
+
+        def evaluate(x, p): return x[0] + (x[1] * p)
+
+        ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
+        for i in range(len(price)):
+            last_portfolio = ppp[-1]['portfolio']
+            value = evaluate(last_portfolio, price[i]) * (1 - fees)
+            if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
+                value = value * (1 - fees)
+            next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
+            ppp.append({'portfolio': next_portfolio, 'value': value})
+
+        return pd.DataFrame(ppp)
+
+####################################################################################
 
 
 class LstmTrader(Trader):
@@ -192,7 +221,7 @@ class LstmTrader(Trader):
         if get_current:
             return np.array(X), np.array(y), np.array(c)
         else:
-            return np.array(X), np.array(y)
+            return np.array(X), np.array(y), None
 
     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
         """
@@ -204,7 +233,7 @@ class LstmTrader(Trader):
         self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
         self.y_min, self.y_max = labels.min(), labels.max()
 
-        X, y = self.transform_data(df, labels)
+        X, y, _ = self.transform_data(df, labels)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=self.valsize)
         self.X_train = X_train
@@ -247,6 +276,8 @@ class LstmTrader(Trader):
                        validation_steps=self.valsteps,
                        validation_data=val_data)
 
+####################################################################################
+
 
 class MlTrader(Trader):
     """
@@ -280,7 +311,7 @@ class MlTrader(Trader):
         if get_current:
             return X, y, c
         else:
-            return X, y
+            return X, y, None
 
     def ingest_traindata(self, df, labels, testsize=0.1):
         """
@@ -291,13 +322,15 @@ class MlTrader(Trader):
         self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
         self.y_min, self.y_max = labels.min(), labels.max()
 
-        X, y = self.transform_data(df, labels)
+        X, y, _ = self.transform_data(df, labels)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
         self.X_train = X_train
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
         print('Available data shapes: train:', self.X_train.shape, ' and test:', self.X_test.shape)
+
+####################################################################################
 
 
 class ForestTrader(MlTrader):
@@ -321,6 +354,8 @@ class ForestTrader(MlTrader):
         self.n_estimators = n_estimators
         self.model = RandomForestRegressor(n_estimators=self.n_estimators)
         self.model.fit(self.X_train, self.y_train)
+
+####################################################################################
 
 
 class SvmTrader(MlTrader):
@@ -346,6 +381,8 @@ class SvmTrader(MlTrader):
         self.gamma = gamma
         self.model = svm.SVR(gamma='scale', kernel='rbf')
         self.model.fit(self.X_train, self.y_train)
+
+####################################################################################
 
 
 class NeuralTrader(MlTrader):

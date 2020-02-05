@@ -1,4 +1,4 @@
-from traders import LstmTrader, NeuralTrader, SvmTrader, ForestTrader, Dummy
+from traders import LstmTrader, NeuralTrader, SvmTrader, ForestTrader, Dummy, Randommy
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate
 from tabulate import tabulate
 import pandas as pd
@@ -30,9 +30,13 @@ if __name__ == "__main__":
         scores.append(trader.test(plot=False))
         backtest = trader.backtest(df, labels, 1000, 0.0)
         baseline = Dummy().backtest(df, labels, 1000, 0.0)
-        plt.plot(backtest['value'])
-        plt.plot(baseline['value'])
-        plt.show()
+        random = Randommy().backtest(df, labels, 1000, 0.0)
+        plt.plot(backtest['value'], label='Huorn')
+
+    plt.plot(baseline['value'], label='Pure GBP')
+    plt.plot(random['value'], label='Random')
+    plt.legend()
+    plt.show()
 
     print(tabulate(pd.DataFrame(scores, index=[0]), headers="keys", tablefmt="fancy_grid"))
     backtest['value'].to_csv('./figures/wowmoney.csv', header=True)
