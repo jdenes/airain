@@ -9,7 +9,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
-from utils import compute_metrics
+from utils import compute_metrics, evaluate
 
 ####################################################################################
 
@@ -39,11 +39,11 @@ class Trader(object):
         self.X_test = None
         self.y_test = None
 
-    def transform_data(self, df, labels):
+    def transform_data(self, df, labels, get_index=False):
         """
         Converts .csv file to appropriate data format for training for this agent type.
         """
-        return None, None, None
+        return None, None, np.array(0)
 
     def ingest_traindata(self, df, labels, testsize=0.1):
         """
@@ -84,34 +84,46 @@ class Trader(object):
             y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
         return y_pred
 
-    def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
+    def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
         """
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
-        /!\ WORKING ON CRYPTO DATA ONLY FOR NOW.
         """
 
-        X, y, price = self.transform_data(df, labels)
+        X, y, ind = self.transform_data(df, labels, get_index=True)
+        price = price[ind].to_list()
         y_pred = self.predict(X)
 
-        # TODO: policy should be to change only if gain even with the fees
         policy = (y_pred * (1 - fees) > price).astype(int)
         next_compo = [(0, 1) if p == 1 else (1, 0) for p in policy]
 
-        def evaluate(x, p): return x[0] + (x[1] * p)
         amount = 0
+        next_portfolio = (initial_gamble, 0)
+        ppp = []
 
-        ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
-            last_portfolio = ppp[-1]['portfolio']
+            last_portfolio = next_portfolio
             value = evaluate(last_portfolio, price[i])
             if i > 0 and next_compo[i] != next_compo[i-1]:
                 amount += fees * value
                 value *= 1 - fees
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
-            ppp.append({'portfolio': next_portfolio, 'value': value})
+            ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
-        print("Fees paid:", amount)
+        # print("Fees paid:", amount)
         return pd.DataFrame(ppp)
+
+    def predict_next(self, df, labels, price, value=1000, fees=0.01):
+
+        X, y, ind = self.transform_data(df, labels, get_index=True)
+        price = price[ind].to_list()
+        y_pred = self.predict(X)
+
+        last_policy = int(y_pred[-1] * (1 - fees) > price[-1])
+        next_compo = (0, 1) if last_policy == 1 else (1, 0)
+        next_portfolio = (next_compo[0] * value, next_compo[1] * value / price[-1])
+        next_value = evaluate(next_portfolio, y_pred[-1])
+
+        return {'index': ind[-1], 'next_portfolio': next_portfolio, 'next_compo': next_compo, 'next_value': next_value}
 
 ####################################################################################
 
@@ -121,26 +133,27 @@ class Dummy(Trader):
     def __init__(self):
         super().__init__()
 
-    def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
+    def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
 
-        # price = df['EURGBPclose']
-        price = df['weightedAverage'][self.h-1:]
+        tmp = price.reset_index()[self.h-1:]
+        price, ind = tmp['price'].to_list(), tmp['date'].to_list()
 
-        next_compo = []
-        for _ in range(len(price)):
-            next_compo.append((0, 1))
+        next_compo = [(0, 1) for _ in range(len(price))]
 
-        def evaluate(x, p): return x[0] + (x[1] * p)
+        amount = 0
+        next_portfolio = (initial_gamble, 0)
+        ppp = []
 
-        ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
-            last_portfolio = ppp[-1]['portfolio']
+            last_portfolio = next_portfolio
             value = evaluate(last_portfolio, price[i])
             if i > 0 and next_compo[i] != next_compo[i-1]:
-                value = value * (1 - fees)
+                amount += fees * value
+                value *= 1 - fees
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
-            ppp.append({'portfolio': next_portfolio, 'value': value})
+            ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
+        # print("Fees paid:", amount)
         return pd.DataFrame(ppp)
 
 ####################################################################################
@@ -151,26 +164,27 @@ class Randommy(Trader):
     def __init__(self):
         super().__init__()
 
-    def backtest(self, df, labels, initial_gamble=1000, fees=0.01):
+    def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
 
-        # price = df['EURGBPclose']
-        price = df['weightedAverage'][self.h-1:]
+        tmp = price.reset_index()[self.h-1:]
+        price, ind = tmp['price'].to_list(), tmp['date'].to_list()
 
-        next_compo = []
-        for _ in range(len(price)):
-            next_compo.append([(0, 1), (1, 0)][np.random.choice(2)])
+        next_compo = [[(0, 1), (1, 0)][np.random.choice(2)] for _ in range(len(price))]
 
-        def evaluate(x, p): return x[0] + (x[1] * p)
+        amount = 0
+        next_portfolio = (initial_gamble, 0)
+        ppp = []
 
-        ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
-            last_portfolio = ppp[-1]['portfolio']
+            last_portfolio = next_portfolio
             value = evaluate(last_portfolio, price[i])
             if i > 0 and next_compo[i] != next_compo[i-1]:
-                value = value * (1 - fees)
+                amount += fees * value
+                value *= 1 - fees
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
-            ppp.append({'portfolio': next_portfolio, 'value': value})
+            ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
+        # print("Fees paid:", amount)
         return pd.DataFrame(ppp)
 
 ####################################################################################
@@ -199,12 +213,11 @@ class LstmTrader(Trader):
         self.X_val = None
         self.y_val = None
 
-    def transform_data(self, df, labels):
+    def transform_data(self, df, labels, get_index=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
-        current = df['weightedAverage'].reset_index(drop=True)
-        # current = df['EURGBPclose'].reset_index(drop=True)
+        index = df.index.to_list()
         df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
 
         if self.normalize:
@@ -212,15 +225,18 @@ class LstmTrader(Trader):
             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
 
         df, labels = df.to_numpy(), labels.to_numpy()
-        X, y, c = [], [], []
+        X, y, ind = [], [], []
 
         for i in range(self.h-1, len(df)):
             ind = [int(i - self.h + x + 1) for x in range(self.h)]
             X.append(df[ind])
             y.append(labels[i])
-            c.append(current[i])
+            ind.append(index[i])
 
-            return np.array(X), np.array(y), np.array(c)
+        if get_index:
+            return np.array(X), np.array(y), np.array(ind)
+        else:
+            return np.array(X), np.array(y)
 
     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
         """
@@ -232,7 +248,7 @@ class LstmTrader(Trader):
         self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
         self.y_min, self.y_max = labels.min(), labels.max()
 
-        X, y, _ = self.transform_data(df, labels)
+        X, y = self.transform_data(df, labels)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=self.valsize)
         self.X_train = X_train
@@ -283,13 +299,12 @@ class MlTrader(Trader):
     A trader-forecaster based on a traditional machine learning algorithm.
     """
 
-    def transform_data(self, df, labels):
+    def transform_data(self, df, labels, get_index=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
 
-        current = df['weightedAverage']
-        # current = df['EURGBPclose']
+        index = df.index.to_list()
 
         if self.normalize:
             df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
@@ -300,14 +315,17 @@ class MlTrader(Trader):
             shifted_df = df.shift(i)
             history = pd.concat([history, shifted_df], axis=1)
         df = pd.concat([df, history], axis=1)
-        df['labels'], df['current'] = labels, current
+        df['labels'], df['ind'] = labels, index
         df = df.dropna()
 
-        X = df.drop(['labels', 'current'], axis=1).to_numpy()
+        X = df.drop(['labels', 'ind'], axis=1).to_numpy()
         y = df['labels'].to_numpy()
-        c = df['current'].to_numpy()
+        ind = df['ind'].to_numpy()
 
-        return X, y, c
+        if get_index:
+            return X, y, ind
+        else:
+            return X, y
 
     def ingest_traindata(self, df, labels, testsize=0.1):
         """
@@ -318,7 +336,7 @@ class MlTrader(Trader):
         self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
         self.y_min, self.y_max = labels.min(), labels.max()
 
-        X, y, _ = self.transform_data(df, labels)
+        X, y = self.transform_data(df, labels)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
         self.X_train = X_train
         self.y_train = y_train

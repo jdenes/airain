@@ -1,23 +1,25 @@
 import os
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
 import requests
-from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score
 
 
-def load_data(filename, shift=1):
+def load_data(filename, target_col, shift=1):
     """
-    Given a data source in 'crypto', 'long_currency' or 'short-currency', loads appropriate csv file.
+    Given a data source, loads appropriate csv file.
     """
 
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
+    # df.index = df.index.rename('date')
     df = df.loc[~df.index.duplicated(keep='last')]
-    # labels = df['EURGBPclose'].shift(-shift)
-    labels = df['weightedAverage'].shift(-shift)
+    labels = df[target_col].shift(-shift)
+    price = df[target_col].rename('price')
+    index = pd.notnull(labels)
 
-    return df[pd.notnull(labels)], labels[pd.notnull(labels)]
+    return df[index], labels[index], price[index]
 
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
@@ -106,3 +108,7 @@ def compute_metrics(y_true, y_pred):
             'r2':                   r2,
             'change_accuracy':           (pred_shift == true_shift).mean()
             }
+
+
+def evaluate(portfolio, rate):
+    return portfolio[0] + (portfolio[1] * rate)
