@@ -39,7 +39,7 @@ class Trader(object):
         self.X_test = None
         self.y_test = None
 
-    def transform_data(self, df, labels, get_current=False):
+    def transform_data(self, df, labels):
         """
         Converts .csv file to appropriate data format for training for this agent type.
         """
@@ -90,7 +90,7 @@ class Trader(object):
         /!\ WORKING ON CRYPTO DATA ONLY FOR NOW.
         """
 
-        X, y, price = self.transform_data(df, labels, get_current=True)
+        X, y, price = self.transform_data(df, labels)
         y_pred = self.predict(X)
 
         # TODO: policy should be to change only if gain even with the fees
@@ -98,16 +98,19 @@ class Trader(object):
         next_compo = [(0, 1) if p == 1 else (1, 0) for p in policy]
 
         def evaluate(x, p): return x[0] + (x[1] * p)
+        amount = 0
 
         ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
             last_portfolio = ppp[-1]['portfolio']
-            value = evaluate(last_portfolio, price[i]) * (1 - fees)
-            if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
-                value = value * (1 - fees)
+            value = evaluate(last_portfolio, price[i])
+            if i > 0 and next_compo[i] != next_compo[i-1]:
+                amount += fees * value
+                value *= 1 - fees
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
             ppp.append({'portfolio': next_portfolio, 'value': value})
 
+        print("Fees paid:", amount)
         return pd.DataFrame(ppp)
 
 ####################################################################################
@@ -132,8 +135,8 @@ class Dummy(Trader):
         ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
             last_portfolio = ppp[-1]['portfolio']
-            value = evaluate(last_portfolio, price[i]) * (1 - fees)
-            if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
+            value = evaluate(last_portfolio, price[i])
+            if i > 0 and next_compo[i] != next_compo[i-1]:
                 value = value * (1 - fees)
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
             ppp.append({'portfolio': next_portfolio, 'value': value})
@@ -162,8 +165,8 @@ class Randommy(Trader):
         ppp = [{'portfolio': (initial_gamble, 0), 'value': initial_gamble}]
         for i in range(len(price)):
             last_portfolio = ppp[-1]['portfolio']
-            value = evaluate(last_portfolio, price[i]) * (1 - fees)
-            if next_compo[i][0] != last_portfolio[0] and next_compo[i][1] != last_portfolio[1]:
+            value = evaluate(last_portfolio, price[i])
+            if i > 0 and next_compo[i] != next_compo[i-1]:
                 value = value * (1 - fees)
             next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
             ppp.append({'portfolio': next_portfolio, 'value': value})
@@ -196,7 +199,7 @@ class LstmTrader(Trader):
         self.X_val = None
         self.y_val = None
 
-    def transform_data(self, df, labels, get_current=False):
+    def transform_data(self, df, labels):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -217,10 +220,7 @@ class LstmTrader(Trader):
             y.append(labels[i])
             c.append(current[i])
 
-        if get_current:
             return np.array(X), np.array(y), np.array(c)
-        else:
-            return np.array(X), np.array(y), None
 
     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
         """
@@ -283,7 +283,7 @@ class MlTrader(Trader):
     A trader-forecaster based on a traditional machine learning algorithm.
     """
 
-    def transform_data(self, df, labels, get_current=False):
+    def transform_data(self, df, labels):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -307,10 +307,7 @@ class MlTrader(Trader):
         y = df['labels'].to_numpy()
         c = df['current'].to_numpy()
 
-        if get_current:
-            return X, y, c
-        else:
-            return X, y, None
+        return X, y, c
 
     def ingest_traindata(self, df, labels, testsize=0.1):
         """

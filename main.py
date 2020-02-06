@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     freq = 5
     h = 10
-    initial_gamble = 200
+    initial_gamble = 100
     fees = 0.0
     api_key = "H2T4H92C43D9DT3D"
     from_curr, to_curr = 'USDC', 'BTC'
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     start, end = '2018-07-01 00:00:00', '2019-10-31 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
 
-    start, end = '2020-01-01 00:00:00', '2020-02-01 10:00:00'
+    start, end = '2019-12-01 00:00:00', '2020-02-01 10:00:00'
     fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
 
     fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', freq, api_key)
@@ -28,7 +28,7 @@ if __name__ == "__main__":
     x = df1.index[h-2:]
 
     for i, trader_model in enumerate([ForestTrader]):
-        trader = trader_model()
+        trader = trader_model(h=h)
         trader.ingest_traindata(df, labels)
         trader.train()
         scores.append(trader.test(plot=False))
