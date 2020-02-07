@@ -116,9 +116,7 @@ class Trader(object):
         """
         Predicts next value and consequently next optimal portfolio.
         """
-        print(df.index[-1])
         X, y, ind = self.transform_data(df, labels, get_index=True, keep_last=True)
-        print(ind[-1])
         price = price[ind].to_list()
         y_pred = self.predict(X)
 
