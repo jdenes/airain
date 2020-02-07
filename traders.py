@@ -39,9 +39,9 @@ class Trader(object):
         self.X_test = None
         self.y_test = None
 
-    def transform_data(self, df, labels, get_index=False):
+    def transform_data(self, df, labels, get_index=False, keep_last=False):
         """
-        Converts .csv file to appropriate data format for training for this agent type.
+        Converts dataframe file to appropriate data format for this agent type.
         """
         return None, None, np.array(0)
 
@@ -113,8 +113,12 @@ class Trader(object):
         return pd.DataFrame(ppp)
 
     def predict_next(self, df, labels, price, value=1000, fees=0.01):
-
-        X, y, ind = self.transform_data(df, labels, get_index=True)
+        """
+        Predicts next value and consequently next optimal portfolio.
+        """
+        print(df.index[-1])
+        X, y, ind = self.transform_data(df, labels, get_index=True, keep_last=True)
+        print(ind[-1])
         price = price[ind].to_list()
         y_pred = self.predict(X)
 
@@ -213,7 +217,7 @@ class LstmTrader(Trader):
         self.X_val = None
         self.y_val = None
 
-    def transform_data(self, df, labels, get_index=False):
+    def transform_data(self, df, labels, get_index=False, keep_last=True):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -228,8 +232,8 @@ class LstmTrader(Trader):
         X, y, ind = [], [], []
 
         for i in range(self.h-1, len(df)):
-            ind = [int(i - self.h + x + 1) for x in range(self.h)]
-            X.append(df[ind])
+            indx = [int(i - self.h + x + 1) for x in range(self.h)]
+            X.append(df[indx])
             y.append(labels[i])
             ind.append(index[i])
 
@@ -299,7 +303,7 @@ class MlTrader(Trader):
     A trader-forecaster based on a traditional machine learning algorithm.
     """
 
-    def transform_data(self, df, labels, get_index=False):
+    def transform_data(self, df, labels, get_index=False, keep_last=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -316,7 +320,13 @@ class MlTrader(Trader):
             history = pd.concat([history, shifted_df], axis=1)
         df = pd.concat([df, history], axis=1)
         df['labels'], df['ind'] = labels, index
-        df = df.dropna()
+
+        first_idx = df.apply(lambda col: col.first_valid_index()).max()
+        if keep_last:
+            df = df.loc[first_idx:]
+        else:
+            last_idx = df.apply(lambda col: col.last_valid_index()).max()
+            df = df.loc[first_idx:last_idx]
 
         X = df.drop(['labels', 'ind'], axis=1).to_numpy()
         y = df['labels'].to_numpy()

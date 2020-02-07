@@ -67,11 +67,14 @@ if __name__ == "__main__":
     trader_model = ForestTrader
     trader = trader_model(h=10)
     trader.ingest_traindata(df, labels)
-    trader.train(n_estimators=1)
+    trader.train(n_estimators=20)
     ##############################################################################
     start, end = '2020-02-06 00:00:00', datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     fetch_crypto_rate('./data/dataset_crypto_now.csv', from_curr, to_curr, start, end, freq)
-    df2, labels2, price2 = load_data(filename='./data/dataset_crypto_now.csv', target_col='weightedAverage', shift=1)
+    df2, labels2, price2 = load_data(filename='./data/dataset_crypto_now.csv',
+                                     target_col='weightedAverage',
+                                     shift=1,
+                                     keep_last=True)
     print("Current price:", price2.index[-1], price2.to_list()[-1])
     res = trader.predict_next(df2, labels2, price2, value=initial_gamble, fees=fees)
     print(res)

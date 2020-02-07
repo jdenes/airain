@@ -7,19 +7,22 @@ import requests
 from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score
 
 
-def load_data(filename, target_col, shift=1):
+def load_data(filename, target_col, shift=1, keep_last=False):
     """
     Given a data source, loads appropriate csv file.
     """
 
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
-    # df.index = df.index.rename('date')
+    df.index = df.index.rename('date')
     df = df.loc[~df.index.duplicated(keep='last')]
     labels = df[target_col].shift(-shift)
     price = df[target_col].rename('price')
-    index = pd.notnull(labels)
 
-    return df[index], labels[index], price[index]
+    if keep_last:
+        return df, labels, price
+    else:
+        index = pd.notnull(labels)
+        return df[index], labels[index], price[index]
 
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
@@ -50,7 +53,7 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
             tmp2 = end
 
     df = pd.DataFrame.from_dict(data).set_index('date')
-    df.index = pd.to_datetime(df.index, unit='s').tz_localize('UTC').tz_convert('Europe/Paris')
+    df.index = pd.to_datetime(df.index, unit='s') #.tz_localize('UTC').tz_convert('Europe/Paris')
     df.to_csv(filename, encoding='utf-8')
 
 

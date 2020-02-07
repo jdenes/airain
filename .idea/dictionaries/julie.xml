@@ -2,8 +2,10 @@
   <dictionary name="julie">
     <words>
       <w>backtest</w>
+      <w>dataframe</w>
       <w>datatype</w>
       <w>huorn</w>
+      <w>indx</w>
       <w>pclose</w>
       <w>randommy</w>
       <w>testsize</w>
