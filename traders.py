@@ -43,7 +43,10 @@ class Trader(object):
         """
         Converts dataframe file to appropriate data format for this agent type.
         """
-        return None, None, np.array(0)
+        if get_index:
+            return None, None, np.array(0)
+        else:
+            return None, None
 
     def ingest_traindata(self, df, labels, testsize=0.1):
         """
@@ -84,17 +87,24 @@ class Trader(object):
             y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
         return y_pred
 
+    def compute_policy(self, df, labels, price, fees):
+        """
+        Given parameters, decides what to do at next steps based on predictive model.
+        """
+        X, _, ind = self.transform_data(df, labels, get_index=True)
+        current_price = price[ind].to_list()
+        y_pred = self.predict(X)
+        going_up = (y_pred * (1 - fees) > current_price)
+        policy = [(0, 1) if p else (1, 0) for p in going_up]
+        return policy, ind
+
     def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
         """
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
         """
 
-        X, y, ind = self.transform_data(df, labels, get_index=True)
+        policy, ind = self.compute_policy(df=df, labels=labels, price=price, fees=fees)
         price = price[ind].to_list()
-        y_pred = self.predict(X)
-
-        policy = (y_pred * (1 - fees) > price).astype(int)
-        next_compo = [(0, 1) if p == 1 else (1, 0) for p in policy]
 
         amount = 0
         next_portfolio = (initial_gamble, 0)
@@ -103,13 +113,13 @@ class Trader(object):
         for i in range(len(price)):
             last_portfolio = next_portfolio
             value = evaluate(last_portfolio, price[i])
-            if i > 0 and next_compo[i] != next_compo[i-1]:
-                amount += fees * value
+            if i > 0 and policy[i] != policy[i-1]:
+                amount += value
                 value *= 1 - fees
-            next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
+            next_portfolio = (policy[i][0] * value, policy[i][1] * value / price[i])
             ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
-        # print("Fees paid:", amount)
+        print("Total amount traded:", amount)
         return pd.DataFrame(ppp)
 
     def predict_next(self, df, labels, price, value=1000, fees=0.01):
@@ -120,12 +130,12 @@ class Trader(object):
         price = price[ind].to_list()
         y_pred = self.predict(X)
 
-        last_policy = int(y_pred[-1] * (1 - fees) > price[-1])
-        next_compo = (0, 1) if last_policy == 1 else (1, 0)
-        next_portfolio = (next_compo[0] * value, next_compo[1] * value / price[-1])
+        going_up = y_pred[-1] * (1 - fees) > price[-1]
+        next_policy = (0, 1) if going_up else (1, 0)
+        next_portfolio = (next_policy[0] * value, next_policy[1] * value / price[-1])
         next_value = evaluate(next_portfolio, y_pred[-1])
 
-        return {'index': ind[-1], 'next_portfolio': next_portfolio, 'next_compo': next_compo, 'next_value': next_value}
+        return {'index': ind[-1], 'next_portfolio': next_portfolio, 'next_policy': next_policy, 'next_value': next_value}
 
 ####################################################################################
 
@@ -135,28 +145,14 @@ class Dummy(Trader):
     def __init__(self):
         super().__init__()
 
-    def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
-
+    def compute_policy(self, df, labels, price, fees):
+        """
+        Given parameters, decides what to do at next steps based on predictive model.
+        """
         tmp = price.reset_index()[self.h-1:]
-        price, ind = tmp['price'].to_list(), tmp['date'].to_list()
-
-        next_compo = [(0, 1) for _ in range(len(price))]
-
-        amount = 0
-        next_portfolio = (initial_gamble, 0)
-        ppp = []
-
-        for i in range(len(price)):
-            last_portfolio = next_portfolio
-            value = evaluate(last_portfolio, price[i])
-            if i > 0 and next_compo[i] != next_compo[i-1]:
-                amount += fees * value
-                value *= 1 - fees
-            next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
-            ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
-
-        # print("Fees paid:", amount)
-        return pd.DataFrame(ppp)
+        current_price, ind = tmp['price'].to_list(), tmp['date'].to_list()
+        policy = [(0, 1) for _ in current_price]
+        return policy, ind
 
 ####################################################################################
 
@@ -166,28 +162,14 @@ class Randommy(Trader):
     def __init__(self):
         super().__init__()
 
-    def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
-
+    def compute_policy(self, df, labels, price, fees):
+        """
+        Given parameters, decides what to do at next steps based on predictive model.
+        """
         tmp = price.reset_index()[self.h-1:]
-        price, ind = tmp['price'].to_list(), tmp['date'].to_list()
-
-        next_compo = [[(0, 1), (1, 0)][np.random.choice(2)] for _ in range(len(price))]
-
-        amount = 0
-        next_portfolio = (initial_gamble, 0)
-        ppp = []
-
-        for i in range(len(price)):
-            last_portfolio = next_portfolio
-            value = evaluate(last_portfolio, price[i])
-            if i > 0 and next_compo[i] != next_compo[i-1]:
-                amount += fees * value
-                value *= 1 - fees
-            next_portfolio = (next_compo[i][0] * value, next_compo[i][1] * value / price[i])
-            ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
-
-        # print("Fees paid:", amount)
-        return pd.DataFrame(ppp)
+        current_price, ind = tmp['price'].to_list(), tmp['date'].to_list()
+        policy = [[(0, 1), (1, 0)][np.random.choice(2)] for _ in current_price]
+        return policy, ind
 
 ####################################################################################
 

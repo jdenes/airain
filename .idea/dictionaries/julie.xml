@@ -2,15 +2,21 @@
   <dictionary name="julie">
     <words>
       <w>backtest</w>
+      <w>cryptocurrency</w>
+      <w>currotrade</w>
       <w>dataframe</w>
       <w>datatype</w>
+      <w>eurgbp</w>
       <w>huorn</w>
       <w>indx</w>
+      <w>lstm</w>
       <w>pclose</w>
       <w>randommy</w>
       <w>testsize</w>
       <w>traindata</w>
+      <w>usdc</w>
       <w>valsize</w>
+      <w>valsteps</w>
     </words>
   </dictionary>
 </component>

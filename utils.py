@@ -44,16 +44,19 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
         x1, x2 = datetime.timestamp(tmp1), datetime.timestamp(tmp2)
         main_url = base_url + "&start=" + str(x1) + "&end=" + str(x2) + "&period=" + str(freq * 60)
         print('Fetching:', main_url)
-        res = requests.get(main_url).json()
-        if res[0]['date'] != 0:
-            data += requests.get(main_url).json()
+        try:
+            res = requests.get(main_url).json()
+            if res[0]['date'] != 0:
+                data += requests.get(main_url).json()
+        except:
+            raise ValueError('Unable to fetch data, please check connection and API availability.')
 
         tmp1, tmp2 = tmp1 + timedelta(weeks=12), tmp2 + timedelta(weeks=12)
         if tmp1 < end < tmp2:
             tmp2 = end
 
     df = pd.DataFrame.from_dict(data).set_index('date')
-    df.index = pd.to_datetime(df.index, unit='s') #.tz_localize('UTC').tz_convert('Europe/Paris')
+    df.index = pd.to_datetime(df.index, unit='s')  # .tz_localize('UTC').tz_convert('Europe/Paris')
     df.to_csv(filename, encoding='utf-8')
 
 
@@ -114,4 +117,4 @@ def compute_metrics(y_true, y_pred):
 
 
 def evaluate(portfolio, rate):
-    return portfolio[0] + (portfolio[1] * rate)
+    return round(portfolio[0] + (portfolio[1] * rate), 2)
