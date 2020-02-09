@@ -1,6 +1,8 @@
 import os
+import json
 import numpy as np
 import pandas as pd
+import joblib as jl
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
@@ -135,7 +137,45 @@ class Trader(object):
         next_portfolio = (next_policy[0] * value, next_policy[1] * value / price[-1])
         next_value = evaluate(next_portfolio, y_pred[-1])
 
-        return {'index': ind[-1], 'next_portfolio': next_portfolio, 'next_policy': next_policy, 'next_value': next_value}
+        return {'index': ind[-1],
+                'next_portfolio': next_portfolio,
+                'next_policy': next_policy,
+                'next_value': next_value
+                }
+
+    def save(self, model_name):
+        """
+        Save model to folder.
+        """
+
+        model_name = './models/' + model_name
+        if not os.path.exists(model_name):
+            os.makedirs(model_name)
+
+        to_rm = ['model', 'x_max', 'x_min', 'X_train', 'y_train', 'X_test', 'y_test', 'X_val', 'y_val']
+        attr_dict = {}
+        for attr, value in self.__dict__.items():
+            if attr not in to_rm:
+                attr_dict[attr] = value
+
+        with open(model_name + '/attributes.json', 'w') as file:
+            json.dump(attr_dict, file)
+
+        self.x_max.to_csv(model_name + '/x_max.json', header=False)
+        self.x_min.to_csv(model_name + '/x_min.json', header=False)
+
+    def load(self, model_name):
+        """
+        Load model from folder.
+        """
+
+        model_name = './models/' + model_name
+        with open(model_name + '/attributes.json', 'r') as file:
+            self.__dict__ = json.load(file)
+
+        self.x_max = pd.read_csv(model_name + '/x_max.json', header=None, index_col=0, squeeze=True)
+        self.x_min = pd.read_csv(model_name + '/x_min.json', header=None, index_col=0, squeeze=True)
+
 
 ####################################################################################
 
@@ -275,6 +315,23 @@ class LstmTrader(Trader):
                        validation_steps=self.valsteps,
                        validation_data=val_data)
 
+    def save(self, model_name):
+        """
+        Save model to folder.
+        """
+        super().save(model_name)
+        model_name = './models/' + model_name
+        if self.model is not None:
+            self.model.save(model_name + '/model.h5')
+
+    def load(self, model_name):
+        """
+        Load model from folder.
+        """
+        super().load(model_name=model_name)
+        model_name = './models/' + model_name
+        self.model = tf.keras.models.load_model(model_name + '/model.h5')
+
 ####################################################################################
 
 
@@ -332,7 +389,25 @@ class MlTrader(Trader):
         self.y_train = y_train
         self.X_test = X_test
         self.y_test = y_test
-        print('Available data shapes: train:', self.X_train.shape, ' and test:', self.X_test.shape)
+        # print('Available data shapes: train:', self.X_train.shape, ' and test:', self.X_test.shape)
+
+    def save(self, model_name):
+        """
+        Save model to folder.
+        """
+        super().save(model_name=model_name)
+        model_name = './models/' + model_name
+        if self.model is not None:
+            jl.dump(self.model, model_name + '/model.joblib')
+
+    def load(self, model_name):
+        """
+        Load model from folder.
+        """
+        super().load(model_name=model_name)
+        model_name = './models/' + model_name
+        self.model = jl.load(model_name + '/model.joblib')
+
 
 ####################################################################################
 

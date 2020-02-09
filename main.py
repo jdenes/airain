@@ -18,10 +18,10 @@ def tuning_n_estimators():
     random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
 
     import numpy as np
-    for i in range(20, 61, 10):
+    for i in range(100, 201, 100):
         print("Size:", i)
         res = []
-        for _ in range(10):
+        for _ in range(1):
             trader_model = ForestTrader
             trader = trader_model(h=h)
             trader.ingest_traindata(df, labels)
@@ -52,8 +52,8 @@ if __name__ == "__main__":
     # start, end = '2018-07-01 00:00:00', '2019-11-30 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
 
-    # start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
-    # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
+    start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
+    fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
 
     fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', freq, api_key)
 
@@ -63,17 +63,19 @@ if __name__ == "__main__":
     scores = []
 
     ##############################################################################
-    s1 = datetime.now()
-    trader_model = ForestTrader
-    trader = trader_model(h=10)
-    trader.ingest_traindata(df, labels)
-    trader.train(n_estimators=50)
-    scores.append(trader.test(plot=False))
-    s2 = datetime.now()
-    print("Training time:", s2 - s1)
+    # s1 = datetime.now()
+    # trader = ForestTrader(h=10)
+    # trader.ingest_traindata(df, labels)
+    # trader.train(n_estimators=100)
+    # scores.append(trader.test(plot=False))
+    # s2 = datetime.now()
+    # trader.save(model_name='Huorn 100')
+    # print("Training time:", s2 - s1)
     ##############################################################################
     baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
     random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
+    trader = ForestTrader()
+    trader.load(model_name='Huorn 100')
     backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
     plt.plot(baseline['value'], label='Pure BTC')
     plt.plot(random['value'], label='Random')
@@ -81,8 +83,8 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid()
     plt.show()
-    s3 = datetime.now()
-    print("Backtest time:", s3 - s2)
+    # s3 = datetime.now()
+    # print("Backtest time:", s3 - s2)
     ##############################################################################
     start, end = '2020-02-06 00:00:00', datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     fetch_crypto_rate('./data/dataset_crypto_now.csv', from_curr, to_curr, start, end, freq)
@@ -93,8 +95,8 @@ if __name__ == "__main__":
     print("Current price:", price2.index[-1], price2.to_list()[-1])
     res = trader.predict_next(df2, labels2, price2, value=initial_gamble, fees=fees)
     print(res)
-    s4 = datetime.now()
-    print("Next prediction time:", s4 - s3)
+    # s4 = datetime.now()
+    # print("Next prediction time:", s4 - s3)
     ##############################################################################
 
-    # tuning_n_estimators()
+    tuning_n_estimators()

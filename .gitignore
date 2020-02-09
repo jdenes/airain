@@ -1,5 +1,7 @@
 *.json
 *.csv
+*.joblib
+*.h5
 .DS_Store
 **/.DS_Store
 **/**/.DS_Store
