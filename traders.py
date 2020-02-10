@@ -161,8 +161,12 @@ class Trader(object):
         with open(model_name + '/attributes.json', 'w') as file:
             json.dump(attr_dict, file)
 
-        self.x_max.to_csv(model_name + '/x_max.json', header=False)
-        self.x_min.to_csv(model_name + '/x_min.json', header=False)
+        self.x_max.to_csv(model_name + '/x_max.csv', header=False)
+        self.x_min.to_csv(model_name + '/x_min.csv', header=False)
+        self.X_train.to_csv(model_name + '/X_train.csv')
+        self.y_train.to_csv(model_name + '/y_train.csv')
+        self.X_test.to_csv(model_name + '/X_test.csv')
+        self.y_test.to_csv(model_name + '/y_test.csv')
 
     def load(self, model_name):
         """
@@ -173,8 +177,12 @@ class Trader(object):
         with open(model_name + '/attributes.json', 'r') as file:
             self.__dict__ = json.load(file)
 
-        self.x_max = pd.read_csv(model_name + '/x_max.json', header=None, index_col=0, squeeze=True)
-        self.x_min = pd.read_csv(model_name + '/x_min.json', header=None, index_col=0, squeeze=True)
+        self.x_max = pd.read_csv(model_name + '/x_max.csv', header=None, index_col=0, squeeze=True)
+        self.x_min = pd.read_csv(model_name + '/x_min.csv', header=None, index_col=0, squeeze=True)
+        self.X_train = pd.read_csv(model_name + '/X_train.csv')
+        self.y_train = pd.read_csv(model_name + '/y_train.csv')
+        self.X_test = pd.read_csv(model_name + '/X_test.csv')
+        self.y_test = pd.read_csv(model_name + '/y_test.csv')
 
 
 ####################################################################################
