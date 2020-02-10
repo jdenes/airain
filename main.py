@@ -42,20 +42,20 @@ def tuning_n_estimators():
 
 
 if __name__ == "__main__":
-    freq = 5
+    freq = 15
     h = 10
     initial_gamble = 100
-    fees = 0.0
+    fees = 0.004
     api_key = "H2T4H92C43D9DT3D"
     from_curr, to_curr = 'USDC', 'BTC'
 
     # start, end = '2018-07-01 00:00:00', '2019-11-30 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
 
-    start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
-    fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
+    # start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
+    # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
 
-    fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', freq, api_key)
+    fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, api_key)
 
     df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='weightedAverage', shift=1)
     df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='weightedAverage', shift=1)
@@ -63,22 +63,21 @@ if __name__ == "__main__":
     scores = []
 
     ##############################################################################
-    s1 = datetime.now()
-    trader = ForestTrader(h=10)
-    trader.ingest_traindata(df, labels)
-    trader.train(n_estimators=1)
-    scores.append(trader.test(plot=False))
-    trader.save(model_name='Huorn 1')
+    # trader = ForestTrader(h=10)
+    # trader.ingest_traindata(df, labels)
+    # trader.train(n_estimators=100)
+    # scores.append(trader.test(plot=False))
+    # trader.save(model_name='Huorn 100-15')
     ##############################################################################
     baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
     random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
     trader = ForestTrader()
-    trader.load(model_name='Huorn 100')
+    trader.load(model_name='Huorn 100-15')
     print(trader.test(plot=True))
     backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
     plt.plot(baseline['value'], label='Pure BTC')
     plt.plot(random['value'], label='Random')
-    plt.plot(backtest['value'], label='Huorn 50')
+    plt.plot(backtest['value'], label='Huorn 100-15')
     plt.legend()
     plt.grid()
     plt.show()

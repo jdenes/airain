@@ -163,10 +163,10 @@ class Trader(object):
 
         self.x_max.to_csv(model_name + '/x_max.csv', header=False)
         self.x_min.to_csv(model_name + '/x_min.csv', header=False)
-        self.X_train.to_csv(model_name + '/X_train.csv')
-        self.y_train.to_csv(model_name + '/y_train.csv')
-        self.X_test.to_csv(model_name + '/X_test.csv')
-        self.y_test.to_csv(model_name + '/y_test.csv')
+        np.save(model_name + '/X_train.npy', self.X_train)
+        np.save(model_name + '/y_train.npy', self.y_train)
+        np.save(model_name + '/X_test.npy', self.X_test)
+        np.save(model_name + '/y_test.npy', self.y_test)
 
     def load(self, model_name):
         """
@@ -179,10 +179,10 @@ class Trader(object):
 
         self.x_max = pd.read_csv(model_name + '/x_max.csv', header=None, index_col=0, squeeze=True)
         self.x_min = pd.read_csv(model_name + '/x_min.csv', header=None, index_col=0, squeeze=True)
-        self.X_train = pd.read_csv(model_name + '/X_train.csv')
-        self.y_train = pd.read_csv(model_name + '/y_train.csv')
-        self.X_test = pd.read_csv(model_name + '/X_test.csv')
-        self.y_test = pd.read_csv(model_name + '/y_test.csv')
+        self.X_train = np.load(model_name + '/X_train.npy')
+        self.y_train = np.load(model_name + '/y_train.npy')
+        self.X_test = np.load(model_name + '/X_test.npy')
+        self.y_test = np.load(model_name + '/y_test.npy')
 
 
 ####################################################################################
