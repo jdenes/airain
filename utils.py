@@ -118,3 +118,28 @@ def compute_metrics(y_true, y_pred):
 
 def evaluate(portfolio, rate):
     return round(portfolio[0] + (portfolio[1] * rate), 2)
+
+
+def fetch_fxcm_data(filename, start, end, freq, con):
+    """
+    Given currencies and start/end dates, as well as frequency, gets exchange rates from Poloniex API.
+    """
+
+    df = pd.DataFrame()
+    start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
+    tmp1 = start
+    if end - start < timedelta(weeks=6):
+        tmp2 = end
+    else:
+        tmp2 = start + timedelta(weeks=6)
+    while tmp2 <= end:
+        data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
+        df = pd.concat([df, data]).drop_duplicates(keep='last')
+
+        tmp1, tmp2 = tmp1 + timedelta(weeks=6), tmp2 + timedelta(weeks=6)
+        if tmp1 < end < tmp2:
+            tmp2 = end
+
+    print(df.shape)
+    df.index = pd.to_datetime(df.index, unit='s')
+    df.to_csv(filename, encoding='utf-8')

@@ -3,7 +3,7 @@ import json
 import numpy as np
 import pandas as pd
 import joblib as jl
-import tensorflow as tf
+# import tensorflow as tf
 import matplotlib.pyplot as plt
 
 from sklearn import svm
@@ -222,123 +222,123 @@ class Randommy(Trader):
 ####################################################################################
 
 
-class LstmTrader(Trader):
-    """
-    A trader-forecaster based on a LSTM neural network.
-    """
-
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
-        """
-        Initialize method.
-        """
-
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
-
-        self.batch_size = None
-        self.buffer_size = None
-        self.epochs = None
-        self.steps = None
-        self.valsteps = None
-        self.gpu = None
-
-        self.valsize = None
-        self.X_val = None
-        self.y_val = None
-
-    def transform_data(self, df, labels, get_index=False, keep_last=True):
-        """
-        Given data and labels, transforms it into suitable format and return them.
-        """
-        index = df.index.to_list()
-        df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
-
-        if self.normalize:
-            df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
-            labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
-
-        df, labels = df.to_numpy(), labels.to_numpy()
-        X, y, ind = [], [], []
-
-        for i in range(self.h-1, len(df)):
-            indx = [int(i - self.h + x + 1) for x in range(self.h)]
-            X.append(df[indx])
-            y.append(labels[i])
-            ind.append(index[i])
-
-        if get_index:
-            return np.array(X), np.array(y), np.array(ind)
-        else:
-            return np.array(X), np.array(y)
-
-    def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
-        """
-        Loads data from csv file depending on data type.
-        """
-
-        self.testsize = testsize
-        self.valsize = valsize
-        self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
-        self.y_min, self.y_max = labels.min(), labels.max()
-
-        X, y = self.transform_data(df, labels)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=self.valsize)
-        self.X_train = X_train
-        self.y_train = y_train
-        self.X_test = X_test
-        self.y_test = y_test
-        self.X_val = X_val
-        self.y_val = y_val
-
-    def train(self, batch_size=1000, buffer_size=10000, epochs=20, steps=200, valsteps=50, gpu=True):
-        """
-        Using prepared data, trains model depending on agent type.
-        """
-
-        self.gpu = gpu
-        self.batch_size = batch_size
-        self.buffer_size = buffer_size
-        self.epochs = epochs
-        self.steps = steps
-        self.valsteps = valsteps
-
-        if not self.gpu:
-            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
-        train_data = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train))
-        train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
-
-        val_data = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val))
-        val_data = val_data.batch(self.batch_size).repeat()
-
-        self.model = tf.keras.models.Sequential()
-        self.model.add(tf.keras.layers.LSTM(50, input_shape=self.X_train.shape[-2:], return_sequences=True))
-        self.model.add(tf.keras.layers.LSTM(16, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(1))
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
-
-        self.model.fit(train_data,
-                       epochs=self.epochs,
-                       steps_per_epoch=self.steps,
-                       validation_steps=self.valsteps,
-                       validation_data=val_data)
-
-    def save(self, model_name):
-        """
-        Save model to folder.
-        """
-        super().save(model_name)
-        model_name = './models/' + model_name
-        if self.model is not None:
-            self.model.save(model_name + '/model.h5')
-
-    def load(self, model_name):
-        """
-        Load model from folder.
-        """
-        super().load(model_name=model_name)
-        model_name = './models/' + model_name
-        self.model = tf.keras.models.load_model(model_name + '/model.h5')
+# class LstmTrader(Trader):
+#     """
+#     A trader-forecaster based on a LSTM neural network.
+#     """
+#
+#     def __init__(self, h=10, seed=123, forecast=1, normalize=True):
+#         """
+#         Initialize method.
+#         """
+#
+#         super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
+#
+#         self.batch_size = None
+#         self.buffer_size = None
+#         self.epochs = None
+#         self.steps = None
+#         self.valsteps = None
+#         self.gpu = None
+#
+#         self.valsize = None
+#         self.X_val = None
+#         self.y_val = None
+#
+#     def transform_data(self, df, labels, get_index=False, keep_last=True):
+#         """
+#         Given data and labels, transforms it into suitable format and return them.
+#         """
+#         index = df.index.to_list()
+#         df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
+#
+#         if self.normalize:
+#             df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
+#             labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
+#
+#         df, labels = df.to_numpy(), labels.to_numpy()
+#         X, y, ind = [], [], []
+#
+#         for i in range(self.h-1, len(df)):
+#             indx = [int(i - self.h + x + 1) for x in range(self.h)]
+#             X.append(df[indx])
+#             y.append(labels[i])
+#             ind.append(index[i])
+#
+#         if get_index:
+#             return np.array(X), np.array(y), np.array(ind)
+#         else:
+#             return np.array(X), np.array(y)
+#
+#     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
+#         """
+#         Loads data from csv file depending on data type.
+#         """
+#
+#         self.testsize = testsize
+#         self.valsize = valsize
+#         self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
+#         self.y_min, self.y_max = labels.min(), labels.max()
+#
+#         X, y = self.transform_data(df, labels)
+#         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
+#         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=self.valsize)
+#         self.X_train = X_train
+#         self.y_train = y_train
+#         self.X_test = X_test
+#         self.y_test = y_test
+#         self.X_val = X_val
+#         self.y_val = y_val
+#
+#     def train(self, batch_size=1000, buffer_size=10000, epochs=20, steps=200, valsteps=50, gpu=True):
+#         """
+#         Using prepared data, trains model depending on agent type.
+#         """
+#
+#         self.gpu = gpu
+#         self.batch_size = batch_size
+#         self.buffer_size = buffer_size
+#         self.epochs = epochs
+#         self.steps = steps
+#         self.valsteps = valsteps
+#
+#         if not self.gpu:
+#             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#
+#         train_data = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train))
+#         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
+#
+#         val_data = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val))
+#         val_data = val_data.batch(self.batch_size).repeat()
+#
+#         self.model = tf.keras.models.Sequential()
+#         self.model.add(tf.keras.layers.LSTM(50, input_shape=self.X_train.shape[-2:], return_sequences=True))
+#         self.model.add(tf.keras.layers.LSTM(16, activation='relu'))
+#         self.model.add(tf.keras.layers.Dense(1))
+#         self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
+#
+#         self.model.fit(train_data,
+#                        epochs=self.epochs,
+#                        steps_per_epoch=self.steps,
+#                        validation_steps=self.valsteps,
+#                        validation_data=val_data)
+#
+#     def save(self, model_name):
+#         """
+#         Save model to folder.
+#         """
+#         super().save(model_name)
+#         model_name = './models/' + model_name
+#         if self.model is not None:
+#             self.model.save(model_name + '/model.h5')
+#
+#     def load(self, model_name):
+#         """
+#         Load model from folder.
+#         """
+#         super().load(model_name=model_name)
+#         model_name = './models/' + model_name
+#         self.model = tf.keras.models.load_model(model_name + '/model.h5')
 
 ####################################################################################
 
