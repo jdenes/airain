@@ -1,4 +1,4 @@
-from traders import NeuralTrader, SvmTrader, ForestTrader, Dummy, Randommy
+from traders import NeuralTrader, LstmTrader, SvmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
 from tabulate import tabulate
 import pandas as pd
@@ -44,43 +44,22 @@ def tuning_n_estimators():
 if __name__ == "__main__":
     freq = 5
     h = 10
-    initial_gamble = 100
+    initial_gamble = 1000
     fees = 0.0
     api_key = "H2T4H92C43D9DT3D"
     from_curr, to_curr = 'USDC', 'BTC'
 
     # start, end = '2018-07-01 00:00:00', '2019-11-30 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
-
+    #
     # start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
     # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
-
-    # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, api_key)
     #
+    # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, api_key)
+
     # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='weightedAverage', shift=1)
     # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='weightedAverage', shift=1)
-    #
-    # scores = []
 
-    ##############################################################################
-    # trader = ForestTrader(h=10)
-    # trader.ingest_traindata(df, labels)
-    # trader.train(n_estimators=100)
-    # scores.append(trader.test(plot=False))
-    # trader.save(model_name='Huorn 100-15')
-    ##############################################################################
-    # baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
-    # random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
-    # trader = ForestTrader()
-    # trader.load(model_name='Huorn 100-5')
-    # print(trader.test(plot=True))
-    # backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
-    # plt.plot(baseline['value'], label='Pure BTC')
-    # plt.plot(random['value'], label='Random')
-    # plt.plot(backtest['value'], label='Huorn 100-5')
-    # plt.legend()
-    # plt.grid()
-    # plt.show()
     ##############################################################################
     # start, end = '2020-02-06 00:00:00', datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     # fetch_crypto_rate('./data/dataset_crypto_now.csv', from_curr, to_curr, start, end, freq)
@@ -95,28 +74,42 @@ if __name__ == "__main__":
 
     # tuning_n_estimators()
 
-    import fxcmpy
+    # import fxcmpy
     # TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
     # con = fxcmpy.fxcmpy(access_token=TOKEN, server='demo')
-
-    # start, end = '2009-11-30 00:00:00', '2019-11-30 00:00:00'
+    #
+    # start, end = '2018-11-30 00:00:00', '2019-11-30 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_train.csv', start=start, end=end, freq=freq, con=con)
     #
     # start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_test.csv', start=start, end=end, freq=freq, con=con)
+    #
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='bidclose', shift=1)
+    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='bidclose', shift=1)
+    # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='high', shift=1)
+    # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='high', shift=1)
 
-    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
-    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
-    trader = ForestTrader(h=10)
-    trader.ingest_traindata(df, labels)
-    trader.train(n_estimators=20)
-    print(trader.test(plot=True))
+    trader1 = LstmTrader(h=h)
+    # trader1.ingest_traindata(df, labels)
+    # trader1.train(epochs=50)
+    trader1.load(model_name='LSTM bidclose')
+    trader2 = ForestTrader(h=h)
+    # trader2.ingest_traindata(df, labels)
+    # trader2.train(n_estimators=100)
+    trader2.load(model_name='Huorn bidclose')
     baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
     random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
-    backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
+    ideal = IdealTrader().backtest(df1, labels1, price1, initial_gamble, fees)
+    backtest1 = trader1.backtest(df1, labels1, price1, initial_gamble, fees)
+    backtest2 = trader2.backtest(df1, labels1, price1, initial_gamble, fees)
     plt.plot(baseline['value'], label='Pure USD')
     plt.plot(random['value'], label='Random')
-    plt.plot(backtest['value'], label='Huorn 20-5')
+    # plt.plot(ideal['value'], label='Ideal')
+    plt.plot(backtest2['value'], label='Huorn')
+    plt.plot(backtest1['value'], label='Lstm')
     plt.legend()
     plt.grid()
     plt.show()
+
+    # from sklearn.tree import plot_tree
+    # plot_tree(trader2.model.estimators_[0])

@@ -36,10 +36,10 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
 
     start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
     tmp1 = start
-    if end - start < timedelta(weeks=12):
+    if end - start < timedelta(weeks=2*int(freq)):
         tmp2 = end
     else:
-        tmp2 = start + timedelta(weeks=12)
+        tmp2 = start + timedelta(weeks=2*int(freq))
     while tmp2 <= end:
         x1, x2 = datetime.timestamp(tmp1), datetime.timestamp(tmp2)
         main_url = base_url + "&start=" + str(x1) + "&end=" + str(x2) + "&period=" + str(freq * 60)
@@ -51,7 +51,7 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
         except:
             raise ValueError('Unable to fetch data, please check connection and API availability.')
 
-        tmp1, tmp2 = tmp1 + timedelta(weeks=12), tmp2 + timedelta(weeks=12)
+        tmp1, tmp2 = tmp1 + timedelta(weeks=2*int(freq)), tmp2 + timedelta(weeks=2*int(freq))
         if tmp1 < end < tmp2:
             tmp2 = end
 
@@ -93,6 +93,31 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     print('New available EUR-GBP data shape:', df.shape)
 
 
+def fetch_fxcm_data(filename, start, end, freq, con):
+    """
+    Given currencies and start/end dates, as well as frequency, gets exchange rates from FXCM API.
+    """
+
+    df = pd.DataFrame()
+    start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
+    tmp1 = start
+    if end - start < timedelta(weeks=int(freq)):
+        tmp2 = end
+    else:
+        tmp2 = start + timedelta(weeks=int(freq))
+    while tmp2 <= end:
+        data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
+        df = pd.concat([df, data]).drop_duplicates(keep='last')
+
+        tmp1, tmp2 = tmp1 + timedelta(weeks=int(freq)), tmp2 + timedelta(weeks=int(freq))
+        if tmp1 < end < tmp2:
+            tmp2 = end
+
+    print(df.shape)
+    df.index = pd.to_datetime(df.index, unit='s')
+    df.to_csv(filename, encoding='utf-8')
+
+
 def compute_metrics(y_true, y_pred):
     """
     Given true labels and predictions, outputs a set of performance metrics for regression task.
@@ -112,34 +137,12 @@ def compute_metrics(y_true, y_pred):
             'max_error':            me,
             'mean_squared_error':   mse,
             'r2':                   r2,
-            'change_accuracy':           (pred_shift == true_shift).mean()
+            'change_accuracy':      (pred_shift == true_shift).mean()
             }
 
 
 def evaluate(portfolio, rate):
-    return round(portfolio[0] + (portfolio[1] * rate), 2)
-
-
-def fetch_fxcm_data(filename, start, end, freq, con):
     """
-    Given currencies and start/end dates, as well as frequency, gets exchange rates from Poloniex API.
+    Given a portfolio in units of base and quote currencies, returns value in base currency.
     """
-
-    df = pd.DataFrame()
-    start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
-    tmp1 = start
-    if end - start < timedelta(weeks=6):
-        tmp2 = end
-    else:
-        tmp2 = start + timedelta(weeks=6)
-    while tmp2 <= end:
-        data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
-        df = pd.concat([df, data]).drop_duplicates(keep='last')
-
-        tmp1, tmp2 = tmp1 + timedelta(weeks=6), tmp2 + timedelta(weeks=6)
-        if tmp1 < end < tmp2:
-            tmp2 = end
-
-    print(df.shape)
-    df.index = pd.to_datetime(df.index, unit='s')
-    df.to_csv(filename, encoding='utf-8')
+    return round(portfolio[0] + (portfolio[1] * rate), 5)
