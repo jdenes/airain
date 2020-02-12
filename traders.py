@@ -96,7 +96,7 @@ class Trader(object):
         X, _, ind = self.transform_data(df, labels, get_index=True)
         current_price = price[ind].to_numpy()
         y_pred = self.predict(X)
-        print(y_pred, _, current_price)
+        print(compute_metrics(current_price[1:], y_pred[:-1]))
         going_up = (y_pred * (1 - fees) > current_price)
         policy = [(0, 1) if p else (1, 0) for p in going_up]
         return policy, ind
@@ -109,7 +109,7 @@ class Trader(object):
         policy, ind = self.compute_policy(df=df, labels=labels, price=price, fees=fees)
         price = price[ind].to_numpy()
 
-        amount = 0
+        count, amount = 0, 0
         next_portfolio = (initial_gamble, 0)
         ppp = []
         value = initial_gamble
@@ -118,13 +118,15 @@ class Trader(object):
             last_portfolio = next_portfolio
             last_value = value
             value = evaluate(last_portfolio, price[i])
-            if value < last_value: amount += 1
+            if value < last_value:
+                count += 1
+                amount += last_value - value
             if i > 0 and policy[i] != policy[i-1]:
                 value *= 1 - fees
             next_portfolio = (policy[i][0] * value, policy[i][1] * value / price[i])
             ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
-        print("Total bad moves share:", amount/len(price))
+        print("Total bad moves share:", count/len(price), "for amount lost:", amount)
         return pd.DataFrame(ppp)
 
     def predict_next(self, df, labels, price, value=1000, fees=0.01):

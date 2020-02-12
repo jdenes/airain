@@ -78,25 +78,27 @@ if __name__ == "__main__":
     # TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
     # con = fxcmpy.fxcmpy(access_token=TOKEN, server='demo')
     #
-    # start, end = '2018-11-30 00:00:00', '2019-11-30 00:00:00'
+    # start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_train.csv', start=start, end=end, freq=freq, con=con)
     #
-    # start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
+    # start, end = '2020-02-01 00:00:00', '2020-02-01 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_test.csv', start=start, end=end, freq=freq, con=con)
-    #
-    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='bidclose', shift=1)
-    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='bidclose', shift=1)
-    # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='high', shift=1)
-    # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='high', shift=1)
+
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
+    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
+    # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='close', shift=1)
+    # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='close', shift=1)
 
     trader1 = LstmTrader(h=h)
-    # trader1.ingest_traindata(df, labels)
-    # trader1.train(epochs=50)
-    trader1.load(model_name='LSTM bidclose')
+    trader1.ingest_traindata(df, labels)
+    trader1.train(epochs=100)
+    trader1.save(model_name='LSTM askclose')
+    print(trader1.test(plot=False))
     trader2 = ForestTrader(h=h)
-    # trader2.ingest_traindata(df, labels)
-    # trader2.train(n_estimators=100)
-    trader2.load(model_name='Huorn bidclose')
+    trader2.ingest_traindata(df, labels)
+    trader2.train(n_estimators=100)
+    trader2.save(model_name='Huorn askclose')
+    print(trader2.test(plot=False))
     baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
     random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
     ideal = IdealTrader().backtest(df1, labels1, price1, initial_gamble, fees)
@@ -110,6 +112,3 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid()
     plt.show()
-
-    # from sklearn.tree import plot_tree
-    # plot_tree(trader2.model.estimators_[0])
