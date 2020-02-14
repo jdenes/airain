@@ -99,17 +99,19 @@ def fetch_fxcm_data(filename, start, end, freq, con):
     """
 
     df = pd.DataFrame()
+    step = 2*int(freq)
     start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
     tmp1 = start
-    if end - start < timedelta(weeks=int(freq)):
+    if end - start < timedelta(weeks=step):
         tmp2 = end
     else:
-        tmp2 = start + timedelta(weeks=int(freq))
+        tmp2 = start + timedelta(weeks=step)
     while tmp2 <= end:
+        print(tmp1)
         data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
         df = pd.concat([df, data]).drop_duplicates(keep='last')
 
-        tmp1, tmp2 = tmp1 + timedelta(weeks=int(freq)), tmp2 + timedelta(weeks=int(freq))
+        tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
         if tmp1 < end < tmp2:
             tmp2 = end
 
@@ -146,3 +148,18 @@ def evaluate(portfolio, rate):
     Given a portfolio in units of base and quote currencies, returns value in base currency.
     """
     return round(portfolio[0] + (portfolio[1] * rate), 5)
+
+
+def normalize_data(data, data_max, data_min):
+    """
+    Normalizes data using min-max normalization.
+    """
+    return 2 * (data - data_min) / (data_max - data_min) - 1
+
+
+def unnormalize_data(data, data_max, data_min):
+    """
+    Un-normalizes data using min-max normalization.
+    """
+    return (data + 1) * (data_max - data_min) / 2 + data_min
+

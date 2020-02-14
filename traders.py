@@ -11,7 +11,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
-from utils import compute_metrics, evaluate
+from utils import compute_metrics, evaluate, normalize_data, unnormalize_data
 
 ####################################################################################
 
@@ -70,7 +70,7 @@ class Trader(object):
         y_test = self.y_test
 
         if self.normalize:
-            y_test = (y_test + 1) * (self.y_max - self.y_min) / 2 + self.y_min
+            y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
         if plot:
             plt.plot((y_pred - y_test) / y_test, '.')
@@ -86,7 +86,7 @@ class Trader(object):
         """
         y_pred = self.model.predict(X).flatten()
         if self.normalize:
-            y_pred = (y_pred + 1) * (self.y_max - self.y_min) / 2 + self.y_min
+            y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
     def compute_policy(self, df, labels, price, fees):
@@ -275,8 +275,8 @@ class LstmTrader(Trader):
         df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
 
         if self.normalize:
-            df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
-            labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
+            df = normalize_data(df, self.x_max, self.x_min)
+            labels = normalize_data(labels, self.y_max, self.y_min)
 
         df, labels = df.to_numpy(), labels.to_numpy()
         X, y, ind = [], [], []
@@ -378,8 +378,8 @@ class MlTrader(Trader):
         index = df.index.to_list()
 
         if self.normalize:
-            df = 2 * (df - self.x_min) / (self.x_max - self.x_min) - 1
-            labels = 2 * (labels - self.y_min) / (self.y_max - self.y_min) - 1
+            df = normalize_data(df, self.x_max, self.x_min)
+            labels = normalize_data(labels, self.y_max, self.y_min)
 
         history = pd.DataFrame()
         for i in range(1, self.h):
@@ -461,7 +461,7 @@ class ForestTrader(MlTrader):
         """
 
         self.n_estimators = n_estimators
-        self.model = RandomForestRegressor(n_estimators=self.n_estimators)
+        self.model = RandomForestRegressor(n_estimators=self.n_estimators, n_jobs=3, verbose=2)
         self.model.fit(self.X_train, self.y_train)
 
 ####################################################################################
