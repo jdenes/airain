@@ -23,6 +23,7 @@
       <w>usdc</w>
       <w>valsize</w>
       <w>valsteps</w>
+      <w>xgboost</w>
     </words>
   </dictionary>
 </component>

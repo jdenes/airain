@@ -1,45 +1,10 @@
-from traders import NeuralTrader, LstmTrader, SvmTrader, ForestTrader, Dummy, Randommy, IdealTrader
+from traders import NeuralTrader, LstmTrader, XgboostTrader, ForestTrader, Dummy, Randommy, IdealTrader
+from fxcmtraders import FxcmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
 from tabulate import tabulate
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
-
-
-def tuning_n_estimators():
-    freq = 5
-    h = 10
-    initial_gamble = 100
-    fees = 0.0
-    scores = []
-    df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='weightedAverage', shift=1)
-
-    baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
-    random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
-
-    import numpy as np
-    for i in range(100, 201, 100):
-        print("Size:", i)
-        res = []
-        for _ in range(1):
-            trader_model = ForestTrader
-            trader = trader_model(h=h)
-            trader.ingest_traindata(df1, labels1)
-            trader.train(n_estimators=i)
-            scores.append(trader.test(plot=False))
-            backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
-            res.append(backtest['value'])
-        res = np.array(res).mean(0)
-        plt.plot(res, label='Huorn ' + str(i))
-
-    plt.plot(baseline['value'], label='Pure BTC')
-    plt.plot(random['value'], label='Random')
-    plt.legend()
-    plt.grid()
-    plt.show()
-
-    print(tabulate(pd.DataFrame(scores), headers="keys", tablefmt="fancy_grid"))
-
 
 if __name__ == "__main__":
     freq = 1
@@ -72,7 +37,6 @@ if __name__ == "__main__":
     # print(res)
     ##############################################################################
 
-    # tuning_n_estimators()
 
     # import fxcmpy
     # TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
@@ -84,26 +48,26 @@ if __name__ == "__main__":
     # start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_test.csv', start=start, end=end, freq=freq, con=con)
 
-    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='bidclose', shift=1)
-    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='bidclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
+    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
     # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='close', shift=1)
     # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='close', shift=1)
 
-    trader1 = LstmTrader(h=h)
-    # trader1.load(model_name='LSTM askclose')
-    trader = ForestTrader(h=h)
-    trader.ingest_traindata(df, labels)
-    trader.train(n_estimators=100)
-    trader.save(model_name='Huorn bidclose')
-    print(trader.test(plot=False))
-    baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
-    random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
-    ideal = IdealTrader().backtest(df1, labels1, price1, initial_gamble, fees)
-    backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
-    plt.plot(baseline['value'], label='Pure USD')
-    plt.plot(random['value'], label='Random')
-    # plt.plot(ideal['value'], label='Ideal')
-    plt.plot(backtest['value'], label='Huorn')
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # trader = ForestTrader(h=h)
+    # trader.load(model_name='Huorn askclose')
+    # print(trader.test(plot=False))
+    # backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
+    # plt.plot(backtest['value'], label='Huorn')
+
+    # baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
+    # plt.plot(baseline['value'], label='Pure USD')
+    # random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
+    # plt.plot(random['value'], label='Random')
+
+    # plt.legend()
+    # plt.grid()
+    # plt.show()
+
+    master_trader = FxcmTrader(ask_model='Huorn askclose', bid_model='Huorn bidclose')
+    backtest = master_trader.backtest(df1, labels1, price1, initial_gamble, fees)
+

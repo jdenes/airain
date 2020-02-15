@@ -5,6 +5,7 @@ import pandas as pd
 import joblib as jl
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import xgboost as xgb
 
 from sklearn import svm
 from sklearn.neural_network import MLPRegressor
@@ -386,6 +387,7 @@ class MlTrader(Trader):
             shifted_df = df.shift(i)
             history = pd.concat([history, shifted_df], axis=1)
         df = pd.concat([df, history], axis=1)
+        del history, shifted_df
         df['labels'], df['ind'] = labels, index
 
         first_idx = df.apply(lambda col: col.first_valid_index()).max()
@@ -514,4 +516,30 @@ class NeuralTrader(MlTrader):
 
         self.layers = layers
         self.model = MLPRegressor(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=self.layers)
+        self.model.fit(self.X_train, self.y_train)
+
+####################################################################################
+
+
+class XgboostTrader(MlTrader):
+    """
+    A trader-forecaster based on XGBoost.
+    """
+
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
+        """
+        Initialize method.
+        """
+
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
+        self.n_estimators = None
+
+    def train(self, n_estimators=10):
+        """
+        Using prepared data, trains model depending on agent type.
+        """
+
+        self.n_estimators = n_estimators
+        self.model = xgb.XGBRegressor(objective='reg:squarederror',
+                                      n_estimators=self.n_estimators, n_jobs=3, verbose=2)
         self.model.fit(self.X_train, self.y_train)
