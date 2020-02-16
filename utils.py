@@ -93,27 +93,32 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     print('New available EUR-GBP data shape:', df.shape)
 
 
-def fetch_fxcm_data(filename, start, end, freq, con):
+def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
     """
     Given currencies and start/end dates, as well as frequency, gets exchange rates from FXCM API.
     """
 
-    df = pd.DataFrame()
-    step = 2*int(freq)
-    start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
-    tmp1 = start
-    if end - start < timedelta(weeks=step):
-        tmp2 = end
-    else:
-        tmp2 = start + timedelta(weeks=step)
-    while tmp2 <= end:
-        print(tmp1)
-        data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
-        df = pd.concat([df, data]).drop_duplicates(keep='last')
+    if n_last is not None:
+        df = con.get_candles('EUR/USD', period='m'+str(freq), number=n_last)
 
-        tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
-        if tmp1 < end < tmp2:
+    else:
+        df = pd.DataFrame()
+        step = 2*int(freq)
+        start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
+        tmp1 = start
+        if end - start < timedelta(weeks=step):
             tmp2 = end
+        else:
+            tmp2 = start + timedelta(weeks=step)
+        while tmp2 <= end:
+            print(tmp1)
+            data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
+            print(data)
+            df = pd.concat([df, data]).drop_duplicates(keep='last')
+
+            tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
+            if tmp1 < end < tmp2:
+                tmp2 = end
 
     print(df.shape)
     df.index = pd.to_datetime(df.index, unit='s')

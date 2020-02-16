@@ -25,36 +25,17 @@ if __name__ == "__main__":
     # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='weightedAverage', shift=1)
     # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='weightedAverage', shift=1)
 
-    ##############################################################################
-    # start, end = '2020-02-06 00:00:00', datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    # fetch_crypto_rate('./data/dataset_crypto_now.csv', from_curr, to_curr, start, end, freq)
-    # df2, labels2, price2 = load_data(filename='./data/dataset_crypto_now.csv',
-    #                                  target_col='weightedAverage',
-    #                                  shift=1,
-    #                                  keep_last=True)
-    # print("Current price:", price2.index[-1], price2.to_list()[-1])
-    # res = trader.predict_next(df2, labels2, price2, value=initial_gamble, fees=fees)
-    # print(res)
-    ##############################################################################
-
-
-    # import fxcmpy
-    # TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
-    # con = fxcmpy.fxcmpy(access_token=TOKEN, server='demo')
-    #
     # start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_train.csv', start=start, end=end, freq=freq, con=con)
     #
     # start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     # fetch_fxcm_data(filename='./data/dataset_eurusd_test.csv', start=start, end=end, freq=freq, con=con)
 
-    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
-    df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
+    # df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
+    # df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
     # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='close', shift=1)
     # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='close', shift=1)
 
-    # trader = ForestTrader(h=h)
-    # trader.load(model_name='Huorn askclose')
     # print(trader.test(plot=False))
     # backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
     # plt.plot(backtest['value'], label='Huorn')
@@ -68,6 +49,27 @@ if __name__ == "__main__":
     # plt.grid()
     # plt.show()
 
-    master_trader = FxcmTrader(ask_model='Huorn askclose', bid_model='Huorn bidclose')
-    backtest = master_trader.backtest(df1, labels1, price1, initial_gamble, fees)
+    ############################################################################################
+    import fxcmpy
+    t1 = datetime.now()
+    TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
+    con = fxcmpy.fxcmpy(access_token=TOKEN, server='demo')
+    t2 = datetime.now()
+    trader = ForestTrader(h=h)
+    trader.load(model_name='Huorn askclose')
+    t3 = datetime.now()
+    fetch_fxcm_data('./data/dataset_eurusd_now.csv', freq=freq, con=con, n_last=30)
+    t4 = datetime.now()
+    df2, labels2, price2 = load_data(filename='./data/dataset_eurusd_now.csv',
+                                     target_col='askclose',
+                                     shift=1,
+                                     keep_last=True)
+    print("Current price:", price2.index[-1], price2.to_list()[-1])
+    t5 = datetime.now()
+    res = trader.predict_next(df2, labels2, price2, value=initial_gamble, fees=fees)
+    t6 = datetime.now()
+    print(res)
+    print(t2-t1, t3-t2, t4-t3, t5-t4, t6-t5)
+    ############################################################################################
+
 
