@@ -54,11 +54,13 @@ if __name__ == "__main__":
     t1 = datetime.now()
     TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
     con = fxcmpy.fxcmpy(access_token=TOKEN, server='demo')
+    con.subscribe_market_data('EUR/USD')
     t2 = datetime.now()
     trader = ForestTrader(h=h)
     trader.load(model_name='Huorn askclose')
     t3 = datetime.now()
     fetch_fxcm_data('./data/dataset_eurusd_now.csv', freq=freq, con=con, n_last=30)
+    print(con.get_prices('EUR/USD'))
     t4 = datetime.now()
     df2, labels2, price2 = load_data(filename='./data/dataset_eurusd_now.csv',
                                      target_col='askclose',
