@@ -85,6 +85,7 @@ class Trader(object):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
+        self.model.verbose = 0
         y_pred = self.model.predict(X).flatten()
         if self.normalize:
             y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
@@ -140,14 +141,13 @@ class Trader(object):
 
         going_up = y_pred[-1] * (1 - fees) > price[-1]
         next_policy = (0, 1) if going_up else (1, 0)
-        next_portfolio = (next_policy[0] * value, next_policy[1] * value / price[-1])
-        next_value = evaluate(next_portfolio, y_pred[-1])
+        # next_portfolio = (next_policy[0] * value, next_policy[1] * value / price[-1])
+        # next_value = evaluate(next_portfolio, y_pred[-1])
 
         return {'index': ind[-1],
                 'current_price': price[-1],
                 'predicted_price': y_pred[-1],
-                'next_policy': next_policy,
-                'next_value': next_value
+                'next_policy': next_policy
                 }
 
     def save(self, model_name):
@@ -466,6 +466,7 @@ class ForestTrader(MlTrader):
         self.n_estimators = n_estimators
         self.model = RandomForestRegressor(n_estimators=self.n_estimators, n_jobs=3, verbose=2)
         self.model.fit(self.X_train, self.y_train)
+        self.model.verbose = 0
 
 ####################################################################################
 
