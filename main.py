@@ -1,77 +1,110 @@
-from traders import NeuralTrader, LstmTrader, XgboostTrader, ForestTrader, Dummy, Randommy, IdealTrader
-from fxcmtraders import FxcmTrader
-from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
-from tabulate import tabulate
+import time
+import fxcmpy
 import pandas as pd
-import matplotlib.pyplot as plt
 from datetime import datetime
+from tabulate import tabulate
+import matplotlib.pyplot as plt
 
-if __name__ == "__main__":
-    freq = 1
-    h = 10
-    initial_gamble = 1000
-    fees = 0.0
-    api_key = "H2T4H92C43D9DT3D"
-    from_curr, to_curr = 'USDC', 'BTC'
+from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
+from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
 
-    # start, end = '2018-07-01 00:00:00', '2019-11-30 00:00:00'
-    # fetch_crypto_rate('./data/dataset_crypto_train.csv', from_curr, to_curr, start, end, freq)
-    #
-    # start, end = '2019-12-01 00:00:00', '2020-02-01 00:00:00'
-    # fetch_crypto_rate('./data/dataset_crypto_test.csv', from_curr, to_curr, start, end, freq)
-    #
-    # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, api_key)
+freq = 1
+h = 10
+initial_gamble = 1000
+amount = initial_gamble / (100/3)
+fees = 0.0
+alpha_key = "H2T4H92C43D9DT3D"
+fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
-    # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='weightedAverage', shift=1)
-    # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='weightedAverage', shift=1)
 
-    # start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
-    # fetch_fxcm_data(filename='./data/dataset_eurusd_train.csv', start=start, end=end, freq=freq, con=con)
-    #
-    # start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
-    # fetch_fxcm_data(filename='./data/dataset_eurusd_test.csv', start=start, end=end, freq=freq, con=con)
+def fetch_data():
+    con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
+    start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
+    fetch_fxcm_data(filename='./data/dataset_eurusd_train.csv', start=start, end=end, freq=freq, con=con)
+    start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
+    fetch_fxcm_data(filename='./data/dataset_eurusd_test.csv', start=start, end=end, freq=freq, con=con)
 
-    # df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
-    # df1, labels1, price1 = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
-    # df, labels, price = load_data(filename='./data/dataset_crypto_train.csv', target_col='close', shift=1)
-    # df1, labels1, price1 = load_data(filename='./data/dataset_crypto_test.csv', target_col='close', shift=1)
 
-    # print(trader.test(plot=False))
-    # backtest = trader.backtest(df1, labels1, price1, initial_gamble, fees)
-    # plt.plot(backtest['value'], label='Huorn')
+def train_models():
+    print('Training ASK model...')
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='askclose', shift=1)
+    trader = ForestTrader(h=h)
+    trader.ingest_traindata(df=df, labels=labels)
+    print(trader.test(plot=True))
+    trader.save(model_name='Huorn askclose')
+    print('Training BID model...')
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train.csv', target_col='bidclose', shift=1)
+    trader = ForestTrader(h=h)
+    trader.ingest_traindata(df=df, labels=labels)
+    print(trader.test(plot=True))
+    trader.save(model_name='Huorn bidclose')
 
-    # baseline = Dummy().backtest(df1, labels1, price1, initial_gamble, fees)
-    # plt.plot(baseline['value'], label='Pure USD')
-    # random = Randommy().backtest(df1, labels1, price1, initial_gamble, fees)
-    # plt.plot(random['value'], label='Random')
 
-    # plt.legend()
-    # plt.grid()
-    # plt.show()
+def backtest_models():
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
+    ask_trader = ForestTrader(h=h)
+    ask_trader.load(model_name='Huorn askclose')
+    bid_trader = ForestTrader(h=h)
+    bid_trader.load(model_name='Huorn bidclose')
+    ask_backtest = ask_trader.backtest(df, labels, price, initial_gamble, fees)
+    plt.plot(ask_backtest['value'], label='ASK model')
+    bid_backtest = bid_trader.backtest(df, labels, price, initial_gamble, fees)
+    plt.plot(bid_backtest['value'], label='BID model')
+    baseline = Dummy().backtest(df, labels, price, initial_gamble, fees)
+    plt.plot(baseline['value'], label='Pure USD')
+    random = Randommy().backtest(df, labels, price, initial_gamble, fees)
+    plt.plot(random['value'], label='Random')
+    plt.legend()
+    plt.grid()
+    plt.show()
 
-    ############################################################################################
-    import fxcmpy
+
+def get_price_data(con):
+    fetch_fxcm_data('./data/dataset_eurusd_now.csv', freq=freq, con=con, n_last=30)
+    # print(con.get_prices('EUR/USD'))
+    df, labels, price = load_data(filename='./data/dataset_eurusd_now.csv',
+                                  target_col='askclose',
+                                  shift=1,
+                                  keep_last=True)
+    return df, labels, price
+
+
+def trade(con, trader, df, labels, price):
+    res = trader.predict_next(df, labels, price, value=initial_gamble, fees=fees)
+    # if going down: sell | if going up: buy
+    is_buy = False if res['next_policy'] == (1, 0) else True
+    con.open_trade(symbol='EUR/USD', is_buy=is_buy, amount=amount, time_in_force='GTC', order_type='AtMarket')
+    return 'DOWN' if res['next_policy'] == (1, 0) else 'UP'
+
+
+def heart_beat():
+
     t1 = datetime.now()
-    TOKEN = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
-    con = fxcmpy.fxcmpy(access_token=TOKEN, server='demo')
-    con.subscribe_market_data('EUR/USD')
-    t2 = datetime.now()
+    count = 1
+    con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
+    # con.subscribe_market_data('EUR/USD')
     trader = ForestTrader(h=h)
     trader.load(model_name='Huorn askclose')
-    t3 = datetime.now()
-    fetch_fxcm_data('./data/dataset_eurusd_now.csv', freq=freq, con=con, n_last=30)
-    print(con.get_prices('EUR/USD'))
-    t4 = datetime.now()
-    df2, labels2, price2 = load_data(filename='./data/dataset_eurusd_now.csv',
-                                     target_col='askclose',
-                                     shift=1,
-                                     keep_last=True)
-    print("Current price:", price2.index[-1], price2.to_list()[-1])
-    t5 = datetime.now()
-    res = trader.predict_next(df2, labels2, price2, value=initial_gamble, fees=fees)
-    t6 = datetime.now()
-    print(res)
-    print(t2-t1, t3-t2, t4-t3, t5-t4, t6-t5)
-    ############################################################################################
+    print(datetime.now(), ': initialization took', datetime.now() - t1)
+
+    while count < 3:
+        now = datetime.now()
+        if now.second == 0 and now.minute % freq == 0:
+            t1 = datetime.now()
+            print(datetime.now(), ': starting iteration', count)
+            # con.close_all_for_symbol('EUR/USD')
+            df, labels, price = get_price_data(con)
+            print(datetime.now(), ': current price is', price.to_list()[-1])
+            res = trade(con, trader, df, labels, price)
+            print(datetime.now(), ': expected movement is', res)
+            print(datetime.now(), ': iteration took', datetime.now() - t1)
+            count += 1
+        time.sleep(0.1)
+
+    con.close_all_for_symbol('EUR/USD')
+    print('Trading stopped.')
 
 
+if __name__ == "__main__":
+    # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
+    heart_beat()

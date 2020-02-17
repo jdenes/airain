@@ -144,7 +144,8 @@ class Trader(object):
         next_value = evaluate(next_portfolio, y_pred[-1])
 
         return {'index': ind[-1],
-                'next_portfolio': next_portfolio,
+                'current_price': price[-1],
+                'predicted_price': y_pred[-1],
                 'next_policy': next_policy,
                 'next_value': next_value
                 }

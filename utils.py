@@ -120,7 +120,6 @@ def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
             if tmp1 < end < tmp2:
                 tmp2 = end
 
-    print(df.shape)
     df.index = pd.to_datetime(df.index, unit='s')
     df.to_csv(filename, encoding='utf-8')
 
