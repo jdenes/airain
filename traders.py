@@ -135,7 +135,7 @@ class Trader(object):
         """
         Predicts next value and consequently next optimal portfolio.
         """
-        X, y, ind = self.transform_data(df, labels, get_index=True, keep_last=True)
+        X, _, ind = self.transform_data(df, labels, get_index=True, keep_last=True)
         price = price[ind].to_list()
         y_pred = self.predict(X)
 
@@ -146,7 +146,7 @@ class Trader(object):
 
         return {'index': ind[-1],
                 'current_price': price[-1],
-                'predicted_price': y_pred[-1],
+                'pred_price': y_pred[-1],
                 'next_policy': next_policy
                 }
 
@@ -378,7 +378,6 @@ class MlTrader(Trader):
         """
 
         index = df.index.to_list()
-
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
             labels = normalize_data(labels, self.y_max, self.y_min)
