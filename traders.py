@@ -85,7 +85,6 @@ class Trader(object):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        self.model.verbose = 0
         y_pred = self.model.predict(X).flatten()
         if self.normalize:
             y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)

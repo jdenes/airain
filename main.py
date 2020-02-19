@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
 
-freq = 1
+freq = 5
 h = 10
 initial_gamble = 1000
 amount = 2 * round(initial_gamble / (100 / 3))
@@ -19,7 +19,7 @@ fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
+    start, end = '2005-11-30 00:00:00', '2020-01-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_5.csv', start=start, end=end, freq=freq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_5.csv', start=start, end=end, freq=freq, con=con)
@@ -30,26 +30,31 @@ def train_models():
     df, labels, price = load_data(filename='./data/dataset_eurusd_train_5.csv', target_col='askclose', shift=1)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
+    trader.train(n_estimators=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askclose 5')
     print('Training BID model...')
     df, labels, price = load_data(filename='./data/dataset_eurusd_train_5.csv', target_col='bidclose', shift=1)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
+    trader.train(n_estimators=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn bidclose 5')
 
 
 def backtest_models():
-    df, labels, price = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test_5.csv', target_col='askclose', shift=1)
     ask_trader = ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose')
-    bid_trader = ForestTrader(h=h)
-    bid_trader.load(model_name='Huorn bidclose')
+    ask_trader.load(model_name='Huorn askclose 5')
     ask_backtest = ask_trader.backtest(df, labels, price, initial_gamble, fees)
     plt.plot(ask_backtest['value'], label='ASK model')
+
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test_5.csv', target_col='bidclose', shift=1)
+    bid_trader = ForestTrader(h=h)
+    bid_trader.load(model_name='Huorn bidclose 5')
     bid_backtest = bid_trader.backtest(df, labels, price, initial_gamble, fees)
     plt.plot(bid_backtest['value'], label='BID model')
+
     baseline = Dummy().backtest(df, labels, price, initial_gamble, fees)
     plt.plot(baseline['value'], label='Pure USD')
     random = Randommy().backtest(df, labels, price, initial_gamble, fees)
@@ -60,10 +65,10 @@ def backtest_models():
 
 
 def mega_backtest():
-    df, labels, price = load_data(filename='./data/dataset_eurusd_test.csv', target_col='askclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test_5.csv', target_col='askclose', shift=1)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose')
-    bid_trader.load(model_name='Huorn bidclose')
+    ask_trader.load(model_name='Huorn askclose 5')
+    bid_trader.load(model_name='Huorn bidclose 5')
     order = None
     buy, sell = 0, 0
     buy_correct, sell_correct = 0, 0
@@ -74,7 +79,6 @@ def mega_backtest():
     X, _, ind = ask_trader.transform_data(df, labels, get_index=True)
     ask_preds = ask_trader.predict(X)
     bid_preds = bid_trader.predict(X)
-    print(ind[0], df.index[h - 1], ind[-1], df.index[-1], len(X), len(df.index[h-1:]))
 
     for i in range(h - 1, len(df)):
         index = df.index[i - h + 1:i + 1]  # i-th should be included
@@ -109,15 +113,14 @@ def mega_backtest():
         else:
             order = None
             noth += 1
-        if i % 720 == 0:
-            prog = round(100 * i / (len(df) - h))
-            rien = round(100 * noth / (i - h + 1), 3)
-            buy_acc = round(100 * buy_correct / buy, 3)
-            sell_acc = round(100 * sell_correct / sell, 3)
-            print('{}% ({}) | profit is {} and overall profit {} and correct share buy {} sell {} nothing {}'.format(
-                prog, index[-1], gpl, overall_profit, buy_acc, sell_acc, rien)
-            )
 
+    rien = round(100 * noth / len(range(h - 1, len(df))), 3)
+    buy_acc = round(100 * buy_correct / buy, 3)
+    sell_acc = round(100 * sell_correct / sell, 3)
+
+    print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
+        overall_profit, buy_acc, sell_acc, rien)
+    )
     plt.plot(profit_list, label='Profit evolution')
     plt.legend()
     plt.grid()
@@ -176,9 +179,9 @@ def heart_beat():
 
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
-    # fetch_data()
-    # train_models()
-    # backtest_models()
+    fetch_data()
+    train_models()
+    backtest_models()
     mega_backtest()
 
     # heart_beat()
