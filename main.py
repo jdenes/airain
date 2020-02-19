@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
 
-freq = 15
+freq = 5
+f = str(freq)
 h = 10
 initial_gamble = 1000
 fees = 0.0
+tolerance = 4e-5
 alpha_key = "H2T4H92C43D9DT3D"
 fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
@@ -19,38 +21,38 @@ fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
     start, end = '2005-11-30 00:00:00', '2020-01-30 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_eurusd_train_15.csv', start=start, end=end, freq=freq, con=con)
+    fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=freq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_eurusd_test_15.csv', start=start, end=end, freq=freq, con=con)
+    fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=freq, con=con)
 
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data(filename='./data/dataset_eurusd_train_15.csv', target_col='askclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train_' + f + '.csv', target_col='askclose', shift=1)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn askclose 15')
+    trader.save(model_name='Huorn askclose ' + f)
     print('Training BID model...')
-    df, labels, price = load_data(filename='./data/dataset_eurusd_train_15.csv', target_col='bidclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_train_' + f + '.csv', target_col='bidclose', shift=1)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn bidclose 15')
+    trader.save(model_name='Huorn bidclose ' + f)
 
 
 def backtest_models():
-    df, labels, price = load_data(filename='./data/dataset_eurusd_test_15.csv', target_col='askclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test_' + f + '.csv', target_col='askclose', shift=1)
     ask_trader = ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose 15')
+    ask_trader.load(model_name='Huorn askclose ' + f)
     ask_backtest = ask_trader.backtest(df, labels, price, initial_gamble, fees)
     plt.plot(ask_backtest['value'], label='ASK model')
 
-    df, labels, price = load_data(filename='./data/dataset_eurusd_test_15.csv', target_col='bidclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test_' + f + '.csv', target_col='bidclose', shift=1)
     bid_trader = ForestTrader(h=h)
-    bid_trader.load(model_name='Huorn bidclose 15')
+    bid_trader.load(model_name='Huorn bidclose ' + f)
     bid_backtest = bid_trader.backtest(df, labels, price, initial_gamble, fees)
     plt.plot(bid_backtest['value'], label='BID model')
 
@@ -64,10 +66,10 @@ def backtest_models():
 
 
 def mega_backtest():
-    df, labels, price = load_data(filename='./data/dataset_eurusd_test_15.csv', target_col='askclose', shift=1)
+    df, labels, price = load_data(filename='./data/dataset_eurusd_test_' + f + '.csv', target_col='askclose', shift=1)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose 15')
-    bid_trader.load(model_name='Huorn bidclose 15')
+    ask_trader.load(model_name='Huorn askclose ' + f)
+    bid_trader.load(model_name='Huorn bidclose ' + f)
     order = None
     buy, sell = 0, 0
     buy_correct, sell_correct = 0, 0
@@ -77,10 +79,10 @@ def mega_backtest():
     balance = initial_gamble
 
     X, _, ind = ask_trader.transform_data(df, labels, get_index=True)
-    # ask_preds = ask_trader.predict(X)
-    # bid_preds = bid_trader.predict(X)
-    ask_preds = df['askclose'].shift(-1).to_list()
-    bid_preds = df['bidclose'].shift(-1).to_list()
+    ask_preds = ask_trader.predict(X)
+    bid_preds = bid_trader.predict(X)
+    # ask_preds = df.loc[ind]['askclose'].shift(-1).to_list()
+    # bid_preds = df.loc[ind]['bidclose'].shift(-1).to_list()
 
     for i in range(h - 1, len(df)):
         index = df.index[i - h + 1:i + 1]  # i-th should be included
@@ -107,10 +109,10 @@ def mega_backtest():
         pred_ask, pred_bid = ask_preds[i - h + 1], bid_preds[i - h + 1]
 
         # if price is going up: buy
-        if pred_bid > now_ask:
+        if pred_bid > (1 - tolerance) * now_ask:
             order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
         # elif price is going down: sell
-        elif pred_ask < now_bid:
+        elif pred_ask < now_bid / (1 - tolerance):
             order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
         # else do nothing
         else:
@@ -148,7 +150,7 @@ def trade(con, trader, df, labels, price):
     res = trader.predict_next(df, labels, price, value=initial_gamble, fees=fees)
     # if going down: sell | if going up: buy
     is_buy = False if res['next_policy'] == (1, 0) else True
-    con.open_trade(symbol='EUR/USD', is_buy=is_buy, amount=amount, time_in_force='GTC', order_type='AtMarket')
+    # con.open_trade(symbol='EUR/USD', is_buy=is_buy, amount=amount, time_in_force='GTC', order_type='AtMarket')
     return 'DOWN' if res['next_policy'] == (1, 0) else 'UP'
 
 
@@ -158,7 +160,7 @@ def heart_beat():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
     # con.subscribe_market_data('EUR/USD')
     trader = ForestTrader(h=h)
-    trader.load(model_name='Huorn askclose')
+    trader.load(model_name='Huorn askclose ' + f)
     print(datetime.now(), ': initialization took', datetime.now() - t1)
 
     while count < 3:
@@ -168,7 +170,7 @@ def heart_beat():
             print(datetime.now(), ': starting iteration', count)
             # con.close_all_for_symbol('EUR/USD')
             df, labels, price = get_price_data(con)
-            print(datetime.now(), ': current price is', price.to_list()[-1])
+            print(datetime.now(), ': last data index is', df.index[-1], 'and current price is', price.to_list()[-1])
             res = trade(con, trader, df, labels, price)
             print(datetime.now(), ': expected movement is', res)
             print(datetime.now(), ': iteration took', datetime.now() - t1)
