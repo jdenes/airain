@@ -1,9 +1,9 @@
 import os
-from datetime import datetime, timedelta
-
+import requests
 import numpy as np
 import pandas as pd
-import requests
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
 from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score
 
 
@@ -165,3 +165,25 @@ def unnormalize_data(data, data_max, data_min):
     """
     return (data + 1) * (data_max - data_min) / 2 + data_min
 
+
+def nice_plot(ind, curves_list, names):
+    p = plt.figure(x_axis_type="datetime", plot_width=1000, plot_height=400, title="Equity evolution")
+    p.grid.grid_line_alpha = 0.3
+    p.xaxis.axis_label = 'Date'
+    p.yaxis.axis_label = 'Profit'
+    for i, x in enumerate(curves_list):
+        p.line(ind, x, legend=names[i])  # color =
+    p.legend.location = "top_left"
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+    # fig, ax = plt.subplots()
+    # ratio.plot(figsize=PLOTDIM, color=color_f, marker='.', linewidth=2, ax=ax)
+    # ax.set_xlim(left = 1945,right = 2017)
+    # ax.set_ylim(bottom = -0.01,top = 1.01)
+    # ax.tick_params(labelsize = 15)
+    # ax.xaxis.set_major_locator(ticker.MultipleLocator(FREQYEARS))
+    # ax.set_xlabel('')
+    # ax.set_yticklabels(['{:,.0%}'.format(x) for x in ax.get_yticks()])
+    # plt.grid()
