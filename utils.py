@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score
 
+cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
+        '#e866f4', '#f668c2']
+
 
 def load_data(filename, target_col, shift=1, keep_last=False):
     """
@@ -36,10 +39,10 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
 
     start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
     tmp1 = start
-    if end - start < timedelta(weeks=2*int(freq)):
+    if end - start < timedelta(weeks=2 * int(freq)):
         tmp2 = end
     else:
-        tmp2 = start + timedelta(weeks=2*int(freq))
+        tmp2 = start + timedelta(weeks=2 * int(freq))
     while tmp2 <= end:
         x1, x2 = datetime.timestamp(tmp1), datetime.timestamp(tmp2)
         main_url = base_url + "&start=" + str(x1) + "&end=" + str(x2) + "&period=" + str(freq * 60)
@@ -51,7 +54,7 @@ def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
         except:
             raise ValueError('Unable to fetch data, please check connection and API availability.')
 
-        tmp1, tmp2 = tmp1 + timedelta(weeks=2*int(freq)), tmp2 + timedelta(weeks=2*int(freq))
+        tmp1, tmp2 = tmp1 + timedelta(weeks=2 * int(freq)), tmp2 + timedelta(weeks=2 * int(freq))
         if tmp1 < end < tmp2:
             tmp2 = end
 
@@ -99,7 +102,7 @@ def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
     """
 
     if n_last is not None:
-        df = con.get_candles('EUR/USD', period='m'+str(freq), number=n_last)
+        df = con.get_candles('EUR/USD', period='m' + str(freq), number=n_last)
 
     else:
         df = pd.DataFrame()
@@ -111,7 +114,7 @@ def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
         else:
             tmp2 = start + timedelta(weeks=step)
         while tmp2 <= end:
-            data = con.get_candles('EUR/USD', period='m'+str(freq), start=tmp1, stop=tmp2)
+            data = con.get_candles('EUR/USD', period='m' + str(freq), start=tmp1, stop=tmp2)
             df = pd.concat([df, data]).drop_duplicates(keep='last')
 
             tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
@@ -135,13 +138,13 @@ def compute_metrics(y_true, y_pred):
     pred_shift = np.array(y_pred[:-1] > y_true[1:]).astype(int)
     true_shift = np.array(y_true[:-1] > y_true[1:]).astype(int)
 
-    return {'max_abs_rel_error':    are.max(),
-            'mean_abs_rel_error':   are.mean(),
-            'mean_absolute_error':  mae,
-            'max_error':            me,
-            'mean_squared_error':   mse,
-            'r2':                   r2,
-            'change_accuracy':      (pred_shift == true_shift).mean()
+    return {'max_abs_rel_error': are.max(),
+            'mean_abs_rel_error': are.mean(),
+            'mean_absolute_error': mae,
+            'max_error': me,
+            'mean_squared_error': mse,
+            'r2': r2,
+            'change_accuracy': (pred_shift == true_shift).mean()
             }
 
 
@@ -166,24 +169,23 @@ def unnormalize_data(data, data_max, data_min):
     return (data + 1) * (data_max - data_min) / 2 + data_min
 
 
-def nice_plot(ind, curves_list, names):
-    p = plt.figure(x_axis_type="datetime", plot_width=1000, plot_height=400, title="Equity evolution")
-    p.grid.grid_line_alpha = 0.3
-    p.xaxis.axis_label = 'Date'
-    p.yaxis.axis_label = 'Profit'
-    for i, x in enumerate(curves_list):
-        p.line(ind, x, legend=names[i])  # color =
-    p.legend.location = "top_left"
-    plt.legend()
-    plt.grid()
-    plt.show()
+def nice_plot(ind, curves_list, names, title):
 
-    # fig, ax = plt.subplots()
-    # ratio.plot(figsize=PLOTDIM, color=color_f, marker='.', linewidth=2, ax=ax)
-    # ax.set_xlim(left = 1945,right = 2017)
-    # ax.set_ylim(bottom = -0.01,top = 1.01)
-    # ax.tick_params(labelsize = 15)
-    # ax.xaxis.set_major_locator(ticker.MultipleLocator(FREQYEARS))
-    # ax.set_xlabel('')
-    # ax.set_yticklabels(['{:,.0%}'.format(x) for x in ax.get_yticks()])
-    # plt.grid()
+    plt.rcParams['font.family'] = 'Lato'
+    plt.rcParams['font.sans-serif'] = 'Lato'
+    plt.rcParams['font.weight'] = 500
+
+    fig, ax = plt.subplots(figsize=(13, 7))
+    for i, x in enumerate(curves_list):
+        pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names[i])
+    ax.tick_params(labelsize=12)
+    ax.set_xticklabels([item.get_text()[5:-3] for item in ax.get_xticklabels()])
+    ax.spines['right'].set_edgecolor('lightgray')
+    ax.spines['top'].set_edgecolor('lightgray')
+    ax.set_ylabel('')
+    ax.set_xlabel('')
+    plt.title(title, fontweight=500, fontsize=25, loc='left')
+    plt.legend(loc='upper left', fontsize=15)
+    plt.grid(alpha=0.3)
+    # plt.savefig(path, bbox_inches='tight',format="png", dpi=300, transparent=True)
+    plt.show()

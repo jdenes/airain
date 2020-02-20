@@ -1,17 +1,15 @@
 import time
 import fxcmpy
 import pandas as pd
-from datetime import datetime
-from tabulate import tabulate
-import matplotlib.pyplot as plt
+from datetime import datetime as dt
 
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
-from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data
+from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-freq = 5
+freq = 30
 f = str(freq)
 h = 10
-initial_gamble = 1000
+initial_gamble = 10000
 fees = 0.0
 tolerance = 4e-5
 alpha_key = "H2T4H92C43D9DT3D"
@@ -44,25 +42,26 @@ def train_models():
 
 
 def backtest_models():
+
+    curves, names = [], []
     df, labels, price = load_data(filename='./data/dataset_eurusd_test_' + f + '.csv', target_col='askclose', shift=1)
     ask_trader = ForestTrader(h=h)
     ask_trader.load(model_name='Huorn askclose ' + f)
     ask_backtest = ask_trader.backtest(df, labels, price, initial_gamble, fees)
-    plt.plot(ask_backtest['value'], label='ASK model')
+    curves.append(ask_backtest['value']), names.append('ASK model')
 
     df, labels, price = load_data(filename='./data/dataset_eurusd_test_' + f + '.csv', target_col='bidclose', shift=1)
     bid_trader = ForestTrader(h=h)
     bid_trader.load(model_name='Huorn bidclose ' + f)
     bid_backtest = bid_trader.backtest(df, labels, price, initial_gamble, fees)
-    plt.plot(bid_backtest['value'], label='BID model')
+    curves.append(bid_backtest['value']), names.append('BID model')
 
     baseline = Dummy().backtest(df, labels, price, initial_gamble, fees)
-    plt.plot(baseline['value'], label='Pure USD')
+    curves.append(baseline['value']), names.append('Pure USD')
     random = Randommy().backtest(df, labels, price, initial_gamble, fees)
-    plt.plot(random['value'], label='Random')
-    plt.legend()
-    plt.grid()
-    plt.show()
+    curves.append(random['value']), names.append('Random')
+
+    nice_plot(ind=baseline['index'], curves_list=curves, names=names, title='Equity evolution, no spread, f = ' + f)
 
 
 def mega_backtest():
@@ -126,10 +125,7 @@ def mega_backtest():
     print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
           round(balance - initial_gamble, 2), buy_acc, sell_acc, rien)
           )
-    plt.plot(profit_list, label='Profit evolution')
-    plt.legend()
-    plt.grid()
-    plt.show()
+    nice_plot(ind, [profit_list], ['Profit evolution'], title='Equity evolution, with spread, f = ' + f)
 
 
 def gross_pl(pl, K, price):
@@ -155,25 +151,25 @@ def trade(con, trader, df, labels, price):
 
 
 def heart_beat():
-    t1 = datetime.now()
+    t1 = dt.now()
     count = 1
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
     # con.subscribe_market_data('EUR/USD')
     trader = ForestTrader(h=h)
     trader.load(model_name='Huorn askclose ' + f)
-    print(datetime.now(), ': initialization took', datetime.now() - t1)
+    print(dt.now(), ': initialization took', dt.now() - t1)
 
     while count < 3:
-        now = datetime.now()
+        now = dt.now()
         if now.second == 0 and now.minute % freq == 0:
-            t1 = datetime.now()
-            print(datetime.now(), ': starting iteration', count)
+            t1 = dt.now()
+            print(dt.now(), ': starting iteration', count)
             # con.close_all_for_symbol('EUR/USD')
             df, labels, price = get_price_data(con)
-            print(datetime.now(), ': last data index is', df.index[-1], 'and current price is', price.to_list()[-1])
+            print(dt.now(), ': last data index is', df.index[-1], 'and current price is', price.to_list()[-1])
             res = trade(con, trader, df, labels, price)
-            print(datetime.now(), ': expected movement is', res)
-            print(datetime.now(), ': iteration took', datetime.now() - t1)
+            print(dt.now(), ': expected movement is', res)
+            print(dt.now(), ': iteration took', dt.now() - t1)
             count += 1
         time.sleep(0.1)
 
@@ -184,9 +180,9 @@ def heart_beat():
 
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
-    # fetch_data()
-    # train_models()
-    # backtest_models()
+    fetch_data()
+    train_models()
+    backtest_models()
     mega_backtest()
 
     # heart_beat()
