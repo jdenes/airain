@@ -6,7 +6,7 @@ from datetime import datetime as dt
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-freq = 30
+freq = 5
 f = str(freq)
 h = 10
 initial_gamble = 10000
@@ -180,9 +180,9 @@ def heart_beat():
 
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
-    fetch_data()
-    train_models()
-    backtest_models()
+    # fetch_data()
+    # train_models()
+    # backtest_models()
     mega_backtest()
 
     # heart_beat()
