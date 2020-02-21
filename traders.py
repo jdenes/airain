@@ -130,24 +130,14 @@ class Trader(object):
         print("Total bad moves share:", count/len(price), "for amount lost:", amount)
         return pd.DataFrame(ppp)
 
-    def predict_next(self, df, labels, price, value=1000, fees=0.01):
+    def predict_last(self, df, labels, price):
         """
         Predicts next value and consequently next optimal portfolio.
         """
-        X, _, ind = self.transform_data(df, labels, get_index=True, keep_last=True)
-        price = price[ind].to_list()
+        X, _, _ = self.transform_data(df, labels, get_index=True, keep_last=True)
         y_pred = self.predict(X)
 
-        going_up = y_pred[-1] * (1 - fees) > price[-1]
-        next_policy = (0, 1) if going_up else (1, 0)
-        # next_portfolio = (next_policy[0] * value, next_policy[1] * value / price[-1])
-        # next_value = evaluate(next_portfolio, y_pred[-1])
-
-        return {'index': ind[-1],
-                'current_price': price[-1],
-                'pred_price': y_pred[-1],
-                'next_policy': next_policy
-                }
+        return y_pred[-1]
 
     def save(self, model_name):
         """

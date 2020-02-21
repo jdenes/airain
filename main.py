@@ -6,12 +6,14 @@ from datetime import datetime as dt
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-freq = 5
+freq = 1
 f = str(freq)
 h = 10
 initial_gamble = 10000
 fees = 0.0
-tolerance = 4e-5
+tolerance = 4e-6
+
+account_id = '1195258'
 alpha_key = "H2T4H92C43D9DT3D"
 fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
@@ -69,10 +71,8 @@ def mega_backtest():
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
     ask_trader.load(model_name='Huorn askclose ' + f)
     bid_trader.load(model_name='Huorn bidclose ' + f)
-    order = None
-    buy, sell = 0, 0
-    buy_correct, sell_correct = 0, 0
-    noth = 0
+    order = {'is_buy': None}
+    buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     profit_list = []
 
     balance = initial_gamble
@@ -87,10 +87,10 @@ def mega_backtest():
         index = df.index[i - h + 1:i + 1]  # i-th should be included
         now_ask, now_bid = df.loc[df.index[i]]['askclose'], df.loc[df.index[i]]['bidclose']
         gpl = 0
-        amount = 2 * int(balance / (100 / 3))
+        amount = int(balance * 3 / 100)
 
         # Step one: close former position
-        if order is not None:
+        if order['is_buy'] is not None:
             if order['is_buy']:
                 pl = round((now_bid - order['open']) * order['amount'], 5)
                 gpl = gross_pl(pl, amount, now_bid)
@@ -101,24 +101,18 @@ def mega_backtest():
                 gpl = gross_pl(pl, amount, now_ask)
                 sell_correct += int(now_ask < order['open'])
                 sell += 1
+        else:
+            do_nothing += 1
+
         balance = round(balance + gpl, 2)
         profit_list.append(balance)
 
         # Step two: open new position
+        now_ask, now_bid = df.loc[df.index[i]]['askopen'], df.loc[df.index[i]]['bidopen']
         pred_ask, pred_bid = ask_preds[i - h + 1], bid_preds[i - h + 1]
+        order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
 
-        # if price is going up: buy
-        if pred_bid > (1 - tolerance) * now_ask:
-            order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
-        # elif price is going down: sell
-        elif pred_ask < now_bid / (1 - tolerance):
-            order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
-        # else do nothing
-        else:
-            order = None
-            noth += 1
-
-    rien = round(100 * noth / len(range(h - 1, len(df))), 3)
+    rien = round(100 * do_nothing / len(range(h - 1, len(df))), 3)
     buy_acc = round(100 * buy_correct / buy, 3)
     sell_acc = round(100 * sell_correct / sell, 3)
 
@@ -142,40 +136,95 @@ def get_price_data(con):
     return df, labels, price
 
 
-def trade(con, trader, df, labels, price):
-    res = trader.predict_next(df, labels, price, value=initial_gamble, fees=fees)
-    # if going down: sell | if going up: buy
-    is_buy = False if res['next_policy'] == (1, 0) else True
-    # con.open_trade(symbol='EUR/USD', is_buy=is_buy, amount=amount, time_in_force='GTC', order_type='AtMarket')
-    return 'DOWN' if res['next_policy'] == (1, 0) else 'UP'
+def get_current_askbid(con):
+    data = con.get_prices('EUR/USD')
+    now_ask = data['Ask'].to_list()[-1]
+    now_bid = data['Bid'].to_list()[-1]
+    return now_ask, now_bid
+
+
+def get_balance(con):
+    data = con.get_accounts()
+    data = data[data['accountId'] == account_id]
+    return data['balance'].values[0]
+
+
+def decide_order(amount, now_bid, now_ask, pred_bid, pred_ask):
+    # if price is going up: buy
+    if pred_bid > (1 - tolerance) * now_ask:
+        order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
+    # elif price is going down: sell
+    elif pred_ask < now_bid / (1 - tolerance):
+        order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
+    # else do nothing
+    else:
+        order = {'is_buy': None, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
+    return order
+
+
+def trade(con, order, amount):
+    is_buy = order['is_buy']
+    if is_buy is not None:
+        con.open_trade(symbol='EUR/USD', is_buy=is_buy, amount=amount, time_in_force='GTC', order_type='AtMarket')
 
 
 def heart_beat():
     t1 = dt.now()
     count = 1
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    # con.subscribe_market_data('EUR/USD')
-    trader = ForestTrader(h=h)
-    trader.load(model_name='Huorn askclose ' + f)
-    print(dt.now(), ': initialization took', dt.now() - t1)
+    con.subscribe_market_data('EUR/USD')
+    old_balance = get_balance(con)
 
-    while count < 3:
-        now = dt.now()
-        if now.second == 0 and now.minute % freq == 0:
+    ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
+    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
+    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
+    balance_list, profit_list, order_list = {}, {}, {}
+
+    print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
+
+    while count < 4:
+
+        if dt.now().second == 0 and dt.now().minute % freq == 0:
+
             t1 = dt.now()
-            print(dt.now(), ': starting iteration', count)
+            print('{} : {}\t starting iteration'.format(dt.now(), count))
+
+            # STEP 1: CLOSE OPEN POSITION
             # con.close_all_for_symbol('EUR/USD')
+            balance = get_balance(con)
+            profit = balance - old_balance
+            balance_list[t1] = balance
+            profit_list[t1] = profit
+            amount = int(10000 * 3 / 100)  # change '10000' for 'balance'
+            print('{} : {}\t new balance is {}, profit is {}'.format(dt.now(), count, balance, profit))
+
+            # STEP 2: GET MOST RECENT DATA
+            time.sleep(30)  # wait to get last minute data
             df, labels, price = get_price_data(con)
-            print(dt.now(), ': last data index is', df.index[-1], 'and current price is', price.to_list()[-1])
-            res = trade(con, trader, df, labels, price)
-            print(dt.now(), ': expected movement is', res)
-            print(dt.now(), ': iteration took', dt.now() - t1)
+            print('{} : {}\t last collected data is from {}'.format(dt.now(), count, df.index[-1]))
+
+            # STEP 3: PREDICT AND OPEN NEW POSITION
+            now_ask, now_bid = get_current_askbid(con)
+            print('{} : {}\t last ASK is {} and last BID is {}'.format(dt.now(), count, round(now_ask, 5), round(now_bid, 5)))
+            pred_ask = ask_trader.predict_last(df, labels, price)
+            pred_bid = bid_trader.predict_last(df, labels, price)
+
+            order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
+            order_list[t1] = order
+            print('{} : {}\t pred ASK is {} and pred BID is {}, next order is_buy is {}'.format(dt.now(), count, round(pred_ask, 5), round(pred_bid, 5), order['is_buy']))
+
+            # trade(con, order, amount)
+            print('{} : {}\t end of iteration, which took {}'.format(dt.now(), count, dt.now() - t1))
+            print('-' * 100)
+            old_balance = balance
             count += 1
+
         time.sleep(0.1)
 
     time.sleep(60 * freq)
     con.close_all_for_symbol('EUR/USD')
-    print('Trading stopped.')
+    print('{} : E\t trading has been ended'.format(dt.now()))
+    return balance_list, profit_list, order_list
 
 
 if __name__ == "__main__":
@@ -183,6 +232,7 @@ if __name__ == "__main__":
     # fetch_data()
     # train_models()
     # backtest_models()
-    mega_backtest()
+    # mega_backtest()
 
-    # heart_beat()
+    res = heart_beat()
+    print(res)
