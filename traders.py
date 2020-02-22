@@ -90,24 +90,24 @@ class Trader(object):
             y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
-    def compute_policy(self, df, labels, price, fees):
+    def compute_policy(self, df, labels, price, shift, fees):
         """
         Given parameters, decides what to do at next steps based on predictive model.
         """
         X, _, ind = self.transform_data(df, labels, get_index=True)
         current_price = price[ind].to_numpy()
         y_pred = self.predict(X)
-        print(compute_metrics(current_price[1:], y_pred[:-1]))
+        print(compute_metrics(current_price[shift:], y_pred[:-shift]))
         going_up = (y_pred * (1 - fees) > current_price)
         policy = [(0, 1) if p else (1, 0) for p in going_up]
         return policy, ind
 
-    def backtest(self, df, labels, price, initial_gamble=1000, fees=0.01):
+    def backtest(self, df, labels, price, tradefreq=1, lag=0, initial_gamble=1000, fees=0.00):
         """
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
         """
 
-        policy, ind = self.compute_policy(df=df, labels=labels, price=price, fees=fees)
+        policy, ind = self.compute_policy(df, labels, price, tradefreq+lag, fees)
         price = price[ind].to_numpy()
 
         count, amount = 0, 0
@@ -115,22 +115,24 @@ class Trader(object):
         ppp = []
         value = initial_gamble
 
-        for i in range(len(price)):
-            last_portfolio = next_portfolio
-            last_value = value
-            value = evaluate(last_portfolio, price[i])
-            if value < last_value:
-                count += 1
-                amount += last_value - value
-            if i > 0 and policy[i] != policy[i-1]:
-                value *= 1 - fees
-            next_portfolio = (policy[i][0] * value, policy[i][1] * value / price[i])
-            ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
+        for i in range(len(price) - 1):
+            if ind[i].minute % tradefreq:
+                last_portfolio = next_portfolio
+                last_value = value
+                value = evaluate(last_portfolio, price[i])
+                if value < last_value:
+                    count += 1
+                    amount += last_value - value
+                policy_with_lag = policy[i-lag]
+                if i > tradefreq + lag and policy_with_lag != policy[i-tradefreq-lag]:
+                    value *= 1 - fees
+                next_portfolio = (policy_with_lag[0] * value, policy_with_lag[1] * value / price[i])
+                ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
         print("Total bad moves share:", count/len(price), "for amount lost:", amount)
         return pd.DataFrame(ppp)
 
-    def predict_last(self, df, labels, price):
+    def predict_last(self, df, labels):
         """
         Predicts next value and consequently next optimal portfolio.
         """
@@ -164,7 +166,7 @@ class Trader(object):
         np.save(model_name + '/X_test.npy', self.X_test)
         np.save(model_name + '/y_test.npy', self.y_test)
 
-    def load(self, model_name):
+    def load(self, model_name, fast=False):
         """
         Load model from folder.
         """
@@ -175,10 +177,12 @@ class Trader(object):
 
         self.x_max = pd.read_csv(model_name + '/x_max.csv', header=None, index_col=0, squeeze=True)
         self.x_min = pd.read_csv(model_name + '/x_min.csv', header=None, index_col=0, squeeze=True)
-        self.X_train = np.load(model_name + '/X_train.npy')
-        self.y_train = np.load(model_name + '/y_train.npy')
-        self.X_test = np.load(model_name + '/X_test.npy')
-        self.y_test = np.load(model_name + '/y_test.npy')
+
+        if not fast:
+            self.X_train = np.load(model_name + '/X_train.npy')
+            self.y_train = np.load(model_name + '/y_train.npy')
+            self.X_test = np.load(model_name + '/X_test.npy')
+            self.y_test = np.load(model_name + '/y_test.npy')
 
 
 ####################################################################################
@@ -345,11 +349,11 @@ class LstmTrader(Trader):
         if self.model is not None:
             self.model.save(model_name + '/model.h5')
 
-    def load(self, model_name):
+    def load(self, model_name, fast=False):
         """
         Load model from folder.
         """
-        super().load(model_name=model_name)
+        super().load(model_name=model_name, fast=fast)
         model_name = './models/' + model_name
         self.model = tf.keras.models.load_model(model_name + '/model.h5')
 
@@ -421,11 +425,11 @@ class MlTrader(Trader):
         if self.model is not None:
             jl.dump(self.model, model_name + '/model.joblib')
 
-    def load(self, model_name):
+    def load(self, model_name, fast=False):
         """
         Load model from folder.
         """
-        super().load(model_name=model_name)
+        super().load(model_name=model_name, fast=fast)
         model_name = './models/' + model_name
         self.model = jl.load(model_name + '/model.joblib')
 
