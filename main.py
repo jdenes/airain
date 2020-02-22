@@ -7,13 +7,13 @@ from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, Ide
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
 datafreq = 5
-f = str(datafreq)
-tradefreq = 15
+tradefreq = 5
+f, tf = str(datafreq), str(tradefreq)
 lag = 0
 h = 10
 initial_gamble = 10000
 fees = 0.0
-tolerance = 0e-6
+tolerance = 5e-6
 shift = tradefreq + lag
 
 account_id = '1195258'
@@ -31,19 +31,19 @@ def fetch_data():
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data(filename='dataset_eurusd_train', target_col='askclose', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='askclose', shift=shift, datafreq=datafreq)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn askclose ' + f)
+    trader.save(model_name='Huorn askclose ' + tf)
     print('Training BID model...')
-    df, labels, price = load_data(filename='dataset_eurusd_train', target_col='bidclose', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='bidclose', shift=shift, datafreq=datafreq)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn bidclose ' + f)
+    trader.save(model_name='Huorn bidclose ' + tf)
 
 
 def backtest_models():
@@ -51,13 +51,13 @@ def backtest_models():
     curves, names = [], []
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askclose', shift=shift, datafreq=datafreq)
     ask_trader = ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
+    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
 
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidclose', shift=shift, datafreq=datafreq)
     bid_trader = ForestTrader(h=h)
-    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
+    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
 
@@ -71,13 +71,15 @@ def backtest_models():
 
 
 def mega_backtest():
-    df, labels, _ = load_data(filename='dataset_eurusd_test', target_col='askclose', shift=shift, datafreq=datafreq)
+
+    df, labels, _ = load_data('dataset_eurusd_test', 'askclose', shift, datafreq, keep_last=True)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
-    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
-    order = {'is_buy': None}
+    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
+
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
+    order = {'is_buy': None}
 
     balance = initial_gamble
 
@@ -186,8 +188,8 @@ def heart_beat():
     old_balance = get_balance(con)
 
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
-    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
+    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
     balance_list, profit_list, order_list = {}, {}, {}
 
     print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
@@ -214,13 +216,15 @@ def heart_beat():
 
             # STEP 3: PREDICT AND OPEN NEW POSITION
             now_ask, now_bid = get_current_askbid(con)
-            print('{} : {}\t last ASK is {} and last BID is {}'.format(dt.now(), count, round(now_ask, 5), round(now_bid, 5)))
+            print('{} : {}\t last ASK is {} and last BID is {}'.format(
+                dt.now(), count, round(now_ask, 5), round(now_bid, 5)))
             pred_ask = ask_trader.predict_last(df, labels)
             pred_bid = bid_trader.predict_last(df, labels)
 
             order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
             order_list[t1] = order
-            print('{} : {}\t pred ASK is {} and pred BID is {}, next order is_buy is {}'.format(dt.now(), count, round(pred_ask, 5), round(pred_bid, 5), order['is_buy']))
+            print('{} : {}\t pred ASK is {} and pred BID is {}, next order is_buy is {}'.format(
+                dt.now(), count, round(pred_ask, 5), round(pred_bid, 5), order['is_buy']))
 
             trade(con, order, amount)
             print('{} : {}\t end of iteration, which took {}'.format(dt.now(), count, dt.now() - t1))
@@ -240,7 +244,7 @@ if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     # train_models()
-    backtest_models()
+    # backtest_models()
     mega_backtest()
 
     # res = heart_beat()

@@ -10,6 +10,7 @@
       <w>cuda</w>
       <w>currotrade</w>
       <w>dataframe</w>
+      <w>datafreq</w>
       <w>datatype</w>
       <w>eurgbp</w>
       <w>eurusd</w>
@@ -22,6 +23,7 @@
       <w>pclose</w>
       <w>randommy</w>
       <w>testsize</w>
+      <w>tradefreq</w>
       <w>traindata</w>
       <w>unnormalize</w>
       <w>usdc</w>
