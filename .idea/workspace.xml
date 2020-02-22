@@ -5,7 +5,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/traders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,7 +103,7 @@
       <workItem from="1581103294592" duration="68898000" />
       <workItem from="1581459597980" duration="116455000" />
       <workItem from="1582122353428" duration="49078000" />
-      <workItem from="1582311755155" duration="8482000" />
+      <workItem from="1582311755155" duration="12753000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -177,6 +176,10 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="341" y="186" key="com.intellij.ide.util.TipDialog/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1581089275859" />
+    <state x="383" y="5" key="refactoring.ChangeSignatureDialog" timestamp="1582394113255">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="383" y="5" key="refactoring.ChangeSignatureDialog/0.0.1280.720@0.0.1280.720" timestamp="1582394113255" />
     <state x="303" y="41" key="search.everywhere.popup" timestamp="1582384530162">
       <screen x="0" y="0" width="1280" height="720" />
     </state>

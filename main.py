@@ -6,14 +6,14 @@ from datetime import datetime as dt
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-datafreq = 1
+datafreq = 5
 f = str(datafreq)
-tradefreq = 5
-lag = 1
+tradefreq = 15
+lag = 0
 h = 10
 initial_gamble = 10000
 fees = 0.0
-tolerance = 4e-6
+tolerance = 0e-6
 shift = tradefreq + lag
 
 account_id = '1195258'
@@ -51,13 +51,13 @@ def backtest_models():
     curves, names = [], []
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askclose', shift=shift, datafreq=datafreq)
     ask_trader = ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + f)
+    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
 
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidclose', shift=shift, datafreq=datafreq)
     bid_trader = ForestTrader(h=h)
-    bid_trader.load(model_name='Huorn bidclose ' + f)
+    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
 
@@ -73,8 +73,8 @@ def backtest_models():
 def mega_backtest():
     df, labels, _ = load_data(filename='dataset_eurusd_test', target_col='askclose', shift=shift, datafreq=datafreq)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + f)
-    bid_trader.load(model_name='Huorn bidclose ' + f)
+    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
+    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
     order = {'is_buy': None}
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
@@ -82,18 +82,19 @@ def mega_backtest():
     balance = initial_gamble
 
     X, _, ind = ask_trader.transform_data(df, labels, get_index=True)
-    df = df[df.index[h - 1:]]
+    df = df.loc[ind]
 
     ask_preds = ask_trader.predict(X)
     bid_preds = bid_trader.predict(X)
-    # ask_preds = df.loc[ind]['askclose'].shift(-1).to_list()
-    # bid_preds = df.loc[ind]['bidclose'].shift(-1).to_list()
+    # ask_preds = df['askclose'].shift(-1).to_list()
+    # bid_preds = df['bidclose'].shift(-1).to_list()
 
     for i in range(lag, len(df)):
 
-        if ind[i].minute % tradefreq:
+        j = ind[i]
+        if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
 
-            now_ask, now_bid = df.loc[df.index[i]]['askclose'], df.loc[df.index[i]]['bidclose']
+            now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
             gpl = 0
             amount = int(balance * 3 / 100)
 
@@ -117,7 +118,7 @@ def mega_backtest():
             index_list.append(ind[i])
 
             # Step two: open new position
-            now_ask, now_bid = df.loc[df.index[i]]['askopen'], df.loc[df.index[i]]['bidopen']
+            now_ask, now_bid = df.loc[j]['askopen'], df.loc[j]['bidopen']
             pred_ask, pred_bid = ask_preds[i - lag], bid_preds[i - lag]
             order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
 
@@ -238,7 +239,7 @@ def heart_beat():
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
-    train_models()
+    # train_models()
     backtest_models()
     mega_backtest()
 

@@ -13,6 +13,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 
 from utils import compute_metrics, evaluate, normalize_data, unnormalize_data
+from datetime import datetime as dt
+
 
 ####################################################################################
 
@@ -116,7 +118,9 @@ class Trader(object):
         value = initial_gamble
 
         for i in range(len(price) - 1):
-            if ind[i].minute % tradefreq:
+
+            if dt.strptime(ind[i], '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
+
                 last_portfolio = next_portfolio
                 last_value = value
                 value = evaluate(last_portfolio, price[i])
@@ -193,7 +197,7 @@ class Dummy(Trader):
     def __init__(self):
         super().__init__()
 
-    def compute_policy(self, df, labels, price, fees):
+    def compute_policy(self, df, labels, price, shift, fees):
         """
         Given parameters, decides what to do at next steps based on predictive model.
         """
@@ -210,7 +214,7 @@ class Randommy(Trader):
     def __init__(self):
         super().__init__()
 
-    def compute_policy(self, df, labels, price, fees):
+    def compute_policy(self, df, labels, price, shift, fees):
         """
         Given parameters, decides what to do at next steps based on predictive model.
         """
@@ -227,7 +231,7 @@ class IdealTrader(Trader):
     def __init__(self):
         super().__init__()
 
-    def compute_policy(self, df, labels, price, fees):
+    def compute_policy(self, df, labels, price, shift, fees):
         """
         Given parameters, decides what to do at next steps based on predictive model.
         """
