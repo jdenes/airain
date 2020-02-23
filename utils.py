@@ -108,7 +108,7 @@ def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
 
     else:
         df = pd.DataFrame()
-        step = int(freq)
+        step = 2 * int(freq == 1) * int(freq)
         start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
         tmp1 = start
         if end - start < timedelta(weeks=step):

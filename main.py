@@ -6,7 +6,7 @@ from datetime import datetime as dt
 from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-datafreq = 5
+datafreq = 1
 tradefreq = 5
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
@@ -23,7 +23,7 @@ fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2005-11-30 00:00:00', '2020-01-30 00:00:00'
+    start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
@@ -74,8 +74,10 @@ def mega_backtest():
 
     df, labels, _ = load_data('dataset_eurusd_test', 'askclose', shift, datafreq, keep_last=True)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
-    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
+    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
+    print(max([estimator.tree_.max_depth for estimator in ask_trader.model.estimators_]))
+    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
+    print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
@@ -140,7 +142,6 @@ def gross_pl(pl, K, price):
 
 def get_price_data(con):
     fetch_fxcm_data('./data/dataset_eurusd_now_' + f + '.csv', freq=datafreq, con=con, n_last=30)
-    # print(con.get_prices('EUR/USD'))
     df, labels, price = load_data(filename='dataset_eurusd_now', target_col='askclose',
                                   shift=shift,
                                   datafreq=datafreq,
