@@ -9,7 +9,7 @@ from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_
 datafreq = 1
 tradefreq = 5
 f, tf = str(datafreq), str(tradefreq)
-lag = 0
+lag = 1
 h = 10
 initial_gamble = 10000
 fees = 0.0
@@ -54,12 +54,14 @@ def backtest_models():
     ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
+    del ask_trader
 
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidclose', shift=shift, datafreq=datafreq)
     bid_trader = ForestTrader(h=h)
     bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
+    del bid_trader
 
     baseline = Dummy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(baseline['value']), names.append('Pure USD')
@@ -74,9 +76,9 @@ def mega_backtest():
 
     df, labels, _ = load_data('dataset_eurusd_test', 'askclose', shift, datafreq, keep_last=True)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + f, fast=True)
+    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
     print(max([estimator.tree_.max_depth for estimator in ask_trader.model.estimators_]))
-    bid_trader.load(model_name='Huorn bidclose ' + f, fast=True)
+    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
     print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
@@ -244,8 +246,8 @@ def heart_beat():
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
-    # train_models()
-    # backtest_models()
+    train_models()
+    backtest_models()
     mega_backtest()
 
     # res = heart_beat()

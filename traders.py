@@ -460,7 +460,7 @@ class ForestTrader(MlTrader):
         """
 
         self.n_estimators = n_estimators
-        self.model = RandomForestRegressor(n_estimators=self.n_estimators, n_jobs=8, verbose=2)
+        self.model = RandomForestRegressor(n_estimators=self.n_estimators, max_depth=10, n_jobs=8, verbose=2)
         self.model.fit(self.X_train, self.y_train)
         self.model.verbose = 0
 
