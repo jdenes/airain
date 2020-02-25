@@ -1,5 +1,5 @@
 <h1>
-    <img src="./resources/airain.png" alt="AIRAIN" height="200px">
+    <img src="./resources/airain.png" alt="AIRAIN" height="100px">
 </h1>
 
 Airain is an entrepreneurial research project aiming at building an AI able to predict the price evolution of any commodity
