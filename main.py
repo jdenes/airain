@@ -13,7 +13,7 @@ lag = 1
 h = 10
 initial_gamble = 10000
 fees = 0.0
-tolerance = 5e-6
+tolerance = 0e-5  # 2
 shift = tradefreq + lag
 
 account_id = '1195258'
@@ -23,7 +23,7 @@ fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2009-11-30 00:00:00', '2020-01-30 00:00:00'
+    start, end = '2019-09-30 00:00:00', '2020-02-25 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
@@ -36,14 +36,14 @@ def train_models():
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn askclose ' + tf)
+    trader.save(model_name='Huorn askclose NOW' + tf)
     print('Training BID model...')
     df, labels, price = load_data('dataset_eurusd_train', target_col='bidclose', shift=shift, datafreq=datafreq)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn bidclose ' + tf)
+    trader.save(model_name='Huorn bidclose NOW' + tf)
 
 
 def backtest_models():
@@ -51,14 +51,14 @@ def backtest_models():
     curves, names = [], []
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askclose', shift=shift, datafreq=datafreq)
     ask_trader = ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
+    ask_trader.load(model_name='Huorn askclose NOW' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
     del ask_trader
 
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidclose', shift=shift, datafreq=datafreq)
     bid_trader = ForestTrader(h=h)
-    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
     del bid_trader
@@ -76,10 +76,9 @@ def mega_backtest():
 
     df, labels, _ = load_data('dataset_eurusd_test', 'askclose', shift, datafreq, keep_last=True)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
-    print(max([estimator.tree_.max_depth for estimator in ask_trader.model.estimators_]))
-    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
-    print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
+    ask_trader.load(model_name='Huorn askclose NOW' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
+    # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
@@ -92,8 +91,8 @@ def mega_backtest():
 
     ask_preds = ask_trader.predict(X)
     bid_preds = bid_trader.predict(X)
-    # ask_preds = df['askclose'].shift(-1).to_list()
-    # bid_preds = df['bidclose'].shift(-1).to_list()
+    # ask_preds = df['askclose'].shift(-shift).to_list()
+    # bid_preds = df['bidclose'].shift(-shift).to_list()
 
     for i in range(lag, len(df)):
 
@@ -191,8 +190,8 @@ def heart_beat():
     old_balance = get_balance(con)
 
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose ' + tf, fast=True)
-    bid_trader.load(model_name='Huorn bidclose ' + tf, fast=True)
+    ask_trader.load(model_name='Huorn askclose NOW' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
     balance_list, profit_list, order_list = {}, {}, {}
 
     print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
@@ -246,9 +245,9 @@ def heart_beat():
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
-    train_models()
-    backtest_models()
-    mega_backtest()
+    # train_models()
+    # backtest_models()
+    # mega_backtest()
 
-    # res = heart_beat()
-    # print(res)
+    res = heart_beat()
+    print(res)
