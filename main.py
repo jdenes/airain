@@ -13,7 +13,7 @@ lag = 1
 h = 10
 initial_gamble = 10000
 fees = 0.0
-tolerance = 0e-5  # 2
+tolerance = 2e-5
 shift = tradefreq + lag
 
 account_id = '1195258'
@@ -194,6 +194,9 @@ def heart_beat():
     bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
     balance_list, profit_list, order_list = {}, {}, {}
 
+    order = {'is_buy': None}
+    buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
+
     print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
 
     while count < 36:
@@ -209,8 +212,18 @@ def heart_beat():
             profit = balance - old_balance
             balance_list[t1] = balance
             profit_list[t1] = profit
-            amount = int(1000 * 30 / 1000)  # change '10000' for 'balance'
+            amount = int(1000 * 30 / 1000)  # change '1000' for 'balance'
             print('{} : {}\t new balance is {}, profit is {}'.format(dt.now(), count, balance, profit))
+
+            if count > 1 and order['is_buy'] is not None:
+                if order['is_buy']:
+                    buy += 1
+                    buy_correct += int(profit > 0)
+                else:
+                    sell += 1
+                    sell_correct += int(profit > 0)
+            else:
+                do_nothing += 1
 
             # STEP 2: GET MOST RECENT DATA
             df, labels, price = get_price_data(con)
@@ -230,9 +243,16 @@ def heart_beat():
 
             trade(con, order, amount)
             print('{} : {}\t end of iteration, which took {}'.format(dt.now(), count, dt.now() - t1))
-            print('-' * 100)
+
+            no_trade = round(100 * do_nothing / count, 3)
+            buy_acc = round(100 * buy_correct / buy, 3) if buy > 0 else 'NA'
+            sell_acc = round(100 * sell_correct / sell, 3) if sell > 0 else 'NA'
+            print('{} : {}\t stats: correct buy: {}%, correct sell: {}%, share non traded: {}%'.format(
+                dt.now(), count, buy_acc, sell_acc, no_trade))
+
             old_balance = balance
             count += 1
+            print('-' * 100)
 
         time.sleep(0.1)
 
