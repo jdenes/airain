@@ -3,7 +3,7 @@ import fxcmpy
 import pandas as pd
 from datetime import datetime as dt
 
-from traders import NeuralTrader, LstmTrader, ForestTrader, Dummy, Randommy, IdealTrader
+from traders import ForestTrader, Dummy, Randommy, IdealTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
 datafreq = 1
@@ -23,7 +23,7 @@ fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2019-09-30 00:00:00', '2020-02-25 00:00:00'
+    start, end = '2019-09-30 00:00:00', '2020-02-26 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
@@ -31,34 +31,34 @@ def fetch_data():
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='askclose', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn askclose NOW' + tf)
+    trader.save(model_name='Huorn askopen NOW' + tf)
     print('Training BID model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='bidclose', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
     trader = ForestTrader(h=h)
     trader.ingest_traindata(df=df, labels=labels)
     trader.train(n_estimators=100)
     print(trader.test(plot=True))
-    trader.save(model_name='Huorn bidclose NOW' + tf)
+    trader.save(model_name='Huorn bidopen NOW' + tf)
 
 
 def backtest_models():
 
     curves, names = [], []
-    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askclose', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askopen', shift=shift, datafreq=datafreq)
     ask_trader = ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose NOW' + tf, fast=True)
+    ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
     del ask_trader
 
-    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidclose', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidopen', shift=shift, datafreq=datafreq)
     bid_trader = ForestTrader(h=h)
-    bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
     del bid_trader
@@ -74,10 +74,10 @@ def backtest_models():
 
 def mega_backtest():
 
-    df, labels, _ = load_data('dataset_eurusd_test', 'askclose', shift, datafreq, keep_last=True)
+    df, labels, _ = load_data('dataset_eurusd_test', 'askopen', shift, datafreq, keep_last=True)
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose NOW' + tf, fast=True)
-    bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
+    ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
@@ -91,37 +91,36 @@ def mega_backtest():
 
     ask_preds = ask_trader.predict(X)
     bid_preds = bid_trader.predict(X)
-    # ask_preds = df['askclose'].shift(-shift).to_list()
-    # bid_preds = df['bidclose'].shift(-shift).to_list()
+    # ask_preds = df['askopen'].shift(-shift).to_list()
+    # bid_preds = df['bidopen'].shift(-shift).to_list()
 
     for i in range(lag, len(df)):
 
         j = ind[i]
         if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
 
-            now_ask_close, now_bid_close = df.loc[j]['askclose'], df.loc[j]['bidclose']
+            now_ask, now_bid = df.loc[j]['askopen'], df.loc[j]['bidopen']
             gpl = 0
             amount = int(balance * 3 / 100)
 
             # Step two: close former position is needed, else continue
             if order['is_buy'] is not None:
                 if order['is_buy']:
-                    pl = round((now_bid_close - order['open']) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_bid_close)
-                    buy_correct += int(now_bid_close > order['open'])
+                    pl = round((now_bid - order['open']) * order['amount'], 5)
+                    gpl = gross_pl(pl, amount, now_bid)
+                    buy_correct += int(now_bid > order['open'])
                     buy += 1
                 else:
-                    pl = round((order['open'] - now_ask_close) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_ask_close)
-                    sell_correct += int(now_ask_close < order['open'])
+                    pl = round((order['open'] - now_ask) * order['amount'], 5)
+                    gpl = gross_pl(pl, amount, now_ask)
+                    sell_correct += int(now_ask < order['open'])
                     sell += 1
             else:
                 do_nothing += 1
 
             # Step one: decide what to do next
-            now_ask_open, now_bid_open = df.loc[j]['askopen'], df.loc[j]['bidopen']
             pred_ask, pred_bid = ask_preds[i - lag], bid_preds[i - lag]
-            order = decide_order(amount, now_bid_open, now_ask_open, pred_bid, pred_ask)
+            order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
 
             balance = round(balance + gpl, 2)
             profit_list.append(balance)
@@ -143,7 +142,7 @@ def gross_pl(pl, K, price):
 
 def get_price_data(con):
     fetch_fxcm_data('./data/dataset_eurusd_now_' + f + '.csv', freq=datafreq, con=con, n_last=30)
-    df, labels, price = load_data(filename='dataset_eurusd_now', target_col='askclose',
+    df, labels, price = load_data(filename='dataset_eurusd_now', target_col='askopen',
                                   shift=shift,
                                   datafreq=datafreq,
                                   keep_last=True)
@@ -191,12 +190,13 @@ def heart_beat():
     old_balance = get_balance(con)
 
     ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
-    ask_trader.load(model_name='Huorn askclose NOW' + tf, fast=True)
-    bid_trader.load(model_name='Huorn bidclose NOW' + tf, fast=True)
+    ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
+    bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     balance_list, profit_list, order_list = {}, {}, {}
 
     order = {'is_buy': None}
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
+    ask_now_past, bid_now_past = 0, 0
 
     print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
 
@@ -210,10 +210,10 @@ def heart_beat():
             # STEP 1: CLOSE OPEN POSITION
             con.close_all_for_symbol('EUR/USD')
             balance = get_balance(con)
-            profit = balance - old_balance
+            profit = round(balance - old_balance, 2)
             balance_list[t1] = balance
             profit_list[t1] = profit
-            amount = int(1000 * 30 / 1000)  # change '1000' for 'balance'
+            amount = int(100 * 30 / 1000)  # change '1000' for 'balance'
             print('{} : {}\t new balance is {}, profit is {}'.format(dt.now(), count, balance, profit))
 
             if count > 1 and order['is_buy'] is not None:
@@ -254,6 +254,17 @@ def heart_beat():
             old_balance = balance
             count += 1
             print('-' * 100)
+
+        # if dt.now().second == 0:
+        #     ask_now, bid_now = get_current_askbid(con)
+        #     historical_data, _, _ = get_price_data(con)
+        #     historical_data = historical_data.tail(1)
+        #     historical_data['ask_now'] = ask_now_past
+        #     historical_data['bid_now'] = bid_now_past
+        #     ask_now_past, bid_now_past = ask_now, bid_now
+        #     pd.set_option('display.max_columns', 15)
+        #     print(historical_data)
+        #     time.sleep(1)
 
         time.sleep(0.1)
 
