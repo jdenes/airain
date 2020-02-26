@@ -99,33 +99,33 @@ def mega_backtest():
         j = ind[i]
         if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
 
-            now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
+            now_ask_close, now_bid_close = df.loc[j]['askclose'], df.loc[j]['bidclose']
             gpl = 0
             amount = int(balance * 3 / 100)
 
-            # Step one: close former position
+            # Step two: close former position is needed, else continue
             if order['is_buy'] is not None:
                 if order['is_buy']:
-                    pl = round((now_bid - order['open']) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_bid)
-                    buy_correct += int(now_bid > order['open'])
+                    pl = round((now_bid_close - order['open']) * order['amount'], 5)
+                    gpl = gross_pl(pl, amount, now_bid_close)
+                    buy_correct += int(now_bid_close > order['open'])
                     buy += 1
                 else:
-                    pl = round((order['open'] - now_ask) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_ask)
-                    sell_correct += int(now_ask < order['open'])
+                    pl = round((order['open'] - now_ask_close) * order['amount'], 5)
+                    gpl = gross_pl(pl, amount, now_ask_close)
+                    sell_correct += int(now_ask_close < order['open'])
                     sell += 1
             else:
                 do_nothing += 1
 
+            # Step one: decide what to do next
+            now_ask_open, now_bid_open = df.loc[j]['askopen'], df.loc[j]['bidopen']
+            pred_ask, pred_bid = ask_preds[i - lag], bid_preds[i - lag]
+            order = decide_order(amount, now_bid_open, now_ask_open, pred_bid, pred_ask)
+
             balance = round(balance + gpl, 2)
             profit_list.append(balance)
             index_list.append(ind[i])
-
-            # Step two: open new position
-            now_ask, now_bid = df.loc[j]['askopen'], df.loc[j]['bidopen']
-            pred_ask, pred_bid = ask_preds[i - lag], bid_preds[i - lag]
-            order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
 
     no_trade = round(100 * do_nothing / len(index_list), 3)
     buy_acc = round(100 * buy_correct / buy, 3)
@@ -152,8 +152,9 @@ def get_price_data(con):
 
 def get_current_askbid(con):
     data = con.get_prices('EUR/USD')
-    now_ask = data['Ask'].to_list()[-1]
-    now_bid = data['Bid'].to_list()[-1]
+    data = data.tail(n=5).mean(axis=0)
+    now_ask = data['Ask']
+    now_bid = data['Bid']
     return now_ask, now_bid
 
 
