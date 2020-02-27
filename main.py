@@ -13,7 +13,7 @@ lag = 1
 h = 10
 initial_gamble = 10000
 fees = 0.0
-tolerance = 2e-5
+tolerance = 0e-5  # 2
 shift = tradefreq + lag
 
 account_id = '1195258'
@@ -196,24 +196,29 @@ def heart_beat():
 
     order = {'is_buy': None}
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-    ask_now_past, bid_now_past = 0, 0
+
+    # with open('./resources/report.csv', 'w') as file:
+    #     file.write('date,pred ask,true ask,pred ask diff,true ask diff,' +
+    #                     'pred bid,true bid,pred bid diff,true bid diff,' +
+    #                     'tbuy,pbuy,tsell,psell\n')
 
     print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
 
-    while count < 36:
+    while True:
 
         if dt.now().second == 0 and dt.now().minute % tradefreq == 0:
 
+            time.sleep(3)
             t1 = dt.now()
             print('{} : {}\t starting iteration'.format(dt.now(), count))
 
             # STEP 1: CLOSE OPEN POSITION
-            con.close_all_for_symbol('EUR/USD')
+            # con.close_all_for_symbol('EUR/USD')
             balance = get_balance(con)
             profit = round(balance - old_balance, 2)
             balance_list[t1] = balance
             profit_list[t1] = profit
-            amount = int(100 * 30 / 1000)  # change '1000' for 'balance'
+            amount = int(1000 * 30 / 1000)  # change '1000' for 'balance'
             print('{} : {}\t new balance is {}, profit is {}'.format(dt.now(), count, balance, profit))
 
             if count > 1 and order['is_buy'] is not None:
@@ -228,10 +233,20 @@ def heart_beat():
 
             # STEP 2: GET MOST RECENT DATA
             df, labels, price = get_price_data(con)
+            now_ask, now_bid = get_current_askbid(con)
             print('{} : {}\t last collected data is from {}'.format(dt.now(), count, df.index[-1]))
+            new_k = df.loc[df.index[-1]]
+            if count > 1:
+                a, b, c, d = old_k['askopen'], now_ask, old_k['bidopen'], now_bid
+                print(round(a, 4), round(old_ask, 4), round(c, 4), round(old_bid, 4))
+                info = [df.index[-1], pred_ask, b, 1000 * (pred_ask - a), 1000 * (b - a),
+                                      pred_bid, d, 1000 * (pred_bid - c), 1000 * (d - c),
+                                      now_bid > a, pred_bid > a, now_ask < c, pred_ask < c]
+                with open('./resources/report.csv', 'a') as file:
+                    file.write(','.join([str(x) for x in info]) + '\n')
 
             # STEP 3: PREDICT AND OPEN NEW POSITION
-            now_ask, now_bid = get_current_askbid(con)
+            # now_ask, now_bid = get_current_askbid(con)
             print('{} : {}\t last ASK is {} and last BID is {}'.format(
                 dt.now(), count, round(now_ask, 5), round(now_bid, 5)))
             pred_ask = ask_trader.predict_last(df, labels)
@@ -242,7 +257,7 @@ def heart_beat():
             print('{} : {}\t pred ASK is {} and pred BID is {}, next order is_buy is {}'.format(
                 dt.now(), count, round(pred_ask, 5), round(pred_bid, 5), order['is_buy']))
 
-            trade(con, order, amount)
+            # trade(con, order, amount)
             print('{} : {}\t end of iteration, which took {}'.format(dt.now(), count, dt.now() - t1))
 
             no_trade = round(100 * do_nothing / count, 3)
@@ -252,19 +267,10 @@ def heart_beat():
                 dt.now(), count, buy_acc, sell_acc, no_trade))
 
             old_balance = balance
+            old_k = new_k
+            old_ask, old_bid = now_ask, now_bid
             count += 1
             print('-' * 100)
-
-        # if dt.now().second == 0:
-        #     ask_now, bid_now = get_current_askbid(con)
-        #     historical_data, _, _ = get_price_data(con)
-        #     historical_data = historical_data.tail(1)
-        #     historical_data['ask_now'] = ask_now_past
-        #     historical_data['bid_now'] = bid_now_past
-        #     ask_now_past, bid_now_past = ask_now, bid_now
-        #     pd.set_option('display.max_columns', 15)
-        #     print(historical_data)
-        #     time.sleep(1)
 
         time.sleep(0.1)
 
@@ -279,7 +285,6 @@ if __name__ == "__main__":
     # fetch_data()
     # train_models()
     # backtest_models()
-    # mega_backtest()
+    mega_backtest()
 
-    res = heart_beat()
-    print(res)
+    # res = heart_beat()
