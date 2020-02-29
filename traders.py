@@ -311,7 +311,7 @@ class LstmTrader(Trader):
         self.X_val = X_val
         self.y_val = y_val
 
-    def train(self, batch_size=1000, buffer_size=10000, epochs=20, steps=200, valsteps=50, gpu=True):
+    def train(self, batch_size=1000, buffer_size=10000, epochs=200, steps=1000, valsteps=100, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
