@@ -10,7 +10,7 @@ cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ad
         '#e866f4', '#f668c2']
 
 
-def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich=False):
+def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich=True):
     """
     Given a data source, loads appropriate csv file.
     """
@@ -22,17 +22,18 @@ def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich
 
     if enrich:
         for col in df:
-            if 'bid' in col or 'ask' in col:
+            if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
 
     labels = df[target_col].shift(-shift)
     price = df[target_col].rename('price')
 
     if keep_last:
-        return df, labels, price
+        index = pd.notnull(df).all(1)
     else:
-        index = pd.notnull(labels)
-        return df[index], labels[index], price[index]
+        index = pd.notnull(df).all(1) & pd.notnull(labels)
+
+    return df[index], labels[index], price[index]
 
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
@@ -138,6 +139,7 @@ def compute_metrics(y_true, y_pred):
     """
 
     are = np.abs(y_pred - y_true) / np.abs(y_true)
+    are = are[are < 1e8]
     r2 = r2_score(y_true, y_pred)
     me = max_error(y_true, y_pred)
     mse = mean_squared_error(y_true, y_pred)

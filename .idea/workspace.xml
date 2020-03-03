@@ -109,6 +109,12 @@
       <workItem from="1582669578274" duration="13546000" />
       <workItem from="1582739882623" duration="4643000" />
       <workItem from="1582794320579" duration="44542000" />
+      <workItem from="1582992369787" duration="86000" />
+      <workItem from="1583000442835" duration="1311000" />
+      <workItem from="1583059329070" duration="12354000" />
+      <workItem from="1583147624159" duration="847000" />
+      <workItem from="1583166305461" duration="7911000" />
+      <workItem from="1583235811997" duration="10792000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -148,30 +154,30 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="357" y="233" key="FileChooserDialogImpl/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1581089469972" />
-    <state width="1237" height="154" key="GridCell.Tab.0.bottom" timestamp="1582990734384">
+    <state width="1237" height="154" key="GridCell.Tab.0.bottom" timestamp="1583255250799">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1582900077592" />
+    <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583255250799" />
     <state width="1237" height="151" key="GridCell.Tab.0.bottom/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1582990734384" />
-    <state width="1237" height="154" key="GridCell.Tab.0.center" timestamp="1582990734384">
+    <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1583223263456" />
+    <state width="1237" height="154" key="GridCell.Tab.0.center" timestamp="1583255250799">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1582900077592" />
+    <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583255250799" />
     <state width="1237" height="151" key="GridCell.Tab.0.center/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1582990734384" />
-    <state width="1237" height="154" key="GridCell.Tab.0.left" timestamp="1582990734384">
+    <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1583223263456" />
+    <state width="1237" height="154" key="GridCell.Tab.0.left" timestamp="1583255250799">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1582900077592" />
+    <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583255250799" />
     <state width="1237" height="151" key="GridCell.Tab.0.left/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1582990734384" />
-    <state width="1237" height="154" key="GridCell.Tab.0.right" timestamp="1582990734384">
+    <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1583223263456" />
+    <state width="1237" height="154" key="GridCell.Tab.0.right" timestamp="1583255250799">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1582900077592" />
+    <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583255250799" />
     <state width="1237" height="151" key="GridCell.Tab.0.right/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1582990734384" />
+    <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1583223263456" />
     <state x="142" y="4" key="SettingsEditor" timestamp="1582128925508">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -192,6 +198,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/currotrade$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582989365917" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1583255250790" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

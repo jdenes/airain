@@ -76,9 +76,11 @@ class Trader(object):
             y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
         if plot:
+            cond = ((y_pred > 0) == (y_test > 0))
             plt.plot((y_pred - y_test) / y_test, '.')
             plt.show()
-            plt.plot(y_test, y_pred, '.')
+            plt.plot(y_test[~cond], y_pred[~cond], '.', color='red')
+            plt.plot(y_test[cond], y_pred[cond], '.', color='blue')
             plt.show()
 
         return compute_metrics(y_test, y_pred)
@@ -333,8 +335,9 @@ class LstmTrader(Trader):
         val_data = val_data.batch(self.batch_size).repeat()
 
         self.model = tf.keras.models.Sequential()
-        self.model.add(tf.keras.layers.LSTM(50, input_shape=self.X_train.shape[-2:], return_sequences=True))
-        self.model.add(tf.keras.layers.LSTM(16, activation='relu'))
+        self.model.add(tf.keras.layers.LSTM(150, input_shape=self.X_train.shape[-2:], return_sequences=True))
+        self.model.add(tf.keras.layers.LSTM(50, return_sequences=True))
+        self.model.add(tf.keras.layers.LSTM(75, activation='relu'))
         self.model.add(tf.keras.layers.Dense(1))
         self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
 

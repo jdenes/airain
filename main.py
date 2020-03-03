@@ -8,7 +8,7 @@ from traders import ForestTrader, Dummy, Randommy, IdealTrader, LstmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
 datafreq = 1
-tradefreq = 1
+tradefreq = 5
 f, tf = str(datafreq), str(tradefreq)
 lag = 1
 h = 10
@@ -28,7 +28,7 @@ cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pre
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2017-01-01 00:00:00', '2020-01-30 00:00:00'
+    start, end = '2009-01-01 00:00:00', '2020-01-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-02-01 00:00:00', '2020-02-28 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
@@ -36,20 +36,18 @@ def fetch_data():
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
-    trader = LstmTrader(h=h)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='askopendelta', shift=shift, datafreq=datafreq)
+    trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train()  # n_estimators=100)
+    trader.train(epochs=100)  # n_estimators=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, price
     print('Training BID model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
-    print(df)
-    print(labels)
-    trader = LstmTrader(h=h)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='bidopendelta', shift=shift, datafreq=datafreq)
+    trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train()  # n_estimators=100)
+    trader.train(epochs=100)  # n_estimators=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn bidopen NOW' + tf)
     del trader, df, labels, price
@@ -72,9 +70,10 @@ def backtest_models():
     del bid_trader
 
     baseline = Dummy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(baseline['value'][:-int(enrich)]), names.append('Pure USD')
+    curves.append(baseline['value']), names.append('Pure USD')
     random = Randommy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(random['value'][:-int(enrich)]), names.append('Random')
+    curves.append(random['value']), names.append('Random')
+    # print([len(x) for x in curves])
 
     nice_plot(ind=ask_backtest['index'], curves_list=curves, names=names,
               title='Equity evolution, without spread, tradefreq ' + str(tradefreq))
@@ -90,6 +89,7 @@ def mega_backtest():
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
     order = {'is_buy': None}
+    count = 1
 
     balance = initial_gamble
 
@@ -114,7 +114,7 @@ def mega_backtest():
             amount = int(balance * 3 / 100)
 
             # Step 0: stats
-            if i > lag:
+            if count > 1:
                 info = [j, pred_ask, now_ask, 1000 * (pred_ask - old_ask), 1000 * (now_ask - old_ask),
                         pred_bid, now_bid, 1000 * (pred_bid - old_bid), 1000 * (now_bid - old_bid),
                         now_bid > old_ask, pred_bid > old_ask, now_ask < old_bid, pred_ask < old_bid]
@@ -144,10 +144,11 @@ def mega_backtest():
             profit_list.append(balance)
             index_list.append(ind[i])
             old_ask, old_bid = now_ask, now_bid
+            count += 1
 
     no_trade = round(100 * do_nothing / len(index_list), 3)
-    buy_acc = round(100 * buy_correct / buy, 3)
-    sell_acc = round(100 * sell_correct / sell, 3)
+    buy_acc = round(100 * buy_correct / buy, 3) if buy != 0 else 'NA'
+    sell_acc = round(100 * sell_correct / sell, 3) if sell != 0 else 'NA'
 
     print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
         round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
@@ -304,7 +305,7 @@ if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     train_models()
-    backtest_models()
+    # backtest_models()
     mega_backtest()
 
     # res = heart_beat()
