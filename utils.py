@@ -10,7 +10,7 @@ cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ad
         '#e866f4', '#f668c2']
 
 
-def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich=True):
+def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich=False):
     """
     Given a data source, loads appropriate csv file.
     """

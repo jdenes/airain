@@ -28,26 +28,26 @@ cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pre
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2009-01-01 00:00:00', '2020-01-30 00:00:00'
+    start, end = '2017-01-01 00:00:00', '2019-12-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
-    start, end = '2020-02-01 00:00:00', '2020-02-28 00:00:00'
+    start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
 
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='askopendelta', shift=shift, datafreq=datafreq)
-    trader = LstmTrader(h=h, normalize=True)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
+    trader = ForestTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(epochs=100)  # n_estimators=100)
+    trader.train(n_estimators=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, price
     print('Training BID model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='bidopendelta', shift=shift, datafreq=datafreq)
-    trader = LstmTrader(h=h, normalize=True)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
+    trader = ForestTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(epochs=100)  # n_estimators=100)
+    trader.train(n_estimators=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn bidopen NOW' + tf)
     del trader, df, labels, price
@@ -56,14 +56,14 @@ def train_models():
 def backtest_models():
     curves, names = [], []
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askopen', shift=shift, datafreq=datafreq)
-    ask_trader = LstmTrader(h=h)
+    ask_trader = ForestTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
     del ask_trader
 
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidopen', shift=shift, datafreq=datafreq)
-    bid_trader = LstmTrader(h=h)
+    bid_trader = ForestTrader(h=h)
     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
@@ -81,7 +81,7 @@ def backtest_models():
 
 def mega_backtest():
     df, labels, _ = load_data('dataset_eurusd_test', 'askopen', shift, datafreq, keep_last=True)
-    ask_trader, bid_trader = LstmTrader(h=h), LstmTrader(h=h)
+    ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     train_models()
-    # backtest_models()
+    backtest_models()
     mega_backtest()
 
     # res = heart_beat()
