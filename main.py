@@ -38,18 +38,18 @@ def train_models():
     df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(epochs=10)  # n_estimators=8)
+    trader.train(epochs=100)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, price
-    print('Training BID model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
-    trader = LstmTrader(h=h, normalize=True)
-    trader.ingest_traindata(df=df, labels=labels)
-    trader.train(epochs=10)  # n_estimators=8)
-    print(trader.test(plot=True))
-    trader.save(model_name='Huorn bidopen NOW' + tf)
-    del trader, df, labels, price
+    # print('Training BID model...')
+    # df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
+    # trader = LstmTrader(h=h, normalize=True)
+    # trader.ingest_traindata(df=df, labels=labels)
+    # trader.train(epochs=100)
+    # print(trader.test(plot=True))
+    # trader.save(model_name='Huorn bidopen NOW' + tf)
+    # del trader, df, labels, price
 
 
 def backtest_models():

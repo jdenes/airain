@@ -25,7 +25,7 @@ def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich
             if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
 
-    labels = df[target_col].shift(-shift)
+    labels = pd.Series(df[target_col].shift(-shift) > df[target_col]).astype(int)
     price = df[target_col].rename('price')
 
     if keep_last:

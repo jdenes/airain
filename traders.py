@@ -67,30 +67,32 @@ class Trader(object):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        y_pred = self.predict(self.X_test)
-        y_test = self.y_test
-        print(self.X_test.shape, y_pred.shape)
+        # y_pred = self.predict(self.X_test)
+        # y_test = self.y_test
 
-        if self.normalize:
-            y_test = unnormalize_data(y_test, self.y_max, self.y_min)
+        return self.model.evaluate(self.X_test, self.y_test)
 
-        if plot:
-            cond = ((y_pred > 0) == (y_test > 0))
-            plt.plot((y_pred - y_test) / y_test, '.')
-            plt.show()
-            plt.plot(y_test[~cond], y_pred[~cond], '.', color='red')
-            plt.plot(y_test[cond], y_pred[cond], '.')
-            plt.show()
-
-        return compute_metrics(y_test, y_pred)
+        # if self.normalize:
+        #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
+        #
+        # if plot:
+        #     cond = ((y_pred > 0) == (y_test > 0))
+        #     plt.plot((y_pred - y_test) / y_test, '.')
+        #     plt.show()
+        #     plt.plot(y_test[~cond], y_pred[~cond], '.', color='red')
+        #     plt.plot(y_test[cond], y_pred[cond], '.')
+        #     plt.show()
+        #
+        # return compute_metrics(y_test, y_pred)
 
     def predict(self, X):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        y_pred = self.model.predict(X).flatten()
+        y_pred = self.model.predict(X)  # .flatten()
         if self.normalize:
-            y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
+            pass
+            # y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
     def compute_policy(self, df, labels, price, shift, fees):
@@ -276,7 +278,7 @@ class LstmTrader(Trader):
 
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
-            labels = normalize_data(labels, self.y_max, self.y_min)
+            # labels = normalize_data(labels, self.y_max, self.y_min)
 
         df, labels = df.to_numpy(), labels.to_numpy()
         X, y, ind = [], [], []
@@ -287,10 +289,13 @@ class LstmTrader(Trader):
             y.append(labels[i])
             ind.append(index[i])
 
+        X, y, ind = np.array(X), np.array(y), np.array(ind)
+        y = y.reshape((len(y), 1))
+
         if get_index:
-            return np.array(X), np.array(y), np.array(ind)
+            return X, y, ind
         else:
-            return np.array(X), np.array(y)
+            return X, y
 
     def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
         """
@@ -306,7 +311,7 @@ class LstmTrader(Trader):
 
         df_train, labels_train = df.loc[train_ind], labels.loc[train_ind]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
-        self.y_min, self.y_max = labels_train.min(), labels_train.max()
+        # self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
         X_train, y_train = self.transform_data(df_train, labels_train)
         self.X_train = X_train
@@ -354,8 +359,12 @@ class LstmTrader(Trader):
         # self.model.add(tf.keras.layers.Dense(20, activation='relu'))
         # self.model.add(tf.keras.layers.Dense(1, activation='linear'))
         self.model.add(tf.keras.layers.Dense(100))
-        self.model.add(tf.keras.layers.Dense(3, activation='softmax'))
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
+        self.model.add(tf.keras.layers.Dense(2, activation='softmax'))
+        # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
+        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        # self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        print(self.model.summary())
 
         self.model.fit(train_data,
                        epochs=self.epochs,
