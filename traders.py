@@ -10,11 +10,9 @@ import xgboost as xgb
 from sklearn import svm
 from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
 
 from utils import compute_metrics, evaluate, normalize_data, unnormalize_data
 from datetime import datetime as dt
-
 
 ####################################################################################
 
@@ -71,6 +69,7 @@ class Trader(object):
         """
         y_pred = self.predict(self.X_test)
         y_test = self.y_test
+        print(self.X_test.shape, y_pred.shape)
 
         if self.normalize:
             y_test = unnormalize_data(y_test, self.y_max, self.y_min)
@@ -80,7 +79,7 @@ class Trader(object):
             plt.plot((y_pred - y_test) / y_test, '.')
             plt.show()
             plt.plot(y_test[~cond], y_pred[~cond], '.', color='red')
-            plt.plot(y_test[cond], y_pred[cond], '.', color='blue')
+            plt.plot(y_test[cond], y_pred[cond], '.')
             plt.show()
 
         return compute_metrics(y_test, y_pred)
@@ -300,20 +299,33 @@ class LstmTrader(Trader):
 
         self.testsize = testsize
         self.valsize = valsize
-        self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
-        self.y_min, self.y_max = labels.min(), labels.max()
 
-        X, y = self.transform_data(df, labels)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=self.valsize)
+        split = int(self.testsize * len(df))
+        train_ind, test_ind = df.index[:-split], df.index[-split:]
+        train_ind, val_ind = train_ind[:-split], train_ind[-split:]
+
+        df_train, labels_train = df.loc[train_ind], labels.loc[train_ind]
+        self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
+        self.y_min, self.y_max = labels_train.min(), labels_train.max()
+
+        X_train, y_train = self.transform_data(df_train, labels_train)
         self.X_train = X_train
         self.y_train = y_train
+        del X_train, y_train, df_train, labels_train
+
+        df_test, labels_test = df.loc[test_ind], labels.loc[test_ind]
+        X_test, y_test = self.transform_data(df_test, labels_test)
         self.X_test = X_test
         self.y_test = y_test
+        del X_test, y_test, df_test, labels_test
+
+        df_val, labels_val = df.loc[val_ind], labels.loc[val_ind]
+        X_val, y_val = self.transform_data(df_val, labels_val)
         self.X_val = X_val
         self.y_val = y_val
+        del X_val, y_val, df_val, labels_val
 
-    def train(self, batch_size=1000, buffer_size=10000, epochs=200, steps=1000, valsteps=100, gpu=True):
+    def train(self, batch_size=1000, buffer_size=10000, epochs=50, steps=1000, valsteps=100, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
@@ -335,11 +347,15 @@ class LstmTrader(Trader):
         val_data = val_data.batch(self.batch_size).repeat()
 
         self.model = tf.keras.models.Sequential()
-        self.model.add(tf.keras.layers.LSTM(150, input_shape=self.X_train.shape[-2:], return_sequences=True))
-        self.model.add(tf.keras.layers.LSTM(50, return_sequences=True))
-        self.model.add(tf.keras.layers.LSTM(75, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(1))
-        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
+        self.model.add(tf.keras.layers.LSTM(150, input_shape=self.X_train.shape[-2:]))  # return_sequences=True))
+        # self.model.add(tf.keras.layers.LSTM(50, return_sequences=True))
+        # self.model.add(tf.keras.layers.LSTM(75, activation='relu'))
+        # self.model.add(tf.keras.layers.Dropout(0.5))
+        # self.model.add(tf.keras.layers.Dense(20, activation='relu'))
+        # self.model.add(tf.keras.layers.Dense(1, activation='linear'))
+        self.model.add(tf.keras.layers.Dense(100))
+        self.model.add(tf.keras.layers.Dense(3, activation='softmax'))
+        self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
 
         self.model.fit(train_data,
                        epochs=self.epochs,
@@ -412,16 +428,24 @@ class MlTrader(Trader):
         """
 
         self.testsize = testsize
-        self.x_max, self.x_min = df.max(axis=0), df.min(axis=0)
-        self.y_min, self.y_max = labels.min(), labels.max()
 
-        X, y = self.transform_data(df, labels)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.testsize)
+        split = int(self.testsize * len(df))
+        train_ind, test_ind = df.index[:-split], df.index[-split:]
+
+        df_train, labels_train = df.loc[train_ind], labels.loc[train_ind]
+        self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
+        self.y_min, self.y_max = labels_train.min(), labels_train.max()
+
+        X_train, y_train = self.transform_data(df_train, labels_train)
         self.X_train = X_train
         self.y_train = y_train
+        del X_train, y_train, df_train, labels_train
+
+        df_test, labels_test = df.loc[test_ind], labels.loc[test_ind]
+        X_test, y_test = self.transform_data(df_test, labels_test)
         self.X_test = X_test
         self.y_test = y_test
-        # print('Available data shapes: train:', self.X_train.shape, ' and test:', self.X_test.shape)
+        del X_test, y_test, df_test, labels_test
 
     def save(self, model_name):
         """

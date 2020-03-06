@@ -11,12 +11,11 @@ datafreq = 1
 tradefreq = 5
 f, tf = str(datafreq), str(tradefreq)
 lag = 1
-h = 10
+h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
 shift = tradefreq + lag
-enrich = True
 
 account_id = '1195258'
 alpha_key = "H2T4H92C43D9DT3D"
@@ -37,17 +36,17 @@ def fetch_data():
 def train_models():
     print('Training ASK model...')
     df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
-    trader = ForestTrader(h=h, normalize=True)
+    trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(n_estimators=100)
+    trader.train(epochs=10)  # n_estimators=8)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, price
     print('Training BID model...')
     df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
-    trader = ForestTrader(h=h, normalize=True)
+    trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(n_estimators=100)
+    trader.train(epochs=10)  # n_estimators=8)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn bidopen NOW' + tf)
     del trader, df, labels, price
@@ -56,23 +55,23 @@ def train_models():
 def backtest_models():
     curves, names = [], []
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askopen', shift=shift, datafreq=datafreq)
-    ask_trader = ForestTrader(h=h)
+    ask_trader = LstmTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
     del ask_trader
 
     df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidopen', shift=shift, datafreq=datafreq)
-    bid_trader = ForestTrader(h=h)
+    bid_trader = LstmTrader(h=h)
     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(bid_backtest['value']), names.append('BID model')
     del bid_trader
 
     baseline = Dummy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(baseline['value']), names.append('Pure USD')
+    curves.append(baseline['value'][tradefreq-lag:]), names.append('Pure USD')
     random = Randommy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(random['value']), names.append('Random')
+    curves.append(random['value'][tradefreq-lag:]), names.append('Random')
     # print([len(x) for x in curves])
 
     nice_plot(ind=ask_backtest['index'], curves_list=curves, names=names,
@@ -81,7 +80,7 @@ def backtest_models():
 
 def mega_backtest():
     df, labels, _ = load_data('dataset_eurusd_test', 'askopen', shift, datafreq, keep_last=True)
-    ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
+    ask_trader, bid_trader = LstmTrader(h=h), LstmTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
@@ -213,7 +212,7 @@ def heart_beat():
     con.subscribe_market_data('EUR/USD')
     old_balance = get_balance(con)
 
-    ask_trader, bid_trader = ForestTrader(h=h), ForestTrader(h=h)
+    ask_trader, bid_trader = LstmTrader(h=h), LstmTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     balance_list, profit_list, order_list = {}, {}, {}
@@ -305,7 +304,7 @@ if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     train_models()
-    backtest_models()
-    mega_backtest()
+    # backtest_models()
+    # mega_backtest()
 
     # res = heart_beat()
