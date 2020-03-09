@@ -11,7 +11,7 @@ datafreq = 1
 tradefreq = 5
 f, tf = str(datafreq), str(tradefreq)
 lag = 1
-h = 30
+h = 40
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
@@ -27,7 +27,7 @@ cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pre
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2017-01-01 00:00:00', '2019-12-30 00:00:00'
+    start, end = '2005-01-01 00:00:00', '2019-12-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
@@ -38,7 +38,7 @@ def train_models():
     df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(epochs=100)
+    trader.train(epochs=10)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, price
@@ -46,7 +46,7 @@ def train_models():
     # df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
     # trader = LstmTrader(h=h, normalize=True)
     # trader.ingest_traindata(df=df, labels=labels)
-    # trader.train(epochs=100)
+    # trader.train(epochs=5)
     # print(trader.test(plot=True))
     # trader.save(model_name='Huorn bidopen NOW' + tf)
     # del trader, df, labels, price

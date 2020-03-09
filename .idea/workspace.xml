@@ -114,7 +114,8 @@
       <workItem from="1583059329070" duration="12354000" />
       <workItem from="1583147624159" duration="847000" />
       <workItem from="1583166305461" duration="7911000" />
-      <workItem from="1583235811997" duration="56644000" />
+      <workItem from="1583235811997" duration="70898000" />
+      <workItem from="1583794572773" duration="9000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -154,30 +155,30 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="357" y="233" key="FileChooserDialogImpl/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1581089469972" />
-    <state width="1237" height="154" key="GridCell.Tab.0.bottom" timestamp="1583533016319">
+    <state width="1237" height="154" key="GridCell.Tab.0.bottom" timestamp="1583794551602">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583409726038" />
     <state width="1237" height="151" key="GridCell.Tab.0.bottom/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1583533016319" />
-    <state width="1237" height="154" key="GridCell.Tab.0.center" timestamp="1583533016319">
+    <state width="1237" height="154" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1583794551602" />
+    <state width="1237" height="154" key="GridCell.Tab.0.center" timestamp="1583794551602">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583409726038" />
     <state width="1237" height="151" key="GridCell.Tab.0.center/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1583533016319" />
-    <state width="1237" height="154" key="GridCell.Tab.0.left" timestamp="1583533016319">
+    <state width="1237" height="154" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1583794551602" />
+    <state width="1237" height="154" key="GridCell.Tab.0.left" timestamp="1583794551600">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583409726038" />
     <state width="1237" height="151" key="GridCell.Tab.0.left/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1583533016319" />
-    <state width="1237" height="154" key="GridCell.Tab.0.right" timestamp="1583533016319">
+    <state width="1237" height="154" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1583794551600" />
+    <state width="1237" height="154" key="GridCell.Tab.0.right" timestamp="1583794551602">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1583409726038" />
     <state width="1237" height="151" key="GridCell.Tab.0.right/0.0.1280.720/-800.218.800.600@0.0.1280.720" timestamp="1581524162133" />
-    <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1583533016319" />
+    <state width="1237" height="154" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1583794551602" />
     <state x="142" y="4" key="SettingsEditor" timestamp="1582128925508">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
