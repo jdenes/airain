@@ -90,9 +90,9 @@ class Trader(object):
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
         y_pred = self.model.predict(X)  # .flatten()
-        if self.normalize:
-            pass
-            # y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
+        y_pred = np.argmax(y_pred, axis=1)
+        # if self.normalize:
+        # y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
     def compute_policy(self, df, labels, price, shift, fees):

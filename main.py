@@ -8,26 +8,25 @@ from traders import ForestTrader, Dummy, Randommy, IdealTrader, LstmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
 datafreq = 1
-tradefreq = 5
+tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 1
-h = 40
+h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-shift = tradefreq + lag
+epochs = 10
 
 account_id = '1195258'
 alpha_key = "H2T4H92C43D9DT3D"
 fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
 
-cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pred bid diff,true bid diff,tbuy,pbuy,' \
-       'tsell,psell\n '
+cols = 'date,predlabel,truelabel,taskgrow,tbidgrow,tbuy,tsell\n'
 
 
 def fetch_data():
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2005-01-01 00:00:00', '2019-12-30 00:00:00'
+    start, end = '2015-01-01 00:00:00', '2019-12-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_train_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_eurusd_test_' + f + '.csv', start=start, end=end, freq=datafreq, con=con)
@@ -35,18 +34,20 @@ def fetch_data():
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', lag=lag,
+                                  tradefreq=tradefreq, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, labels=labels)
-    trader.train(epochs=10)
+    trader.train(epochs=epochs)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, price
     # print('Training BID model...')
-    # df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', shift=shift, datafreq=datafreq)
+    # df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', lag=lag,
+    #                                   tradefreq=tradefreq, datafreq=datafreq)
     # trader = LstmTrader(h=h, normalize=True)
     # trader.ingest_traindata(df=df, labels=labels)
-    # trader.train(epochs=5)
+    # trader.train(epochs=epochs)
     # print(trader.test(plot=True))
     # trader.save(model_name='Huorn bidopen NOW' + tf)
     # del trader, df, labels, price
@@ -54,14 +55,16 @@ def train_models():
 
 def backtest_models():
     curves, names = [], []
-    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askopen', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askopen', lag=lag,
+                                  tradefreq=tradefreq, datafreq=datafreq)
     ask_trader = LstmTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
     curves.append(ask_backtest['value']), names.append('ASK model')
     del ask_trader
 
-    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidopen', shift=shift, datafreq=datafreq)
+    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidopen', lag=lag,
+                                  tradefreq=tradefreq, datafreq=datafreq)
     bid_trader = LstmTrader(h=h)
     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
@@ -79,10 +82,10 @@ def backtest_models():
 
 
 def mega_backtest():
-    df, labels, _ = load_data('dataset_eurusd_test', 'askopen', shift, datafreq, keep_last=True)
-    ask_trader, bid_trader = LstmTrader(h=h), LstmTrader(h=h)
+    df, labels, _ = load_data('dataset_eurusd_test', 'askopen', lag, tradefreq, datafreq, keep_last=True)
+    ask_trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
-    bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
+    # bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
@@ -95,8 +98,8 @@ def mega_backtest():
     X, _, ind = ask_trader.transform_data(df, labels, get_index=True)
     df = df.loc[ind]
 
-    ask_preds = ask_trader.predict(X)
-    bid_preds = bid_trader.predict(X)
+    preds = ask_trader.predict(X)
+    # bid_preds = bid_trader.predict(X)
     # ask_preds = df['askopen'].shift(-shift).to_list()
     # bid_preds = df['bidopen'].shift(-shift).to_list()
 
@@ -114,9 +117,8 @@ def mega_backtest():
 
             # Step 0: stats
             if count > 1:
-                info = [j, pred_ask, now_ask, 1000 * (pred_ask - old_ask), 1000 * (now_ask - old_ask),
-                        pred_bid, now_bid, 1000 * (pred_bid - old_bid), 1000 * (now_bid - old_bid),
-                        now_bid > old_ask, pred_bid > old_ask, now_ask < old_bid, pred_ask < old_bid]
+                info = [j, pred_ask, label, now_bid > old_bid, now_ask > old_ask,
+                           now_bid > old_ask, now_ask < old_bid]
                 with open('./resources/report_backtest.csv', 'a') as file:
                     file.write(','.join([str(x) for x in info]) + '\n')
 
@@ -136,7 +138,8 @@ def mega_backtest():
                 do_nothing += 1
 
             # Step one: decide what to do next
-            pred_ask, pred_bid = ask_preds[i - lag], bid_preds[i - lag]
+            pred_ask = pred_bid = not bool(preds[i - lag])
+            label = labels[ind[i - lag]]
             order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
 
             balance = round(balance + gpl, 2)
@@ -162,7 +165,8 @@ def gross_pl(pl, K, price):
 def get_price_data(con):
     fetch_fxcm_data('./data/dataset_eurusd_now_' + f + '.csv', freq=datafreq, con=con, n_last=30)
     df, labels, price = load_data(filename='dataset_eurusd_now', target_col='askopen',
-                                  shift=shift,
+                                  lag=lag,
+                                  tradefreq=tradefreq,
                                   datafreq=datafreq,
                                   keep_last=True)
     return df, labels, price
@@ -188,10 +192,10 @@ def get_balance(con):
 
 def decide_order(amount, now_bid, now_ask, pred_bid, pred_ask):
     # if price is going up: buy
-    if pred_bid > (1 - tolerance) * now_ask:
+    if pred_bid:  # > (1 - tolerance) * now_ask:
         order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
     # elif price is going down: sell
-    elif pred_ask < now_bid / (1 - tolerance):
+    elif not pred_bid:  # pred_ask < now_bid / (1 - tolerance):
         order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
     # else do nothing
     else:
@@ -305,6 +309,6 @@ if __name__ == "__main__":
     # fetch_data()
     train_models()
     # backtest_models()
-    # mega_backtest()
+    mega_backtest()
 
     # res = heart_beat()

@@ -10,7 +10,7 @@ cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ad
         '#e866f4', '#f668c2']
 
 
-def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich=True):
+def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=False, enrich=True):
     """
     Given a data source, loads appropriate csv file.
     """
@@ -25,7 +25,7 @@ def load_data(filename, target_col, shift=1, datafreq=1, keep_last=False, enrich
             if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
 
-    labels = pd.Series(df[target_col].shift(-shift) > df[target_col]).astype(int)
+    labels = pd.Series(df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
     price = df[target_col].rename('price')
 
     if keep_last:
