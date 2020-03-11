@@ -42,7 +42,7 @@ class Trader(object):
         self.X_test = None
         self.y_test = None
 
-    def transform_data(self, df, labels, get_index=False, keep_last=False):
+    def transform_data(self, df, prices, labels, get_index=False, keep_last=False):
         """
         Converts dataframe file to appropriate data format for this agent type.
         """
@@ -51,7 +51,7 @@ class Trader(object):
         else:
             return None, None
 
-    def ingest_traindata(self, df, labels, testsize=0.1):
+    def ingest_traindata(self, df, prices, labels, testsize=0.1):
         """
         Converts data file and ingest for training, depending on agent type.
         """
@@ -95,15 +95,15 @@ class Trader(object):
         # y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
-    def compute_policy(self, df, labels, price, shift, fees):
+    def compute_policy(self, df, labels, prices, shift, fees):
         """
         Given parameters, decides what to do at next steps based on predictive model.
         """
-        X, _, ind = self.transform_data(df, labels, get_index=True)
-        current_price = price[ind].to_numpy()
+        X, _, ind = self.transform_data(df, prices, labels, get_index=True)
+        current_price = prices[ind].to_numpy()
         y_pred = self.predict(X)
         print(compute_metrics(current_price[shift:], y_pred[:-shift]))
-        going_up = (y_pred * (1 - fees) > current_price)
+        going_up = np.array(y_pred * (1 - fees) > current_price)
         policy = [(0, 1) if p else (1, 0) for p in going_up]
         return policy, ind
 
@@ -139,11 +139,11 @@ class Trader(object):
         print("Total bad moves share:", count/len(price), "for amount lost:", amount)
         return pd.DataFrame(ppp)
 
-    def predict_last(self, df, labels):
+    def predict_last(self, df, prices, labels):
         """
         Predicts next value and consequently next optimal portfolio.
         """
-        X, _, _ = self.transform_data(df, labels, get_index=True, keep_last=True)
+        X, _, _ = self.transform_data(df, prices, labels, get_index=True, keep_last=True)
         y_pred = self.predict(X)
 
         return y_pred[-1]
@@ -195,57 +195,6 @@ class Trader(object):
 ####################################################################################
 
 
-class Dummy(Trader):
-
-    def __init__(self):
-        super().__init__()
-
-    def compute_policy(self, df, labels, price, shift, fees):
-        """
-        Given parameters, decides what to do at next steps based on predictive model.
-        """
-        tmp = price.reset_index()[self.h-1:]
-        current_price, ind = tmp['price'].to_list(), tmp['date'].to_list()
-        policy = [(0, 1) for _ in current_price]
-        return policy, ind
-
-####################################################################################
-
-
-class Randommy(Trader):
-
-    def __init__(self):
-        super().__init__()
-
-    def compute_policy(self, df, labels, price, shift, fees):
-        """
-        Given parameters, decides what to do at next steps based on predictive model.
-        """
-        tmp = price.reset_index()[self.h-1:]
-        current_price, ind = tmp['price'].to_list(), tmp['date'].to_list()
-        policy = [[(0, 1), (1, 0)][np.random.choice(2)] for _ in current_price]
-        return policy, ind
-
-####################################################################################
-
-
-class IdealTrader(Trader):
-
-    def __init__(self):
-        super().__init__()
-
-    def compute_policy(self, df, labels, price, shift, fees):
-        """
-        Given parameters, decides what to do at next steps based on predictive model.
-        """
-        tmp = price.reset_index()[self.h-1:]
-        cp, ind = tmp['price'].to_list(), tmp['date'].to_list()
-        policy = [(0, 1) if cp[i+1] > cp[i] else (1, 0) for i in range(len(cp) - 1)] + [(1, 0)]
-        return policy, ind
-
-####################################################################################
-
-
 class LstmTrader(Trader):
     """
     A trader-forecaster based on a LSTM neural network.
@@ -269,35 +218,40 @@ class LstmTrader(Trader):
         self.X_val = None
         self.y_val = None
 
-    def transform_data(self, df, labels, get_index=False, keep_last=True):
+        self.P_train = None
+        self.P_test = None
+        self.P_val = None
+
+    def transform_data(self, df, prices, labels, get_index=False, keep_last=True):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
         index = df.index.to_list()
-        df, labels = df.reset_index(drop=True), labels.reset_index(drop=True)
+        df, labels, prices = df.reset_index(drop=True), labels.reset_index(drop=True), prices.reset_index(drop=True)
 
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
             # labels = normalize_data(labels, self.y_max, self.y_min)
 
-        df, labels = df.to_numpy(), labels.to_numpy()
-        X, y, ind = [], [], []
+        df, labels, prices = df.to_numpy(), labels.to_numpy(), prices.to_numpy()
+        X, P, y, ind = [], [], [], []
 
         for i in range(self.h-1, len(df)):
             indx = [int(i - self.h + x + 1) for x in range(self.h)]
             X.append(df[indx])
+            P.append(prices[i])
             y.append(labels[i])
             ind.append(index[i])
 
-        X, y, ind = np.array(X), np.array(y), np.array(ind)
+        X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
         y = y.reshape((len(y), 1))
 
         if get_index:
-            return X, y, ind
+            return X, P, y, ind
         else:
-            return X, y
+            return X, P, y
 
-    def ingest_traindata(self, df, labels, testsize=0.1, valsize=0.1):
+    def ingest_traindata(self, df, prices, labels, testsize=0.1, valsize=0.1):
         """
         Loads data from csv file depending on data type.
         """
@@ -309,26 +263,29 @@ class LstmTrader(Trader):
         train_ind, test_ind = df.index[:-split], df.index[-split:]
         train_ind, val_ind = train_ind[:-split], train_ind[-split:]
 
-        df_train, labels_train = df.loc[train_ind], labels.loc[train_ind]
+        df_train, labels_train, prices_train = df.loc[train_ind], labels.loc[train_ind], prices.loc[train_ind]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         # self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
-        X_train, y_train = self.transform_data(df_train, labels_train)
+        X_train, P_train, y_train = self.transform_data(df_train, prices_train, labels_train)
         self.X_train = X_train
         self.y_train = y_train
-        del X_train, y_train, df_train, labels_train
+        self.P_train = P_train
+        del X_train, P_train, y_train, df_train, labels_train
 
-        df_test, labels_test = df.loc[test_ind], labels.loc[test_ind]
-        X_test, y_test = self.transform_data(df_test, labels_test)
+        df_test, labels_test, prices_test = df.loc[test_ind], labels.loc[test_ind], prices.loc[test_ind]
+        X_test, P_test, y_test = self.transform_data(df_test, prices_test, labels_test)
         self.X_test = X_test
         self.y_test = y_test
-        del X_test, y_test, df_test, labels_test
+        self.P_test = P_test
+        del X_test, P_test, y_test, df_test, labels_test
 
-        df_val, labels_val = df.loc[val_ind], labels.loc[val_ind]
-        X_val, y_val = self.transform_data(df_val, labels_val)
+        df_val, labels_val, prices_val = df.loc[val_ind], labels.loc[val_ind], prices.loc[val_ind]
+        X_val, P_val, y_val = self.transform_data(df_val, prices_val, labels_val)
         self.X_val = X_val
         self.y_val = y_val
-        del X_val, y_val, df_val, labels_val
+        self.P_val = P_val
+        del X_val, P_val, y_val, df_val, labels_val
 
     def train(self, batch_size=1000, buffer_size=10000, epochs=50, steps=1000, valsteps=100, gpu=True):
         """
@@ -345,25 +302,33 @@ class LstmTrader(Trader):
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-        train_data = tf.data.Dataset.from_tensor_slices((self.X_train, self.y_train))
+        train_data = tf.data.Dataset.from_tensor_slices(({'input_1': self.X_train, 'input_2': self.P_train}, self.y_train))
+        print(train_data['input_1'])
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         val_data = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val))
         val_data = val_data.batch(self.batch_size).repeat()
 
-        self.model = tf.keras.models.Sequential()
-        self.model.add(tf.keras.layers.LSTM(300, input_shape=self.X_train.shape[-2:]))  # , return_sequences=True))
-        # self.model.add(tf.keras.layers.LSTM(75, activation='relu'))
-        # self.model.add(tf.keras.layers.Dropout(0.5))
+        # self.model = tf.keras.models.Sequential()
+        # self.model.add(tf.keras.layers.LSTM(300, input_shape=self.X_train.shape[-2:]))
+        # self.model.add(tf.keras.layers.Dense(2, activation='softmax'))
+        # print(self.model.summary())
+
+        input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:])
+        price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1])
+        lstm_layer = tf.keras.layers.LSTM(300)(input_layer)
+        output_layer = tf.keras.layers.Dense(2, activation='softmax')(lstm_layer)
+        self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
+        print(self.model.summary())
+
+        # self.model.add(tf.keras.layers.Dropout(0.5)) , return_sequences=True))
         # self.model.add(tf.keras.layers.Dense(20, activation='relu'))
         # self.model.add(tf.keras.layers.Dense(1, activation='linear'))
         # self.model.add(tf.keras.layers.Dense(100))
-        self.model.add(tf.keras.layers.Dense(2, activation='softmax'))
         # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
-        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         # self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-        print(self.model.summary())
+        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         self.model.fit(train_data,
                        epochs=self.epochs,
@@ -389,190 +354,3 @@ class LstmTrader(Trader):
         self.model = tf.keras.models.load_model(model_name + '/model.h5')
 
 ####################################################################################
-
-
-class MlTrader(Trader):
-    """
-    A trader-forecaster based on a traditional machine learning algorithm.
-    """
-
-    def transform_data(self, df, labels, get_index=False, keep_last=False):
-        """
-        Given data and labels, transforms it into suitable format and return them.
-        """
-
-        index = df.index.to_list()
-        if self.normalize:
-            df = normalize_data(df, self.x_max, self.x_min)
-            labels = normalize_data(labels, self.y_max, self.y_min)
-
-        history = pd.DataFrame()
-        for i in range(1, self.h):
-            shifted_df = df.shift(i)
-            history = pd.concat([history, shifted_df], axis=1)
-        df = pd.concat([df, history], axis=1)
-        del history, shifted_df
-        df['labels'], df['ind'] = labels, index
-
-        first_idx = df.apply(lambda col: col.first_valid_index()).max()
-        if keep_last:
-            df = df.loc[first_idx:]
-        else:
-            last_idx = df.apply(lambda col: col.last_valid_index()).max()
-            df = df.loc[first_idx:last_idx]
-
-        X = df.drop(['labels', 'ind'], axis=1).to_numpy()
-        y = df['labels'].to_numpy()
-        ind = df['ind'].to_numpy()
-
-        if get_index:
-            return X, y, ind
-        else:
-            return X, y
-
-    def ingest_traindata(self, df, labels, testsize=0.1):
-        """
-        Loads data from csv file depending on data type.
-        """
-
-        self.testsize = testsize
-
-        split = int(self.testsize * len(df))
-        train_ind, test_ind = df.index[:-split], df.index[-split:]
-
-        df_train, labels_train = df.loc[train_ind], labels.loc[train_ind]
-        self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
-        self.y_min, self.y_max = labels_train.min(), labels_train.max()
-
-        X_train, y_train = self.transform_data(df_train, labels_train)
-        self.X_train = X_train
-        self.y_train = y_train
-        del X_train, y_train, df_train, labels_train
-
-        df_test, labels_test = df.loc[test_ind], labels.loc[test_ind]
-        X_test, y_test = self.transform_data(df_test, labels_test)
-        self.X_test = X_test
-        self.y_test = y_test
-        del X_test, y_test, df_test, labels_test
-
-    def save(self, model_name):
-        """
-        Save model to folder.
-        """
-        super().save(model_name=model_name)
-        model_name = './models/' + model_name
-        if self.model is not None:
-            jl.dump(self.model, model_name + '/model.joblib')
-
-    def load(self, model_name, fast=False):
-        """
-        Load model from folder.
-        """
-        super().load(model_name=model_name, fast=fast)
-        model_name = './models/' + model_name
-        self.model = jl.load(model_name + '/model.joblib')
-
-
-####################################################################################
-
-
-class ForestTrader(MlTrader):
-    """
-    A trader-forecaster based on random forest.
-    """
-
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
-        """
-        Initialize method.
-        """
-
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
-        self.n_estimators = None
-
-    def train(self, n_estimators=10):
-        """
-        Using prepared data, trains model depending on agent type.
-        """
-
-        self.n_estimators = n_estimators
-        self.model = RandomForestRegressor(n_estimators=self.n_estimators, max_depth=100, n_jobs=8, verbose=2)
-        self.model.fit(self.X_train, self.y_train)
-        self.model.verbose = 0
-
-####################################################################################
-
-
-class SvmTrader(MlTrader):
-    """
-    A trader-forecaster based on support vector regression.
-    """
-
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
-        """
-        Initialize method.
-        """
-
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
-        self.kernel = None
-        self.gamma = None
-
-    def train(self, gamma='scale', kernel='rbf'):
-        """
-        Using prepared data, trains model depending on agent type.
-        """
-
-        self.kernel = kernel
-        self.gamma = gamma
-        self.model = svm.SVR(gamma='scale', kernel='rbf')
-        self.model.fit(self.X_train, self.y_train)
-
-####################################################################################
-
-
-class NeuralTrader(MlTrader):
-    """
-    A trader-forecaster based on simple ANN.
-    """
-
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
-        """
-        Initialize method.
-        """
-
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
-        self.layers = None
-
-    def train(self, layers=(50, 100, 500, 50)):
-        """
-        Using prepared data, trains model depending on agent type.
-        """
-
-        self.layers = layers
-        self.model = MLPRegressor(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=self.layers)
-        self.model.fit(self.X_train, self.y_train)
-
-####################################################################################
-
-
-class XgboostTrader(MlTrader):
-    """
-    A trader-forecaster based on XGBoost.
-    """
-
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
-        """
-        Initialize method.
-        """
-
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
-        self.n_estimators = None
-
-    def train(self, n_estimators=10):
-        """
-        Using prepared data, trains model depending on agent type.
-        """
-
-        self.n_estimators = n_estimators
-        self.model = xgb.XGBRegressor(objective='reg:squarederror',
-                                      n_estimators=self.n_estimators, n_jobs=3, verbose=2)
-        self.model.fit(self.X_train, self.y_train)

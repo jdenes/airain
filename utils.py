@@ -26,14 +26,14 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
                 df[col + 'delta'] = df[col].diff()
 
     labels = pd.Series(df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
-    price = df[target_col].rename('price')
+    prices = df[['askopen', 'bidopen']].copy()
 
     if keep_last:
         index = pd.notnull(df).all(1)
     else:
         index = pd.notnull(df).all(1) & pd.notnull(labels)
 
-    return df[index], labels[index], price[index]
+    return df[index], labels[index], prices[index]
 
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):

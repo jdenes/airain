@@ -4,18 +4,18 @@ import pandas as pd
 from datetime import timedelta
 from datetime import datetime as dt
 
-from traders import ForestTrader, Dummy, Randommy, IdealTrader, LstmTrader
+from traders import LstmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-datafreq = 1
+datafreq = 5
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
-lag = 1
+lag = 0
 h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 10
+epochs = 5
 
 account_id = '1195258'
 alpha_key = "H2T4H92C43D9DT3D"
@@ -34,55 +34,55 @@ def fetch_data():
 
 def train_models():
     print('Training ASK model...')
-    df, labels, price = load_data('dataset_eurusd_train', target_col='askopen', lag=lag,
-                                  tradefreq=tradefreq, datafreq=datafreq)
+    df, labels, prices = load_data('dataset_eurusd_train', target_col='askopen', lag=lag,
+                                   tradefreq=tradefreq, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
-    trader.ingest_traindata(df=df, labels=labels)
+    trader.ingest_traindata(df=df, prices=prices, labels=labels)
     trader.train(epochs=epochs)
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
-    del trader, df, labels, price
+    del trader, df, labels, prices
     # print('Training BID model...')
-    # df, labels, price = load_data('dataset_eurusd_train', target_col='bidopen', lag=lag,
+    # df, labels, prices = load_data('dataset_eurusd_train', target_col='bidopen', lag=lag,
     #                                   tradefreq=tradefreq, datafreq=datafreq)
     # trader = LstmTrader(h=h, normalize=True)
     # trader.ingest_traindata(df=df, labels=labels)
     # trader.train(epochs=epochs)
     # print(trader.test(plot=True))
     # trader.save(model_name='Huorn bidopen NOW' + tf)
-    # del trader, df, labels, price
+    # del trader, df, labels, prices
 
 
-def backtest_models():
-    curves, names = [], []
-    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='askopen', lag=lag,
-                                  tradefreq=tradefreq, datafreq=datafreq)
-    ask_trader = LstmTrader(h=h)
-    ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
-    ask_backtest = ask_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(ask_backtest['value']), names.append('ASK model')
-    del ask_trader
-
-    df, labels, price = load_data(filename='dataset_eurusd_test', target_col='bidopen', lag=lag,
-                                  tradefreq=tradefreq, datafreq=datafreq)
-    bid_trader = LstmTrader(h=h)
-    bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
-    bid_backtest = bid_trader.backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(bid_backtest['value']), names.append('BID model')
-    del bid_trader
-
-    baseline = Dummy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(baseline['value'][tradefreq-lag:]), names.append('Pure USD')
-    random = Randommy().backtest(df, labels, price, tradefreq, lag, initial_gamble, fees)
-    curves.append(random['value'][tradefreq-lag:]), names.append('Random')
-    # print([len(x) for x in curves])
-
-    nice_plot(ind=ask_backtest['index'], curves_list=curves, names=names,
-              title='Equity evolution, without spread, tradefreq ' + str(tradefreq))
+# def backtest_models():
+#     curves, names = [], []
+#     df, labels, prices = load_data(filename='dataset_eurusd_test', target_col='askopen', lag=lag,
+#                                   tradefreq=tradefreq, datafreq=datafreq)
+#     ask_trader = LstmTrader(h=h)
+#     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
+#     ask_backtest = ask_trader.backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
+#     curves.append(ask_backtest['value']), names.append('ASK model')
+#     del ask_trader
+#
+#     df, labels, prices = load_data(filename='dataset_eurusd_test', target_col='bidopen', lag=lag,
+#                                   tradefreq=tradefreq, datafreq=datafreq)
+#     bid_trader = LstmTrader(h=h)
+#     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
+#     bid_backtest = bid_trader.backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
+#     curves.append(bid_backtest['value']), names.append('BID model')
+#     del bid_trader
+#
+#     baseline = Dummy().backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
+#     curves.append(baseline['value'][tradefreq-lag:]), names.append('Pure USD')
+#     random = Randommy().backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
+#     curves.append(random['value'][tradefreq-lag:]), names.append('Random')
+#     # print([len(x) for x in curves])
+#
+#     nice_plot(ind=ask_backtest['index'], curves_list=curves, names=names,
+#               title='Equity evolution, without spread, tradefreq ' + str(tradefreq))
 
 
 def mega_backtest():
-    df, labels, _ = load_data('dataset_eurusd_test', 'askopen', lag, tradefreq, datafreq, keep_last=True)
+    df, labels, prices = load_data('dataset_eurusd_test', 'askopen', lag, tradefreq, datafreq, keep_last=True)
     ask_trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     # bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
@@ -95,7 +95,7 @@ def mega_backtest():
 
     balance = initial_gamble
 
-    X, _, ind = ask_trader.transform_data(df, labels, get_index=True)
+    X, P, _, ind = ask_trader.transform_data(df, prices, labels, get_index=True)
     df = df.loc[ind]
 
     preds = ask_trader.predict(X)
@@ -118,7 +118,7 @@ def mega_backtest():
             # Step 0: stats
             if count > 1:
                 info = [j, pred_ask, label, now_bid > old_bid, now_ask > old_ask,
-                           now_bid > old_ask, now_ask < old_bid]
+                        now_bid > old_ask, now_ask < old_bid]
                 with open('./resources/report_backtest.csv', 'a') as file:
                     file.write(','.join([str(x) for x in info]) + '\n')
 
