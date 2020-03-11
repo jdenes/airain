@@ -10,7 +10,7 @@ from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_
 datafreq = 5
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
-lag = 0
+lag = 1
 h = 30
 initial_gamble = 10000
 fees = 0.0
@@ -33,7 +33,7 @@ def fetch_data():
 
 
 def train_models():
-    print('Training ASK model...')
+    print('Training model...')
     df, labels, prices = load_data('dataset_eurusd_train', target_col='askopen', lag=lag,
                                    tradefreq=tradefreq, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
@@ -42,16 +42,6 @@ def train_models():
     print(trader.test(plot=True))
     trader.save(model_name='Huorn askopen NOW' + tf)
     del trader, df, labels, prices
-    # print('Training BID model...')
-    # df, labels, prices = load_data('dataset_eurusd_train', target_col='bidopen', lag=lag,
-    #                                   tradefreq=tradefreq, datafreq=datafreq)
-    # trader = LstmTrader(h=h, normalize=True)
-    # trader.ingest_traindata(df=df, labels=labels)
-    # trader.train(epochs=epochs)
-    # print(trader.test(plot=True))
-    # trader.save(model_name='Huorn bidopen NOW' + tf)
-    # del trader, df, labels, prices
-
 
 # def backtest_models():
 #     curves, names = [], []
@@ -83,8 +73,8 @@ def train_models():
 
 def mega_backtest():
     df, labels, prices = load_data('dataset_eurusd_test', 'askopen', lag, tradefreq, datafreq, keep_last=True)
-    ask_trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
-    ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
+    trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
+    trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     # bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 
@@ -95,10 +85,10 @@ def mega_backtest():
 
     balance = initial_gamble
 
-    X, P, _, ind = ask_trader.transform_data(df, prices, labels, get_index=True)
+    X, P, _, ind = trader.transform_data(df, prices, labels, get_index=True)
     df = df.loc[ind]
 
-    preds = ask_trader.predict(X)
+    preds = trader.predict(X)
     # bid_preds = bid_trader.predict(X)
     # ask_preds = df['askopen'].shift(-shift).to_list()
     # bid_preds = df['bidopen'].shift(-shift).to_list()

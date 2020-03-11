@@ -245,6 +245,7 @@ class LstmTrader(Trader):
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
         y = y.reshape((len(y), 1))
+        P = P.reshape((len(P), 1))
 
         if get_index:
             return X, P, y, ind
@@ -302,11 +303,10 @@ class LstmTrader(Trader):
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-        train_data = tf.data.Dataset.from_tensor_slices(({'input_1': self.X_train, 'input_2': self.P_train}, self.y_train))
-        print(train_data['input_1'])
+        train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
-        val_data = tf.data.Dataset.from_tensor_slices((self.X_val, self.y_val))
+        val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         val_data = val_data.batch(self.batch_size).repeat()
 
         # self.model = tf.keras.models.Sequential()
@@ -314,10 +314,13 @@ class LstmTrader(Trader):
         # self.model.add(tf.keras.layers.Dense(2, activation='softmax'))
         # print(self.model.summary())
 
-        input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:])
-        price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1])
-        lstm_layer = tf.keras.layers.LSTM(300)(input_layer)
-        output_layer = tf.keras.layers.Dense(2, activation='softmax')(lstm_layer)
+        input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
+        price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
+        lstm_layer = tf.keras.layers.LSTM(300, name='lstm')(input_layer)
+        comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
+        concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
+        dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
+        output_layer = tf.keras.layers.Dense(2, activation='softmax', name='output')(dense_layer)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 

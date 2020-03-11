@@ -25,8 +25,10 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
             if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
 
-    labels = pd.Series(df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
-    prices = df[['askopen', 'bidopen']].copy()
+    # df['askdiff'] =
+
+    labels = (df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
+    prices = (df['askopen'].shift(-lag) > df['askclose'])
 
     if keep_last:
         index = pd.notnull(df).all(1)
