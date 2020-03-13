@@ -12,6 +12,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.ensemble import RandomForestRegressor
 
 from utils import compute_metrics, evaluate, normalize_data, unnormalize_data
+from tensorflow.keras.utils import to_categorical
 from datetime import datetime as dt
 
 ####################################################################################
@@ -70,7 +71,7 @@ class Trader(object):
         # y_pred = self.predict(self.X_test)
         # y_test = self.y_test
 
-        return self.model.evaluate(self.X_test, self.y_test)
+        return self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
 
         # if self.normalize:
         #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
@@ -85,11 +86,11 @@ class Trader(object):
         #
         # return compute_metrics(y_test, y_pred)
 
-    def predict(self, X):
+    def predict(self, X, P):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        y_pred = self.model.predict(X)  # .flatten()
+        y_pred = self.model.predict((X, P))  # .flatten()
         y_pred = np.argmax(y_pred, axis=1)
         # if self.normalize:
         # y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
@@ -101,7 +102,7 @@ class Trader(object):
         """
         X, _, ind = self.transform_data(df, prices, labels, get_index=True)
         current_price = prices[ind].to_numpy()
-        y_pred = self.predict(X)
+        y_pred = self.predict(X, prices)
         print(compute_metrics(current_price[shift:], y_pred[:-shift]))
         going_up = np.array(y_pred * (1 - fees) > current_price)
         policy = [(0, 1) if p else (1, 0) for p in going_up]
@@ -144,7 +145,7 @@ class Trader(object):
         Predicts next value and consequently next optimal portfolio.
         """
         X, _, _ = self.transform_data(df, prices, labels, get_index=True, keep_last=True)
-        y_pred = self.predict(X)
+        y_pred = self.predict(X, prices)
 
         return y_pred[-1]
 
@@ -157,7 +158,8 @@ class Trader(object):
         if not os.path.exists(model_name):
             os.makedirs(model_name)
 
-        to_rm = ['model', 'x_max', 'x_min', 'X_train', 'y_train', 'X_test', 'y_test', 'X_val', 'y_val']
+        to_rm = ['model', 'x_max', 'x_min', 'X_train', 'P_train', 'y_train',
+                 'X_test', 'P_test', 'y_test', 'X_val', 'P_val', 'y_val']
         attr_dict = {}
         for attr, value in self.__dict__.items():
             if attr not in to_rm:
@@ -245,7 +247,7 @@ class LstmTrader(Trader):
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
         y = y.reshape((len(y), 1))
-        P = P.reshape((len(P), 1))
+        # y = to_categorical(y)
 
         if get_index:
             return X, P, y, ind
@@ -320,7 +322,7 @@ class LstmTrader(Trader):
         comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
         concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-        output_layer = tf.keras.layers.Dense(2, activation='softmax', name='output')(dense_layer)
+        output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(dense_layer)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 
@@ -347,6 +349,8 @@ class LstmTrader(Trader):
         model_name = './models/' + model_name
         if self.model is not None:
             self.model.save(model_name + '/model.h5')
+        np.save(model_name + '/P_train.npy', self.P_train)
+        np.save(model_name + '/P_test.npy', self.P_test)
 
     def load(self, model_name, fast=False):
         """

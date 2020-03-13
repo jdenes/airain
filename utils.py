@@ -25,16 +25,29 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
             if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
 
-    # df['askdiff'] =
+    ask_fut = df['askopen'].shift(-lag-tradefreq)
+    bid_fut = df['bidopen'].shift(-lag-tradefreq)
+    ask_now = df['askopen'].shift(-lag)
+    bid_now = df['bidopen'].shift(-lag)
+    labels = df['askopen'].copy()
 
-    labels = (df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
-    prices = (df['askopen'].shift(-lag) > df['askclose'])
+    for i in ask_fut.index:
+        if bid_fut[i] > ask_now[i]:
+            labels[i] = 1
+        elif ask_fut[i] < bid_now[i]:
+            labels[i] = 2
+        else:
+            labels[i] = 0
+
+    # labels = (df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
+    prices = pd.concat((df['askopen'].shift(-lag), df['bidopen'].shift(-lag)), axis=1)
 
     if keep_last:
         index = pd.notnull(df).all(1)
     else:
-        index = pd.notnull(df).all(1) & pd.notnull(labels)
+        index = pd.notnull(df).all(1) & pd.notnull(prices).all(1) & pd.notnull(labels)
 
+    print(labels[index].value_counts(normalize=True))
     return df[index], labels[index], prices[index]
 
 
@@ -106,13 +119,13 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     print('New available EUR-GBP data shape:', df.shape)
 
 
-def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
+def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None):
     """
     Given currencies and start/end dates, as well as frequency, gets exchange rates from FXCM API.
     """
 
     if n_last is not None:
-        df = con.get_candles('EUR/USD', period='m' + str(freq), number=n_last)
+        df = con.get_candles(curr, period='m' + str(freq), number=n_last)
 
     else:
         df = pd.DataFrame()
@@ -124,7 +137,7 @@ def fetch_fxcm_data(filename, freq, con, start=None, end=None, n_last=None):
         else:
             tmp2 = start + timedelta(weeks=step)
         while tmp2 <= end:
-            data = con.get_candles('EUR/USD', period='m' + str(freq), start=tmp1, stop=tmp2)
+            data = con.get_candles(curr, period='m' + str(freq), start=tmp1, stop=tmp2)
             df = pd.concat([df, data]).drop_duplicates(keep='last')
 
             tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
