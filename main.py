@@ -7,18 +7,18 @@ from datetime import datetime as dt
 from traders import LstmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-datafreq = 5
+datafreq = 1
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 1
-h = 40
+h = 20
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 5
+epochs = 3
 
-curr = 'FRA40'
-c = 'fra40'
+curr = 'EUR/USD'
+c = 'eurusd'
 account_id = '1195258'
 alpha_key = "H2T4H92C43D9DT3D"
 fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
@@ -27,8 +27,9 @@ cols = 'date,predlabel,truelabel,taskgrow,tbidgrow,tbuy,tsell\n'
 
 
 def fetch_data():
+    print('Fetching data...')
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2005-01-01 00:00:00', '2019-12-30 00:00:00'
+    start, end = '2002-01-01 00:00:00', '2019-12-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv', curr=curr, start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + f + '.csv', curr=curr, start=start, end=end, freq=datafreq, con=con)
@@ -92,6 +93,8 @@ def mega_backtest():
 
     preds = trader.predict(X, P)
     # preds = labels[ind]
+    import numpy as np
+    print(np.unique(preds, return_counts=True))
 
     with open('./resources/report_backtest.csv', 'w') as file:
         file.write(cols)
@@ -296,9 +299,8 @@ def heart_beat():
 
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
-    fetch_data()
-    # train_models()
-    # backtest_models()
-    # mega_backtest()
+    # fetch_data()
+    train_models()
+    mega_backtest()
 
     # res = heart_beat()
