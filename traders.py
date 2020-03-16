@@ -246,6 +246,7 @@ class LstmTrader(Trader):
             ind.append(index[i])
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
+        # X = np.stack((X,) * 3, axis=-1)
         y = y.reshape((len(y), 1))
         # y = to_categorical(y)
 
@@ -311,6 +312,13 @@ class LstmTrader(Trader):
         val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         val_data = val_data.batch(self.batch_size).repeat()
 
+        labels, count = np.unique(self.y_train, return_counts=True)
+        total = len(self.y_train)
+        class_weight = {}
+        for i, l in enumerate(labels):
+            class_weight[int(l)] = (1 / count[i]) * total / len(labels)
+        print(class_weight)
+
         # self.model = tf.keras.models.Sequential()
         # self.model.add(tf.keras.layers.LSTM(300, input_shape=self.X_train.shape[-2:]))
         # self.model.add(tf.keras.layers.Dense(2, activation='softmax'))
@@ -318,13 +326,11 @@ class LstmTrader(Trader):
 
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        lstm_layer = tf.keras.layers.LSTM(300, name='lstm')(input_layer)
-        comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
+        lstm_layer = tf.keras.layers.GRU(300, name='lstm')(input_layer)
+        comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(lstm_layer)
         concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
         output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(dense_layer)
-        self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
-        print(self.model.summary())
 
         # self.model.add(tf.keras.layers.Dropout(0.5)) , return_sequences=True))
         # self.model.add(tf.keras.layers.Dense(20, activation='relu'))
@@ -333,13 +339,28 @@ class LstmTrader(Trader):
         # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
         # self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
+        # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
+        # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
+        # conv1 = tf.keras.layers.Conv2D(30, name='conv1', kernel_size=2)(input_layer)
+        # conv2 = tf.keras.layers.Conv2D(10, name='conv2', kernel_size=2)(conv1)
+        # flatt = tf.keras.layers.Flatten()(conv2)
+        # # comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
+        # # concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
+        # dense_layer = tf.keras.layers.Dense(100, activation='relu', name='combine')(flatt)
+        # output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(dense_layer)
+
+        self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
+        print(self.model.summary())
+
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
         self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         self.model.fit(train_data,
                        epochs=self.epochs,
                        steps_per_epoch=self.steps,
                        validation_steps=self.valsteps,
-                       validation_data=val_data)
+                       validation_data=val_data,
+                       class_weight=class_weight)
 
     def save(self, model_name):
         """

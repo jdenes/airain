@@ -7,7 +7,7 @@ from datetime import datetime as dt
 from traders import LstmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-datafreq = 1
+datafreq = 5
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 1
@@ -15,7 +15,7 @@ h = 20
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 3
+epochs = 2
 
 curr = 'EUR/USD'
 c = 'eurusd'
