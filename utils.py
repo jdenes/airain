@@ -3,6 +3,7 @@ import requests
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from datetime import datetime, timedelta
 from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score
 
@@ -29,8 +30,8 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     bid_fut = df['bidopen'].shift(-lag-tradefreq)
     ask_now = df['askopen'].shift(-lag)
     bid_now = df['bidopen'].shift(-lag)
-    labels = df['askopen'].copy()
 
+    labels = df['askopen'].copy()
     for i in ask_fut.index:
         if bid_fut[i] > ask_now[i]:
             labels[i] = 1
@@ -40,7 +41,17 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
             labels[i] = 0
 
     # labels = (df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
-    prices = pd.concat((df['askopen'].shift(-lag), df['bidopen'].shift(-lag)), axis=1)
+    prices = pd.concat((df['askopen'].shift(-lag),
+                        df['bidopen'].shift(-lag),
+                        df['askopen'].rolling(5).mean(),
+                        df['bidopen'].rolling(5).mean(),
+                        df['askopen'].rolling(30).mean(),
+                        df['bidopen'].rolling(30).mean(),
+                        df['askopen'].ewm(alpha=0.25).mean(),
+                        df['bidopen'].ewm(alpha=0.25).mean(),
+                        df['askopen'].ewm(alpha=0.75).mean(),
+                        df['bidopen'].ewm(alpha=0.75).mean()
+                        ), axis=1)
 
     if keep_last:
         index = pd.notnull(df).all(1)
@@ -183,18 +194,19 @@ def normalize_data(data, data_max, data_min):
     """
     Normalizes data using min-max normalization.
     """
-    return 2 * (data - data_min) / (data_max - data_min) - 1
+    return 1 * (data - data_min) / (data_max - data_min) - 0
 
 
 def unnormalize_data(data, data_max, data_min):
     """
     Un-normalizes data using min-max normalization.
     """
-    return (data + 1) * (data_max - data_min) / 2 + data_min
+    return (data + 0) * (data_max - data_min) / 1 + data_min
 
 
 def nice_plot(ind, curves_list, names, title):
 
+    font_manager._rebuild()
     plt.rcParams['font.family'] = 'Lato'
     plt.rcParams['font.sans-serif'] = 'Lato'
     plt.rcParams['font.weight'] = 500

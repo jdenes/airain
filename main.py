@@ -15,7 +15,7 @@ h = 20
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 2
+epochs = 20
 
 curr = 'EUR/USD'
 c = 'eurusd'
@@ -30,9 +30,11 @@ def fetch_data():
     print('Fetching data...')
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
     start, end = '2002-01-01 00:00:00', '2019-12-30 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv', curr=curr, start=start, end=end, freq=datafreq, con=con)
+    fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv',
+                    curr=curr, start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + f + '.csv', curr=curr, start=start, end=end, freq=datafreq, con=con)
+    fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + f + '.csv',
+                    curr=curr, start=start, end=end, freq=datafreq, con=con)
 
 
 def train_models():

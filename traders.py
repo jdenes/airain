@@ -35,6 +35,7 @@ class Trader(object):
 
         self.model = None
         self.x_max, self.x_min = None, None
+        self.p_max, self.p_min = None, None
         self.y_max, self.y_min = None, None
 
         self.testsize = None
@@ -158,7 +159,7 @@ class Trader(object):
         if not os.path.exists(model_name):
             os.makedirs(model_name)
 
-        to_rm = ['model', 'x_max', 'x_min', 'X_train', 'P_train', 'y_train',
+        to_rm = ['model', 'x_max', 'x_min', 'p_min', 'p_max', 'X_train', 'P_train', 'y_train',
                  'X_test', 'P_test', 'y_test', 'X_val', 'P_val', 'y_val']
         attr_dict = {}
         for attr, value in self.__dict__.items():
@@ -170,6 +171,8 @@ class Trader(object):
 
         self.x_max.to_csv(model_name + '/x_max.csv', header=False)
         self.x_min.to_csv(model_name + '/x_min.csv', header=False)
+        self.p_max.to_csv(model_name + '/p_max.csv', header=False)
+        self.p_min.to_csv(model_name + '/p_min.csv', header=False)
         np.save(model_name + '/X_train.npy', self.X_train)
         np.save(model_name + '/y_train.npy', self.y_train)
         np.save(model_name + '/X_test.npy', self.X_test)
@@ -186,6 +189,8 @@ class Trader(object):
 
         self.x_max = pd.read_csv(model_name + '/x_max.csv', header=None, index_col=0, squeeze=True)
         self.x_min = pd.read_csv(model_name + '/x_min.csv', header=None, index_col=0, squeeze=True)
+        self.p_max = pd.read_csv(model_name + '/p_max.csv', header=None, index_col=0, squeeze=True)
+        self.p_min = pd.read_csv(model_name + '/p_min.csv', header=None, index_col=0, squeeze=True)
 
         if not fast:
             self.X_train = np.load(model_name + '/X_train.npy')
@@ -233,6 +238,7 @@ class LstmTrader(Trader):
 
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
+            prices = normalize_data(prices, self.p_max, self.p_min)
             # labels = normalize_data(labels, self.y_max, self.y_min)
 
         df, labels, prices = df.to_numpy(), labels.to_numpy(), prices.to_numpy()
@@ -269,27 +275,19 @@ class LstmTrader(Trader):
 
         df_train, labels_train, prices_train = df.loc[train_ind], labels.loc[train_ind], prices.loc[train_ind]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
+        self.p_max, self.p_min = prices_train.max(axis=0), prices_train.min(axis=0)
         # self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
-        X_train, P_train, y_train = self.transform_data(df_train, prices_train, labels_train)
-        self.X_train = X_train
-        self.y_train = y_train
-        self.P_train = P_train
-        del X_train, P_train, y_train, df_train, labels_train
+        self.X_train, self.P_train, self.y_train = self.transform_data(df_train, prices_train, labels_train)
+        del df_train, labels_train, prices_train
 
         df_test, labels_test, prices_test = df.loc[test_ind], labels.loc[test_ind], prices.loc[test_ind]
-        X_test, P_test, y_test = self.transform_data(df_test, prices_test, labels_test)
-        self.X_test = X_test
-        self.y_test = y_test
-        self.P_test = P_test
-        del X_test, P_test, y_test, df_test, labels_test
+        self.X_test, self.P_test, self.y_test = self.transform_data(df_test, prices_test, labels_test)
+        del df_test, labels_test, prices_test
 
         df_val, labels_val, prices_val = df.loc[val_ind], labels.loc[val_ind], prices.loc[val_ind]
-        X_val, P_val, y_val = self.transform_data(df_val, prices_val, labels_val)
-        self.X_val = X_val
-        self.y_val = y_val
-        self.P_val = P_val
-        del X_val, P_val, y_val, df_val, labels_val
+        self.X_val, self.P_val, self.y_val = self.transform_data(df_val, prices_val, labels_val)
+        del df_val, labels_val, prices_val
 
     def train(self, batch_size=1000, buffer_size=10000, epochs=50, steps=1000, valsteps=100, gpu=True):
         """
@@ -302,6 +300,7 @@ class LstmTrader(Trader):
         self.epochs = epochs
         self.steps = steps
         self.valsteps = valsteps
+        print(self.P_train)
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -310,7 +309,7 @@ class LstmTrader(Trader):
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
-        val_data = val_data.batch(self.batch_size).repeat()
+        val_data = val_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         labels, count = np.unique(self.y_train, return_counts=True)
         total = len(self.y_train)
@@ -319,23 +318,16 @@ class LstmTrader(Trader):
             class_weight[int(l)] = (1 / count[i]) * total / len(labels)
         print(class_weight)
 
-        # self.model = tf.keras.models.Sequential()
-        # self.model.add(tf.keras.layers.LSTM(300, input_shape=self.X_train.shape[-2:]))
-        # self.model.add(tf.keras.layers.Dense(2, activation='softmax'))
-        # print(self.model.summary())
-
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
+        comp_layer = tf.keras.layers.Dense(20, name='price_dense')(price_layer)
         lstm_layer = tf.keras.layers.GRU(300, name='lstm')(input_layer)
-        comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(lstm_layer)
-        concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
+        drop1_layer = tf.keras.layers.Dropout(0.01, name='dropout_1')(lstm_layer)
+        concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-        output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(dense_layer)
+        drop2_layer = tf.keras.layers.Dropout(0.05, name='dropout_2')(dense_layer)
+        output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(drop2_layer)
 
-        # self.model.add(tf.keras.layers.Dropout(0.5)) , return_sequences=True))
-        # self.model.add(tf.keras.layers.Dense(20, activation='relu'))
-        # self.model.add(tf.keras.layers.Dense(1, activation='linear'))
-        # self.model.add(tf.keras.layers.Dense(100))
         # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
         # self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
