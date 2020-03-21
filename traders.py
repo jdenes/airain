@@ -321,11 +321,11 @@ class LstmTrader(Trader):
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
         comp_layer = tf.keras.layers.Dense(20, name='price_dense')(price_layer)
-        lstm_layer = tf.keras.layers.GRU(300, name='lstm')(input_layer)
+        lstm_layer = tf.keras.layers.LSTM(300, name='lstm')(input_layer)
         drop1_layer = tf.keras.layers.Dropout(0.01, name='dropout_1')(lstm_layer)
         concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-        drop2_layer = tf.keras.layers.Dropout(0.05, name='dropout_2')(dense_layer)
+        drop2_layer = tf.keras.layers.Dropout(0.01, name='dropout_2')(dense_layer)
         output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(drop2_layer)
 
         # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
@@ -351,8 +351,8 @@ class LstmTrader(Trader):
                        epochs=self.epochs,
                        steps_per_epoch=self.steps,
                        validation_steps=self.valsteps,
-                       validation_data=val_data,
-                       class_weight=class_weight)
+                       validation_data=val_data)  # ,
+                       # class_weight=class_weight)
 
     def save(self, model_name):
         """
