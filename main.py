@@ -10,12 +10,13 @@ from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_
 datafreq = 5
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
-lag = 1
-h = 20
+lag = 0
+h = 60
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 200
+epochs = 100
+target_col = 'open'
 
 curr = 'EUR/USD'
 c = 'eurusd'
@@ -29,17 +30,17 @@ cols = 'date,predlabel,truelabel,taskgrow,tbidgrow,tbuy,tsell\n'
 def fetch_data():
     print('Fetching data...')
     con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
-    start, end = '2002-01-01 00:00:00', '2019-12-30 00:00:00'
+    start, end = '2002-01-01 00:00:00', '2018-12-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv',
                     curr=curr, start=start, end=end, freq=datafreq, con=con)
-    start, end = '2020-01-01 00:00:00', '2020-02-01 00:00:00'
+    start, end = '2019-01-01 00:00:00', '2020-01-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + f + '.csv',
                     curr=curr, start=start, end=end, freq=datafreq, con=con)
 
 
 def train_models():
     print('Training model...')
-    df, labels, prices = load_data('dataset_' + c + '_train', target_col='askopen', lag=lag,
+    df, labels, prices = load_data('dataset_' + c + '_train', target_col=target_col, lag=lag,
                                    tradefreq=tradefreq, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
     trader.ingest_traindata(df=df, prices=prices, labels=labels)
@@ -50,7 +51,7 @@ def train_models():
 
 # def backtest_models():
 #     curves, names = [], []
-#     df, labels, prices = load_data(filename='dataset_'+ c + '_test', target_col='askopen', lag=lag,
+#     df, labels, prices = load_data(filename='dataset_'+ c + '_test', target_col='open', lag=lag,
 #                                   tradefreq=tradefreq, datafreq=datafreq)
 #     ask_trader = LstmTrader(h=h)
 #     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
@@ -58,7 +59,7 @@ def train_models():
 #     curves.append(ask_backtest['value']), names.append('ASK model')
 #     del ask_trader
 #
-#     df, labels, prices = load_data(filename='dataset_' + c + '_test', target_col='bidopen', lag=lag,
+#     df, labels, prices = load_data(filename='dataset_' + c + '_test', target_col='open', lag=lag,
 #                                   tradefreq=tradefreq, datafreq=datafreq)
 #     bid_trader = LstmTrader(h=h)
 #     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
@@ -77,7 +78,7 @@ def train_models():
 
 
 def mega_backtest():
-    df, labels, prices = load_data('dataset_' + c + '_test', 'askopen', lag, tradefreq, datafreq, keep_last=True)
+    df, labels, prices = load_data('dataset_' + c + '_test', taget_col, lag, tradefreq, datafreq, keep_last=True)
     trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
     trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
     # bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
@@ -106,7 +107,7 @@ def mega_backtest():
         j = ind[i]
         if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
 
-            now_ask, now_bid = df.loc[j]['askopen'], df.loc[j]['bidopen']
+            now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
             gpl = 0
             amount = int(balance * 3 / 100)
 
@@ -153,13 +154,97 @@ def mega_backtest():
               title='Equity evolution, with spread, tradefreq ' + str(tradefreq))
 
 
+def buy_or_sell(n):
+
+    df, labels, prices = load_data('dataset_' + c + '_train', target_col, lag, tradefreq, datafreq, keep_last=True)
+    count = 0
+
+    buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
+    normal_close, force_close, normal_sum, force_sum = 0, 0, 0, 0
+    index_list, profit_list, orders = [], [], []
+
+    balance = initial_gamble
+
+    for i in range(lag, len(df)):
+
+        j = df.index[i]
+        if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
+
+            now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
+            amount = int(balance * 3 / 100)
+            new_orders = []
+            gpl = 0
+
+            # Step one: iterate over open positions to see if some can be closed
+
+            while orders:
+                order = orders.pop()
+
+                # If some positions are beneficial, close them
+                if order['is_buy'] and (now_bid > order['open']):
+                    pl = round((now_bid - order['open']) * order['amount'], 5)
+                    gpl += gross_pl(pl, amount, now_bid)
+                    buy_correct += int(now_bid > order['open'])
+                    buy += 1
+                    normal_close += 1
+                    normal_sum += pl
+                elif not order['is_buy'] and (now_ask < order['open']):
+                    pl = round((order['open'] - now_ask) * order['amount'], 5)
+                    gpl += gross_pl(pl, amount, now_ask)
+                    sell_correct += int(now_ask < order['open'])
+                    sell += 1
+                    normal_close += 1
+                    normal_sum += pl
+
+                # Close if open for too long
+                elif count - order['time'] > n:
+                    force_close += 1
+                    if order['is_buy']:
+                        pl = round((now_bid - order['open']) * order['amount'], 5)
+                        gpl += gross_pl(pl, amount, now_bid)
+                        buy_correct += int(now_bid > order['open'])
+                        buy += 1
+                        force_sum += pl
+                    else:
+                        pl = round((order['open'] - now_ask) * order['amount'], 5)
+                        gpl += gross_pl(pl, amount, now_ask)
+                        sell_correct += int(now_ask < order['open'])
+                        sell += 1
+                        force_sum += pl
+
+                # Else keep them
+                else:
+                    new_orders.append(order)
+
+            # Step two: open one buy and one sell
+            new_orders.append({'is_buy': True, 'open': now_ask, 'amount': amount, 'time': count})
+            new_orders.append({'is_buy': False, 'open': now_bid, 'amount': amount, 'time': count})
+            orders = new_orders
+
+            balance = round(balance + gpl, 2)
+            profit_list.append(balance)
+            index_list.append(j)
+            count += 1
+
+    no_trade = round(100 * do_nothing / len(index_list), 3)
+    buy_acc = round(100 * buy_correct / buy, 3) if buy != 0 else 'NA'
+    sell_acc = round(100 * sell_correct / sell, 3) if sell != 0 else 'NA'
+
+    print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
+        round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
+    print(normal_close, normal_sum, force_close, force_sum)
+    # nice_plot(index_list, [profit_list], ['Profit evolution'],
+    #          title='Equity evolution, with spread, tradefreq ' + str(tradefreq))
+    return balance
+
+
 def gross_pl(pl, K, price):
     return round((K / 10) * pl * (1 / price), 2)
 
 
 def get_price_data(con):
     fetch_fxcm_data('./data/dataset_' + c + '_now_' + f + '.csv', curr=curr, freq=datafreq, con=con, n_last=30)
-    df, labels, price = load_data(filename='dataset_' + c + '_now', target_col='askopen',
+    df, labels, price = load_data(filename='dataset_' + c + '_now', target_col='open',
                                   lag=lag,
                                   tradefreq=tradefreq,
                                   datafreq=datafreq,
@@ -303,6 +388,7 @@ if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     train_models()
-    mega_backtest()
+    # mega_backtest()
+    # print(buy_or_sell(1000))
 
     # res = heart_beat()

@@ -21,44 +21,56 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     df.index = df.index.rename('date')
     df = df.loc[~df.index.duplicated(keep='last')]
 
+    askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
+
     if enrich:
         for col in df:
             if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
 
-    ask_fut = df['askopen'].shift(-lag-tradefreq)
-    bid_fut = df['bidopen'].shift(-lag-tradefreq)
-    ask_now = df['askopen'].shift(-lag)
-    bid_now = df['bidopen'].shift(-lag)
+    # ask_fut = df[askcol].shift(-lag-tradefreq)
+    # bid_fut = df[bidcol].shift(-lag-tradefreq)
+    # ask_now = df[askcol].shift(-lag)
+    # bid_now = df[bidcol].shift(-lag)
+    # labels = df['askclose'].copy()
+    #
+    # for i in ask_fut.index:
+    #     if ask_fut[i] > ask_now[i]:
+    #         labels[i] = 1
+    #     else:
+    #         labels[i] = 0
+    #
+    #     # elif ask_fut[i] <= ask_now[i]:
+    #     #     labels[i] = 0
+    #     # else:
+    #     #     labels[i] = 2
 
-    labels = df['askopen'].copy()
-    for i in ask_fut.index:
-        if bid_fut[i] > ask_now[i]:
-            labels[i] = 1
-        elif ask_fut[i] < bid_now[i]:
-            labels[i] = 2
-        else:
-            labels[i] = 0
+    # labels = create_labels(df, 'askclose', window_size=11)
+    # labels = pd.Series(labels, index=df.index, dtype='Int64')
+    # labels.to_csv('data/labels_test.csv', header=False)
+    # labels = pd.read_csv('data/labels_test.csv', header=None, index_col=0, squeeze=True)
 
-    # labels = (df[target_col].shift(-lag-tradefreq) > df[target_col].shift(-lag)).astype(int)
+    labels = (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
     prices = pd.concat((df['askopen'].shift(-lag),
                         df['bidopen'].shift(-lag),
-                        df['askopen'].rolling(5).mean(),
-                        df['bidopen'].rolling(5).mean(),
-                        df['askopen'].rolling(30).mean(),
-                        df['bidopen'].rolling(30).mean(),
-                        df['askopen'].ewm(alpha=0.25).mean(),
-                        df['bidopen'].ewm(alpha=0.25).mean(),
-                        df['askopen'].ewm(alpha=0.75).mean(),
-                        df['bidopen'].ewm(alpha=0.75).mean()
+                        df['askclose'].shift(-lag),
+                        df['bidclose'].shift(-lag),
+                        df[askcol].rolling(5).mean(),
+                        df[bidcol].rolling(5).mean(),
+                        df[askcol].rolling(30).mean(),
+                        df[bidcol].rolling(30).mean(),
+                        df[askcol].ewm(alpha=0.25).mean(),
+                        df[bidcol].ewm(alpha=0.25).mean(),
+                        df[askcol].ewm(alpha=0.75).mean(),
+                        df[bidcol].ewm(alpha=0.75).mean()
                         ), axis=1)
 
+    print(labels.value_counts(normalize=True))
     if keep_last:
         index = pd.notnull(df).all(1)
     else:
         index = pd.notnull(df).all(1) & pd.notnull(prices).all(1) & pd.notnull(labels)
 
-    print(labels[index].value_counts(normalize=True))
     return df[index], labels[index], prices[index]
 
 
@@ -225,3 +237,42 @@ def nice_plot(ind, curves_list, names, title):
     plt.grid(alpha=0.3)
     # plt.savefig(path, bbox_inches='tight',format="png", dpi=300, transparent=True)
     plt.show()
+
+
+def create_labels(df, col_name, window_size=11):
+    """
+    Data is labeled as per the logic in research paper
+    Label code : BUY => 1, SELL => 0, HOLD => 2
+    params :
+        df => Dataframe with data
+        col_name => name of column which should be used to determine strategy
+    returns : numpy array with integer codes for labels with
+              size = total-(window_size)+1
+    """
+
+    from tqdm.auto import tqdm
+    labels = np.zeros(len(df))
+    labels[:] = np.nan
+    print("Computing labels...")
+    pbar = tqdm(total=len(df))
+
+    for i in range(len(df) - window_size):
+
+        window_begin = i
+        window_end = window_begin + window_size + 1
+        window_middle = (window_begin + window_end) / 2
+
+        price = df.iloc[window_begin:window_end][col_name]
+        max_index = price.argmax() + window_begin
+        min_index = price.argmin() + window_begin
+
+        if max_index == window_middle:
+            labels[i] = 2
+        elif min_index == window_middle:
+            labels[i] = 1
+        else:
+            labels[i] = 0
+        pbar.update(1)
+
+    pbar.close()
+    return labels
