@@ -69,11 +69,13 @@ class Trader(object):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        y_pred = self.predict(self.X_test, self.P_test)
-        y_test = self.y_test
+        y_pred = self.predict(self.X_train, self.P_train)
+        print(tf.math.confusion_matrix(self.y_train, y_pred))
+        self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
 
-        print(tf.math.confusion_matrix(y_test, y_pred))
-        return self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
+        y_pred = self.predict(self.X_test, self.P_test)
+        print(tf.math.confusion_matrix(self.y_test, y_pred))
+        self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
 
         # if self.normalize:
         #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
@@ -322,14 +324,14 @@ class LstmTrader(Trader):
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
         comp_layer = tf.keras.layers.Dense(20, name='price_dense')(price_layer)
 
-        bilstm_layer = tf.keras.layers.LSTM(300, name='bilstm')(input_layer)
+        bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, name='bilstm'))(input_layer)
         # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
-        # drop1_layer = tf.keras.layers.Dropout(0.0, name='dropout_1')(bilstm_layer)
+        drop1_layer = tf.keras.layers.Dropout(0.0, name='dropout_1')(bilstm_layer)
 
-        concat_layer = tf.keras.layers.concatenate([bilstm_layer, comp_layer], name='concat')
+        concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-        # drop2_layer = tf.keras.layers.Dropout(0.0, name='dropout_2')(dense_layer)
-        output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(concat_layer)
+        drop2_layer = tf.keras.layers.Dropout(0.0, name='dropout_2')(dense_layer)
+        output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(drop2_layer)
 
         # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
         # self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
@@ -348,9 +350,7 @@ class LstmTrader(Trader):
         print(self.model.summary())
 
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
-        self.model.compile(loss='sparse_categorical_crossentropy',
-                           optimizer='adam',
-                           metrics=['accuracy'])
+        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         self.model.fit(train_data,
                        epochs=self.epochs,
@@ -377,5 +377,9 @@ class LstmTrader(Trader):
         super().load(model_name=model_name, fast=fast)
         model_name = './models/' + model_name
         self.model = tf.keras.models.load_model(model_name + '/model.h5')
+
+        if not fast:
+            self.P_train = np.load(model_name + '/P_train.npy')
+            self.P_test = np.load(model_name + '/P_test.npy')
 
 ####################################################################################

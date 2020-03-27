@@ -7,16 +7,16 @@ from datetime import datetime as dt
 from traders import LstmTrader
 from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
 
-datafreq = 5
+datafreq = 1
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
-h = 60
+h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 100
-target_col = 'open'
+epochs = 200
+target_col = 'close'
 
 curr = 'EUR/USD'
 c = 'eurusd'
@@ -78,9 +78,10 @@ def train_models():
 
 
 def mega_backtest():
-    df, labels, prices = load_data('dataset_' + c + '_test', taget_col, lag, tradefreq, datafreq, keep_last=True)
+    df, labels, prices = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
     trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
-    trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
+    trader.load(model_name='Huorn askopen NOW' + tf, fast=False)
+    trader.test()
     # bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
     # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
 

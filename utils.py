@@ -160,7 +160,7 @@ def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None
         else:
             tmp2 = start + timedelta(weeks=step)
         while tmp2 <= end:
-            data = con.get_candles(curr, period='m' + str(freq), start=tmp1, stop=tmp2)
+            data = con.get_candles(curr, period='H' + str(freq), start=tmp1, stop=tmp2)
             df = pd.concat([df, data]).drop_duplicates(keep='last')
 
             tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
