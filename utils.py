@@ -50,11 +50,15 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     # labels.to_csv('data/labels_test.csv', header=False)
     # labels = pd.read_csv('data/labels_test.csv', header=None, index_col=0, squeeze=True)
 
-    labels = (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
-    prices = pd.concat((df['askopen'].shift(-lag),
-                        df['bidopen'].shift(-lag),
-                        df['askclose'].shift(-lag),
-                        df['bidclose'].shift(-lag),
+    t_index = pd.Series(pd.to_datetime(df.index))
+    t_data = pd.concat((t_index.dt.month, t_index.dt.year, t_index.dt.day, t_index.dt.hour), axis=1).set_index(df.index)
+    # t_data = pd.get_dummies(t_data, columns=t_data.columns).set_index(df.index)
+    print(t_data)
+
+    labels = df[askcol].shift(-lag-tradefreq)  # (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
+
+    prices = pd.concat((df,
+                        df[['askopen', 'bidopen', 'askclose', 'bidclose']].shift(-lag),
                         df[askcol].rolling(5).mean(),
                         df[bidcol].rolling(5).mean(),
                         df[askcol].rolling(30).mean(),
@@ -62,15 +66,17 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
                         df[askcol].ewm(alpha=0.25).mean(),
                         df[bidcol].ewm(alpha=0.25).mean(),
                         df[askcol].ewm(alpha=0.75).mean(),
-                        df[bidcol].ewm(alpha=0.75).mean()
+                        df[bidcol].ewm(alpha=0.75).mean(),
+                        t_data
                         ), axis=1)
 
-    print(labels.value_counts(normalize=True))
+    # print(labels.value_counts(normalize=True))
     if keep_last:
         index = pd.notnull(df).all(1)
     else:
         index = pd.notnull(df).all(1) & pd.notnull(prices).all(1) & pd.notnull(labels)
 
+    print(prices[index])
     return df[index], labels[index], prices[index]
 
 

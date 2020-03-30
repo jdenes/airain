@@ -69,35 +69,34 @@ class Trader(object):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        y_pred = self.predict(self.X_train, self.P_train)
-        print(tf.math.confusion_matrix(self.y_train, y_pred))
+        # y_pred = self.predict(self.X_train, self.P_train)
+        # print(tf.math.confusion_matrix(self.y_train, y_pred))
         self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
 
         y_pred = self.predict(self.X_test, self.P_test)
-        print(tf.math.confusion_matrix(self.y_test, y_pred))
+        # print(tf.math.confusion_matrix(self.y_test, y_pred))
         self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
+        print(y_pred)
+        y_test = self.y_test
 
-        # if self.normalize:
-        #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
-        #
-        # if plot:
-        #     cond = ((y_pred > 0) == (y_test > 0))
-        #     plt.plot((y_pred - y_test) / y_test, '.')
-        #     plt.show()
-        #     plt.plot(y_test[~cond], y_pred[~cond], '.', color='red')
-        #     plt.plot(y_test[cond], y_pred[cond], '.')
-        #     plt.show()
-        #
-        # return compute_metrics(y_test, y_pred)
+        if self.normalize:
+            y_test = unnormalize_data(y_test, self.y_max, self.y_min)
+
+        if plot:
+            plt.plot((y_pred - y_test) / y_test, '.')
+            plt.show()
+            plt.plot(y_test, y_pred, '.')
+            plt.show()
+
+        print(compute_metrics(y_test, y_pred))
 
     def predict(self, X, P):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
         y_pred = self.model.predict((X, P))  # .flatten()
-        y_pred = np.argmax(y_pred, axis=1)
-        # if self.normalize:
-        # y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
+        if self.normalize:
+            y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
     def compute_policy(self, df, labels, prices, shift, fees):
@@ -242,7 +241,7 @@ class LstmTrader(Trader):
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
             prices = normalize_data(prices, self.p_max, self.p_min)
-            # labels = normalize_data(labels, self.y_max, self.y_min)
+            labels = normalize_data(labels, self.y_max, self.y_min)
 
         df, labels, prices = df.to_numpy(), labels.to_numpy(), prices.to_numpy()
         X, P, y, ind = [], [], [], []
@@ -279,7 +278,7 @@ class LstmTrader(Trader):
         df_train, labels_train, prices_train = df.loc[train_ind], labels.loc[train_ind], prices.loc[train_ind]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = prices_train.max(axis=0), prices_train.min(axis=0)
-        # self.y_min, self.y_max = labels_train.min(), labels_train.max()
+        self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
         self.X_train, self.P_train, self.y_train = self.transform_data(df_train, prices_train, labels_train)
         del df_train, labels_train, prices_train
@@ -307,11 +306,14 @@ class LstmTrader(Trader):
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-        train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
+        train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train},
+                                                         self.y_train))
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         val_data = val_data.batch(self.batch_size).repeat()
+
+        print(self.y_train)
 
         labels, count = np.unique(self.y_train, return_counts=True)
         total = len(self.y_train)
@@ -322,7 +324,8 @@ class LstmTrader(Trader):
 
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        comp_layer = tf.keras.layers.Dense(20, name='price_dense')(price_layer)
+        comp_layer = tf.keras.layers.Dense(200, name='price_dense')(price_layer)
+        comp_layer = tf.keras.layers.Dense(200, name='price_dense_1')(comp_layer)
 
         bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, name='bilstm'))(input_layer)
         # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
@@ -331,10 +334,7 @@ class LstmTrader(Trader):
         concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
         drop2_layer = tf.keras.layers.Dropout(0.0, name='dropout_2')(dense_layer)
-        output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(drop2_layer)
-
-        # self.model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mse')
-        # self.model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        output_layer = tf.keras.layers.Dense(1, name='output')(comp_layer)
 
         # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
@@ -349,14 +349,19 @@ class LstmTrader(Trader):
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 
+        self.model.compile(optimizer='adam', loss='mae')
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
-        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        # self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5',
+                                                        monitor='val_loss', save_best_only=True)
 
         self.model.fit(train_data,
                        epochs=self.epochs,
                        steps_per_epoch=self.steps,
                        validation_steps=self.valsteps,
-                       validation_data=val_data)  # ,
+                       validation_data=val_data,
+                       callbacks=[checkpoint])  # ,
                        # class_weight=class_weight)
 
     def save(self, model_name):

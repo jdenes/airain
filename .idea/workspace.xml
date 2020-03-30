@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/traders.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
@@ -137,7 +136,10 @@
       <workItem from="1585129836859" duration="10956000" />
       <workItem from="1585174333731" duration="15578000" />
       <workItem from="1585259827411" duration="319000" />
-      <workItem from="1585298570920" duration="4577000" />
+      <workItem from="1585298570920" duration="5167000" />
+      <workItem from="1585412523263" duration="480000" />
+      <workItem from="1585427639308" duration="4459000" />
+      <workItem from="1585574896661" duration="17279000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
