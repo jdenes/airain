@@ -324,8 +324,9 @@ class LstmTrader(Trader):
 
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        comp_layer = tf.keras.layers.Dense(200, name='price_dense')(price_layer)
-        comp_layer = tf.keras.layers.Dense(200, name='price_dense_1')(comp_layer)
+        comp_layer = tf.keras.layers.Dense(64, name='price_dense')(price_layer)
+        comp_layer = tf.keras.layers.Dense(128, name='price_dense_1')(comp_layer)
+        comp_layer = tf.keras.layers.Dense(64, name='price_dense_2')(comp_layer)
 
         bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, name='bilstm'))(input_layer)
         # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
@@ -349,8 +350,8 @@ class LstmTrader(Trader):
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 
-        self.model.compile(optimizer='adam', loss='mae')
-        # optimizer = tf.keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+        self.model.compile(optimizer='adam', loss='mse')
+
         # self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5',
