@@ -1,13 +1,14 @@
 import time
 import fxcmpy
+import configparser
 import pandas as pd
 from datetime import timedelta
 from datetime import datetime as dt
 
 from traders import LstmTrader
-from utils import load_data, fetch_crypto_rate, fetch_currency_rate, fetch_fxcm_data, nice_plot
+from utils import load_data, fetch_fxcm_data, nice_plot
 
-datafreq = 1
+datafreq = 5
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
@@ -15,21 +16,24 @@ h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 200
-target_col = 'close'
+epochs = 1000
 
 curr = 'EUR/USD'
 c = 'eurusd'
-account_id = '1195258'
-alpha_key = "H2T4H92C43D9DT3D"
-fxcm_key = '9c9f8a5725072aa250c8bd222dee004186ffb9e0'
+
+config = configparser.ConfigParser()
+config.read('./resources/alphavantage.cfg')
+api_key = config['ALPHAVANTAGE']['access_token']
+config.read('./resources/fxcm.cfg')
+account_id = config['FXCM']['account_id']
 
 cols = 'date,predlabel,truelabel,taskgrow,tbidgrow,tbuy,tsell\n'
+target_col = 'close'
 
 
 def fetch_data():
     print('Fetching data...')
-    con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
+    con = fxcmpy.fxcmpy(config_file='./resources/fxcm.cfg', server='demo')
     start, end = '2002-01-01 00:00:00', '2018-12-30 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv',
                     curr=curr, start=start, end=end, freq=datafreq, con=con)
@@ -79,11 +83,8 @@ def train_models():
 
 def mega_backtest():
     df, labels, prices = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
-    trader = LstmTrader(h=h)  # bid_trader = LstmTrader(h=h)
-    trader.load(model_name='Huorn askopen NOW' + tf, fast=False)
-    trader.test()
-    # bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
-    # print(max([estimator.tree_.max_depth for estimator in bid_trader.model.estimators_]))
+    trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
+    # bid_trader = LstmTrader(load_from='Huorn bidopen NOW' + tf)
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
@@ -97,8 +98,6 @@ def mega_backtest():
 
     preds = trader.predict(X, P)
     # preds = labels[ind]
-    import numpy as np
-    print(np.unique(preds, return_counts=True))
 
     with open('./resources/report_backtest.csv', 'w') as file:
         file.write(cols)
@@ -273,10 +272,10 @@ def get_balance(con):
 
 def decide_order(amount, now_bid, now_ask, pred_bid, pred_ask):
     # if price is going up: buy
-    if pred_bid == 1:  # > (1 - tolerance) * now_ask:
+    if pred_bid > (1 - tolerance) * now_ask:
         order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
     # elif price is going down: sell
-    elif pred_bid == 2:  # pred_ask < now_bid / (1 - tolerance):
+    elif pred_ask < now_bid / (1 - tolerance):
         order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
     # else do nothing
     else:
@@ -293,7 +292,7 @@ def trade(con, order, amount):
 def heart_beat():
     t1 = dt.now()
     count = 1
-    con = fxcmpy.fxcmpy(access_token=fxcm_key, server='demo')
+    con = fxcmpy.fxcmpy(config_file='./resources/fxcm.cfg', server='demo')
     con.subscribe_market_data('EUR/USD')
     old_balance = get_balance(con)
 
@@ -387,8 +386,8 @@ def heart_beat():
 
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
-    # fetch_data()
-    train_models()
+    fetch_data()
+    # train_models()
     # mega_backtest()
     # print(buy_or_sell(1000))
 

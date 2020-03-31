@@ -23,7 +23,7 @@ class Trader(object):
     A general trader-forecaster to inherit from.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True, load_from=None):
         """
         Initialize method.
         """
@@ -40,9 +40,14 @@ class Trader(object):
 
         self.testsize = None
         self.X_train = None
+        self.P_train = None
         self.y_train = None
         self.X_test = None
+        self.P_test = None
         self.y_test = None
+
+        if load_from is not None:
+            self.load(model_name=load_from)
 
     def transform_data(self, df, prices, labels, get_index=False, keep_last=False):
         """
@@ -176,8 +181,10 @@ class Trader(object):
         self.p_max.to_csv(model_name + '/p_max.csv', header=False)
         self.p_min.to_csv(model_name + '/p_min.csv', header=False)
         np.save(model_name + '/X_train.npy', self.X_train)
+        np.save(model_name + '/P_train.npy', self.P_train)
         np.save(model_name + '/y_train.npy', self.y_train)
         np.save(model_name + '/X_test.npy', self.X_test)
+        np.save(model_name + '/P_test.npy', self.P_test)
         np.save(model_name + '/y_test.npy', self.y_test)
 
     def load(self, model_name, fast=False):
@@ -196,8 +203,10 @@ class Trader(object):
 
         if not fast:
             self.X_train = np.load(model_name + '/X_train.npy')
+            self.P_train = np.load(model_name + '/P_train.npy')
             self.y_train = np.load(model_name + '/y_train.npy')
             self.X_test = np.load(model_name + '/X_test.npy')
+            self.P_test = np.load(model_name + '/P_test.npy')
             self.y_test = np.load(model_name + '/y_test.npy')
 
 
@@ -209,12 +218,12 @@ class LstmTrader(Trader):
     A trader-forecaster based on a LSTM neural network.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=True, load_from=None):
         """
         Initialize method.
         """
 
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize, load_from=load_from)
 
         self.batch_size = None
         self.buffer_size = None

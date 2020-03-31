@@ -3,6 +3,8 @@
 *.joblib
 *.h5
 *.npy
+*.cfg
+*.log
 .DS_Store
 **/.DS_Store
 **/**/.DS_Store
