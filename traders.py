@@ -74,26 +74,30 @@ class Trader(object):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        # y_pred = self.predict(self.X_train, self.P_train)
-        # print(tf.math.confusion_matrix(self.y_train, y_pred))
-        self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
 
-        y_pred = self.predict(self.X_test, self.P_test)
-        # print(tf.math.confusion_matrix(self.y_test, y_pred))
-        self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
-        print(y_pred)
-        y_test = self.y_test
-
+        y_train, y_test = self.y_train, self.y_test
         if self.normalize:
+            y_train = unnormalize_data(y_train, self.y_max, self.y_min)
             y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
+        print("Performance metrics on train...")
+        # print(tf.math.confusion_matrix(self.y_train, y_pred))
+        self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
+        y_pred = self.predict(self.X_train, self.P_train)
+        print(compute_metrics(y_train, y_pred))
+
+        print("Performance metrics on test...")
+        # print(tf.math.confusion_matrix(self.y_test, y_pred))
+        self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
+        y_pred = self.predict(self.X_test, self.P_test)
+        print(compute_metrics(y_test, y_pred))
+
         if plot:
-            plt.plot((y_pred - y_test) / y_test, '.')
+            i = y_test != 0
+            plt.plot((y_pred[i] - y_test[i]) / y_test[i], '.')
             plt.show()
             plt.plot(y_test, y_pred, '.')
             plt.show()
-
-        print(compute_metrics(y_test, y_pred))
 
     def predict(self, X, P):
         """
@@ -234,11 +238,8 @@ class LstmTrader(Trader):
 
         self.valsize = None
         self.X_val = None
-        self.y_val = None
-
-        self.P_train = None
-        self.P_test = None
         self.P_val = None
+        self.y_val = None
 
     def transform_data(self, df, prices, labels, get_index=False, keep_last=True):
         """
@@ -317,12 +318,13 @@ class LstmTrader(Trader):
 
         train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train},
                                                          self.y_train))
-        train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
+        train_data = train_data.cache().batch(self.batch_size).repeat()
+        # .shuffle(self.buffer_size)
 
         val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         val_data = val_data.batch(self.batch_size).repeat()
 
-        print(self.y_train)
+        print(self.y_train, self.y_val)
 
         labels, count = np.unique(self.y_train, return_counts=True)
         total = len(self.y_train)
@@ -334,8 +336,8 @@ class LstmTrader(Trader):
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
         comp_layer = tf.keras.layers.Dense(64, name='price_dense')(price_layer)
-        comp_layer = tf.keras.layers.Dense(128, name='price_dense_1')(comp_layer)
-        comp_layer = tf.keras.layers.Dense(64, name='price_dense_2')(comp_layer)
+        # comp_layer = tf.keras.layers.Dense(128, name='price_dense_1')(comp_layer)
+        # comp_layer = tf.keras.layers.Dense(64, name='price_dense_2')(comp_layer)
 
         bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, name='bilstm'))(input_layer)
         # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
@@ -344,7 +346,7 @@ class LstmTrader(Trader):
         concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
         drop2_layer = tf.keras.layers.Dropout(0.0, name='dropout_2')(dense_layer)
-        output_layer = tf.keras.layers.Dense(1, name='output')(comp_layer)
+        output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
 
         # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
@@ -359,12 +361,12 @@ class LstmTrader(Trader):
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 
-        self.model.compile(optimizer='adam', loss='mse')
+        self.model.compile(optimizer='adam', loss='mae', metrics=[self.change_accuracy])
 
         # self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5',
-                                                        monitor='val_loss', save_best_only=True)
+                                                        monitor='val_change_accuracy', save_best_only=True)
 
         self.model.fit(train_data,
                        epochs=self.epochs,
@@ -396,5 +398,20 @@ class LstmTrader(Trader):
         if not fast:
             self.P_train = np.load(model_name + '/P_train.npy')
             self.P_test = np.load(model_name + '/P_test.npy')
+
+    def change_accuracy(self, y_true, y_pred):
+        pred_shift = tf.math.greater(y_pred[1:], y_true[:-1])
+        true_shift = tf.math.greater(y_true[1:], y_true[:-1])
+        same = tf.cast((pred_shift == true_shift), dtype=tf.float32)
+        res = tf.math.reduce_mean(same)
+        # tf.print(pred_shift, true_shift)
+        return res
+
+    def change_mean(self, y_true, y_pred):
+        pred_shift = tf.math.greater(y_pred[1:], y_true[:-1])
+        true_shift = tf.math.greater(y_true[1:], y_true[:-1])
+        same = tf.cast(true_shift, dtype=tf.float32)
+        res = tf.math.reduce_mean(same)
+        return res
 
 ####################################################################################

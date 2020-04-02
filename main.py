@@ -6,9 +6,9 @@ from datetime import timedelta
 from datetime import datetime as dt
 
 from traders import LstmTrader
-from utils import load_data, fetch_fxcm_data, nice_plot
+from utils import load_data, fetch_fxcm_data, nice_plot, change_accuracy, normalize_data
 
-datafreq = 5
+datafreq = 1
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
@@ -16,7 +16,7 @@ h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 1000
+epochs = 500
 
 curr = 'EUR/USD'
 c = 'eurusd'
@@ -27,7 +27,8 @@ api_key = config['ALPHAVANTAGE']['access_token']
 config.read('./resources/fxcm.cfg')
 account_id = config['FXCM']['account_id']
 
-cols = 'date,predlabel,truelabel,taskgrow,tbidgrow,tbuy,tsell\n'
+cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pred bid diff,true bid diff,tbuy,pbuy,' \
+       'tsell,psell\n '
 target_col = 'close'
 
 
@@ -82,8 +83,10 @@ def train_models():
 
 
 def mega_backtest():
-    df, labels, prices = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
+    df, labels, prices = load_data('dataset_' + c + '_train', target_col, lag, tradefreq, datafreq, keep_last=False)
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
+    trader.test()
+
     # bid_trader = LstmTrader(load_from='Huorn bidopen NOW' + tf)
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
@@ -93,10 +96,15 @@ def mega_backtest():
 
     balance = initial_gamble
 
-    X, P, _, ind = trader.transform_data(df, prices, labels, get_index=True)
+    X, P, y, ind = trader.transform_data(df, prices, labels, get_index=True)
     df = df.loc[ind]
 
     preds = trader.predict(X, P)
+    y_true = pd.Series(y.flatten())
+    y_pred = pd.Series(normalize_data(preds, trader.y_max, trader.y_min).flatten())
+    import numpy as np
+    print(change_accuracy(np.array(y_true), np.array(y_pred)))
+    print(((y_pred.shift(-1) > y_true) == (y_true.shift(-1) > y_true)).mean())
     # preds = labels[ind]
 
     with open('./resources/report_backtest.csv', 'w') as file:
@@ -113,8 +121,9 @@ def mega_backtest():
 
             # Step 0: stats
             if count > 1:
-                info = [j, pred_ask, label, now_bid > old_bid, now_ask > old_ask,
-                        now_bid > old_ask, now_ask < old_bid]
+                info = [j, pred_ask, now_ask, 1000 * (pred_ask - old_ask), 1000 * (now_ask - old_ask),
+                        pred_bid, now_bid, 1000 * (pred_bid - old_bid), 1000 * (now_bid - old_bid),
+                        now_bid > old_ask, pred_bid > old_ask, now_ask < old_bid, pred_ask < old_bid]
                 with open('./resources/report_backtest.csv', 'a') as file:
                     file.write(','.join([str(x) for x in info]) + '\n')
 
@@ -156,7 +165,7 @@ def mega_backtest():
 
 def buy_or_sell(n):
 
-    df, labels, prices = load_data('dataset_' + c + '_train', target_col, lag, tradefreq, datafreq, keep_last=True)
+    df, labels, prices = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
     count = 0
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
@@ -386,8 +395,8 @@ def heart_beat():
 
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
-    fetch_data()
-    # train_models()
+    # fetch_data()
+    train_models()
     # mega_backtest()
     # print(buy_or_sell(1000))
 

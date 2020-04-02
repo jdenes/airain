@@ -17,11 +17,14 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     """
 
     filename = './data/' + filename + '_' + str(datafreq) + '.csv'
+    filename = './data/jena_climate_2009_2016.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
     df.index = df.index.rename('date')
     df = df.loc[~df.index.duplicated(keep='last')]
 
     askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
+    askcol = 'T (degC)'
+    bidcol = 'p (mbar)'
 
     if enrich:
         for col in df:
@@ -65,7 +68,7 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
 
     labels = df[askcol].shift(-lag-tradefreq)  # (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
 
-    prices = pd.concat((df, indicators), axis=1)
+    prices = pd.concat((df, time_data, indicators), axis=1)
 
     # print(labels.value_counts(normalize=True))
     if keep_last:
@@ -174,19 +177,25 @@ def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None
     df.to_csv(filename, encoding='utf-8')
 
 
+def change_accuracy(y_true, y_pred):
+    pred_shift = np.array(y_pred[1:] > y_true[:-1]).astype(int)
+    true_shift = np.array(y_true[1:] > y_true[:-1]).astype(int)
+    return (pred_shift == true_shift).mean()
+
+
 def compute_metrics(y_true, y_pred):
     """
     Given true labels and predictions, outputs a set of performance metrics for regression task.
     """
 
-    are = np.abs(y_pred - y_true) / np.abs(y_true)
+    i = y_true != 0
+    are = np.abs(y_pred[i] - y_true[i]) / np.abs(y_true[i])
     are = are[are < 1e8]
     r2 = r2_score(y_true, y_pred)
     me = max_error(y_true, y_pred)
     mse = mean_squared_error(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
-    pred_shift = np.array(y_pred[:-1] > y_true[1:]).astype(int)
-    true_shift = np.array(y_true[:-1] > y_true[1:]).astype(int)
+    ca = change_accuracy(y_true, y_pred)
 
     return {'max_abs_rel_error': are.max(),
             'mean_abs_rel_error': are.mean(),
@@ -194,7 +203,7 @@ def compute_metrics(y_true, y_pred):
             'max_error': me,
             'mean_squared_error': mse,
             'r2': r2,
-            'change_accuracy': (pred_shift == true_shift).mean()
+            'change_accuracy': ca
             }
 
 
