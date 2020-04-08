@@ -81,29 +81,30 @@ class Trader(object):
             y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
         print("Performance metrics on train...")
-        # print(tf.math.confusion_matrix(self.y_train, y_pred))
         self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
         y_pred = self.predict(self.X_train, self.P_train)
-        print(compute_metrics(y_train, y_pred))
+        print(tf.math.confusion_matrix(self.y_train, y_pred))
+        # print(compute_metrics(y_train, y_pred))
 
         print("Performance metrics on test...")
-        # print(tf.math.confusion_matrix(self.y_test, y_pred))
         self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
         y_pred = self.predict(self.X_test, self.P_test)
-        print(compute_metrics(y_test, y_pred))
+        print(tf.math.confusion_matrix(self.y_test, y_pred))
+        # print(compute_metrics(y_test, y_pred))
 
-        if plot:
-            i = y_test != 0
-            plt.plot((y_pred[i] - y_test[i]) / y_test[i], '.')
-            plt.show()
-            plt.plot(y_test, y_pred, '.')
-            plt.show()
+        # if plot:
+        #     i = y_test != 0
+        #     plt.plot((y_pred[i] - y_test[i]) / y_test[i], '.')
+        #     plt.show()
+        #     plt.plot(y_test, y_pred, '.')
+        #     plt.show()
 
     def predict(self, X, P):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        y_pred = self.model.predict((X, P))  # .flatten()
+        y_pred = np.argmax(self.model.predict((X, P)), axis=1)  # .flatten()
+        # y_pred = y_pred.reshape((len(y_pred), 1))
         if self.normalize:
             y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
@@ -175,6 +176,8 @@ class Trader(object):
         attr_dict = {}
         for attr, value in self.__dict__.items():
             if attr not in to_rm:
+                if isinstance(value, np.integer):
+                    value = int(value)
                 attr_dict[attr] = value
 
         with open(model_name + '/attributes.json', 'w') as file:
@@ -245,6 +248,7 @@ class LstmTrader(Trader):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
+
         index = df.index.to_list()
         df, labels, prices = df.reset_index(drop=True), labels.reset_index(drop=True), prices.reset_index(drop=True)
 
@@ -318,13 +322,10 @@ class LstmTrader(Trader):
 
         train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train},
                                                          self.y_train))
-        train_data = train_data.cache().batch(self.batch_size).repeat()
-        # .shuffle(self.buffer_size)
+        train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         val_data = val_data.batch(self.batch_size).repeat()
-
-        print(self.y_train, self.y_val)
 
         labels, count = np.unique(self.y_train, return_counts=True)
         total = len(self.y_train)
@@ -339,14 +340,14 @@ class LstmTrader(Trader):
         # comp_layer = tf.keras.layers.Dense(128, name='price_dense_1')(comp_layer)
         # comp_layer = tf.keras.layers.Dense(64, name='price_dense_2')(comp_layer)
 
-        bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64, name='bilstm'))(input_layer)
+        bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64), name='bilstm')(input_layer)
         # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
         drop1_layer = tf.keras.layers.Dropout(0.0, name='dropout_1')(bilstm_layer)
 
         concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
         drop2_layer = tf.keras.layers.Dropout(0.0, name='dropout_2')(dense_layer)
-        output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
+        # output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
 
         # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
@@ -356,25 +357,25 @@ class LstmTrader(Trader):
         # # comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
         # # concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
         # dense_layer = tf.keras.layers.Dense(100, activation='relu', name='combine')(flatt)
-        # output_layer = tf.keras.layers.Dense(3, activation='softmax', name='output')(dense_layer)
+        output_layer = tf.keras.layers.Dense(2, activation='softmax', name='output')(drop2_layer)
 
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 
-        self.model.compile(optimizer='adam', loss='mae', metrics=[self.change_accuracy])
-
-        # self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        # self.model.compile(optimizer='adam', loss='mae', metrics=[self.change_accuracy])
+        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
         checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5',
-                                                        monitor='val_change_accuracy', save_best_only=True)
+                                                        monitor='val_accuracy', save_best_only=True)
 
         self.model.fit(train_data,
                        epochs=self.epochs,
                        steps_per_epoch=self.steps,
                        validation_steps=self.valsteps,
                        validation_data=val_data,
-                       callbacks=[checkpoint])  # ,
-                       # class_weight=class_weight)
+                       callbacks=[checkpoint],
+                       class_weight=class_weight
+                       )
 
     def save(self, model_name):
         """

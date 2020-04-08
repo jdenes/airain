@@ -23,8 +23,7 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     df = df.loc[~df.index.duplicated(keep='last')]
 
     askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
-    askcol = 'T (degC)'
-    bidcol = 'p (mbar)'
+    askcol, bidcol = 'T (degC)', 'p (mbar)'
 
     if enrich:
         for col in df:
@@ -66,7 +65,8 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
                             df[[askcol, bidcol]].ewm(alpha=0.75).mean().rename(columns=(lambda x: x+'mwa75'))),
                            axis=1)
 
-    labels = df[askcol].shift(-lag-tradefreq)  # (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
+    labels = df[askcol].shift(-lag-tradefreq)
+    labels = (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
 
     prices = pd.concat((df, time_data, indicators), axis=1)
 

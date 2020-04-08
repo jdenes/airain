@@ -16,7 +16,7 @@ h = 30
 initial_gamble = 10000
 fees = 0.0
 tolerance = 0e-5  # 2
-epochs = 500
+epochs = 50
 
 curr = 'EUR/USD'
 c = 'eurusd'
