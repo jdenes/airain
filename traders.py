@@ -76,37 +76,41 @@ class Trader(object):
         """
 
         y_train, y_test = self.y_train, self.y_test
-        if self.normalize:
-            y_train = unnormalize_data(y_train, self.y_max, self.y_min)
-            y_test = unnormalize_data(y_test, self.y_max, self.y_min)
+        # if self.normalize:
+        #     y_train = unnormalize_data(y_train, self.y_max, self.y_min)
+        #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
         print("Performance metrics on train...")
+        y_mean = (self.y_train > 0).mean()
+        print('Baseline for change accuracy is: {}'.format(max(y_mean, 1 - y_mean)))
         self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
         y_pred = self.predict(self.X_train, self.P_train)
-        print(tf.math.confusion_matrix(self.y_train, y_pred))
+        # print(tf.math.confusion_matrix(self.y_train, y_pred))
         # print(compute_metrics(y_train, y_pred))
 
         print("Performance metrics on test...")
+        y_mean = (self.y_test > 0).mean()
+        print('Baseline for change accuracy is: {}'.format(max(y_mean, 1 - y_mean)))
         self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
         y_pred = self.predict(self.X_test, self.P_test)
-        print(tf.math.confusion_matrix(self.y_test, y_pred))
+        # print(tf.math.confusion_matrix(self.y_test, y_pred))
         # print(compute_metrics(y_test, y_pred))
 
-        # if plot:
-        #     i = y_test != 0
-        #     plt.plot((y_pred[i] - y_test[i]) / y_test[i], '.')
-        #     plt.show()
-        #     plt.plot(y_test, y_pred, '.')
-        #     plt.show()
+        if plot:
+            i = y_test != 0
+            plt.plot((y_pred[i] - y_test[i]), '.')
+            plt.show()
+            plt.plot(y_test, y_pred, '.')
+            plt.show()
 
     def predict(self, X, P):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        y_pred = np.argmax(self.model.predict((X, P)), axis=1)  # .flatten()
+        y_pred = self.model.predict((X, P))
         # y_pred = y_pred.reshape((len(y_pred), 1))
-        if self.normalize:
-            y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
+        # if self.normalize:
+        #     y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
 
     def compute_policy(self, df, labels, prices, shift, fees):
@@ -254,8 +258,8 @@ class LstmTrader(Trader):
 
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
-            prices = normalize_data(prices, self.p_max, self.p_min)
-            labels = normalize_data(labels, self.y_max, self.y_min)
+            # prices = normalize_data(prices, self.p_max, self.p_min)
+            # labels = normalize_data(labels, self.y_max, self.y_min)
 
         df, labels, prices = df.to_numpy(), labels.to_numpy(), prices.to_numpy()
         X, P, y, ind = [], [], [], []
@@ -285,24 +289,43 @@ class LstmTrader(Trader):
         self.testsize = testsize
         self.valsize = valsize
 
-        split = int(self.testsize * len(df))
-        train_ind, test_ind = df.index[:-split], df.index[-split:]
-        train_ind, val_ind = train_ind[:-split], train_ind[-split:]
+        split = - int(self.testsize * len(df))
+        train_ind, test_ind = df.index[:split], df.index[split:]
+        train_ind, val_ind = train_ind[:split], train_ind[split:]
+        t1, t2 = '2018-01-01', '2019-01-01'
 
-        df_train, labels_train, prices_train = df.loc[train_ind], labels.loc[train_ind], prices.loc[train_ind]
+        df_train, labels_train, prices_train = df.loc[:t1], labels.loc[:t1], prices.loc[:t1]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = prices_train.max(axis=0), prices_train.min(axis=0)
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
-        self.X_train, self.P_train, self.y_train = self.transform_data(df_train, prices_train, labels_train)
+        X, P, y = self.transform_data(df_train, prices_train, labels_train)
+        if self.X_train is None:
+            self.X_train, self.P_train, self.y_train = X, P, y
+        else:
+            self.X_train = np.concatenate((self.X_train, X))
+            self.P_train = np.concatenate((self.P_train, P))
+            self.y_train = np.concatenate((self.y_train, y))
         del df_train, labels_train, prices_train
 
-        df_test, labels_test, prices_test = df.loc[test_ind], labels.loc[test_ind], prices.loc[test_ind]
-        self.X_test, self.P_test, self.y_test = self.transform_data(df_test, prices_test, labels_test)
+        df_test, labels_test, prices_test = df.loc[t2:], labels.loc[t2:], prices.loc[t2:]
+        X, P, y = self.transform_data(df_test, prices_test, labels_test)
+        if self.X_test is None:
+            self.X_test, self.P_test, self.y_test = X, P, y
+        else:
+            self.X_test = np.concatenate((self.X_test, X))
+            self.P_test = np.concatenate((self.P_test, P))
+            self.y_test = np.concatenate((self.y_test, y))
         del df_test, labels_test, prices_test
 
-        df_val, labels_val, prices_val = df.loc[val_ind], labels.loc[val_ind], prices.loc[val_ind]
-        self.X_val, self.P_val, self.y_val = self.transform_data(df_val, prices_val, labels_val)
+        df_val, labels_val, prices_val = df.loc[t1:t2], labels.loc[t1:t2], prices.loc[t1:t2]
+        X, P, y = self.transform_data(df_val, prices_val, labels_val)
+        if self.X_val is None:
+            self.X_val, self.P_val, self.y_val = X, P, y
+        else:
+            self.X_val = np.concatenate((self.X_val, X))
+            self.P_val = np.concatenate((self.P_val, P))
+            self.y_val = np.concatenate((self.y_val, y))
         del df_val, labels_val, prices_val
 
     def train(self, batch_size=80, buffer_size=10000, epochs=50, steps=1000, valsteps=100, gpu=True):
@@ -320,33 +343,37 @@ class LstmTrader(Trader):
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
+        print('Training on {} examples...'.format(len(self.X_train)))
+        y_mean = (self.y_train > 0).mean()
+        print('Baseline for change accuracy is: {}'.format(max(y_mean, 1 - y_mean)))
+        print('_' * 98, '\n')
+
         train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train},
                                                          self.y_train))
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
-        val_data = val_data.batch(self.batch_size).repeat()
+        val_data = val_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         labels, count = np.unique(self.y_train, return_counts=True)
-        total = len(self.y_train)
         class_weight = {}
         for i, l in enumerate(labels):
-            class_weight[int(l)] = (1 / count[i]) * total / len(labels)
-        print(class_weight)
+            class_weight[int(l)] = (1 / count[i]) * len(self.y_train) / len(labels)
 
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        comp_layer = tf.keras.layers.Dense(64, name='price_dense')(price_layer)
-        # comp_layer = tf.keras.layers.Dense(128, name='price_dense_1')(comp_layer)
-        # comp_layer = tf.keras.layers.Dense(64, name='price_dense_2')(comp_layer)
+        embed_layer = tf.keras.layers.Embedding(input_dim=35, output_dim=10, trainable=True)(price_layer)
+        reshape_layer = tf.keras.layers.Flatten()(embed_layer)
+        drop0_layer = tf.keras.layers.Dropout(0.1, name='dropout_0')(reshape_layer)
+        comp_layer = tf.keras.layers.Dense(20, name='price_dense')(drop0_layer)
 
-        bilstm_layer = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(64), name='bilstm')(input_layer)
+        bilstm_layer = tf.keras.layers.LSTM(164, name='bilstm')(input_layer)
         # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
-        drop1_layer = tf.keras.layers.Dropout(0.0, name='dropout_1')(bilstm_layer)
+        drop1_layer = tf.keras.layers.Dropout(0.1, name='dropout_1')(bilstm_layer)
 
         concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
         dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-        drop2_layer = tf.keras.layers.Dropout(0.0, name='dropout_2')(dense_layer)
+        drop2_layer = tf.keras.layers.Dropout(0.1, name='dropout_2')(dense_layer)
         # output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
 
         # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
@@ -357,24 +384,23 @@ class LstmTrader(Trader):
         # # comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
         # # concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
         # dense_layer = tf.keras.layers.Dense(100, activation='relu', name='combine')(flatt)
-        output_layer = tf.keras.layers.Dense(2, activation='softmax', name='output')(drop2_layer)
+        output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
 
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         print(self.model.summary())
 
-        # self.model.compile(optimizer='adam', loss='mae', metrics=[self.change_accuracy])
-        self.model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+        self.model.compile(optimizer='adam', loss='mae', metrics=[self.change_accuracy, self.sigma])
+        # self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy', self.sigma])
 
         checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5',
-                                                        monitor='val_accuracy', save_best_only=True)
+                                                        monitor='val_loss', save_best_only=True)
 
         self.model.fit(train_data,
                        epochs=self.epochs,
                        steps_per_epoch=self.steps,
                        validation_steps=self.valsteps,
                        validation_data=val_data,
-                       callbacks=[checkpoint],
-                       class_weight=class_weight
+                       callbacks=[checkpoint]
                        )
 
     def save(self, model_name):
@@ -400,12 +426,14 @@ class LstmTrader(Trader):
             self.P_train = np.load(model_name + '/P_train.npy')
             self.P_test = np.load(model_name + '/P_test.npy')
 
+    def tensor_transform(self, tensor):
+        return tf.cast(tf.reshape(tensor, [-1]), dtype=tf.float32)
+
     def change_accuracy(self, y_true, y_pred):
-        pred_shift = tf.math.greater(y_pred[1:], y_true[:-1])
-        true_shift = tf.math.greater(y_true[1:], y_true[:-1])
-        same = tf.cast((pred_shift == true_shift), dtype=tf.float32)
-        res = tf.math.reduce_mean(same)
-        # tf.print(pred_shift, true_shift)
+        y_true = self.tensor_transform(y_true)
+        y_pred = self.tensor_transform(y_pred)
+        x = tf.cast(((y_true * y_pred) > 0), dtype=tf.float32)
+        res = tf.math.reduce_mean(x)
         return res
 
     def change_mean(self, y_true, y_pred):
@@ -413,6 +441,13 @@ class LstmTrader(Trader):
         true_shift = tf.math.greater(y_true[1:], y_true[:-1])
         same = tf.cast(true_shift, dtype=tf.float32)
         res = tf.math.reduce_mean(same)
+        return res
+
+    def sigma(self, y_true, y_pred):
+        y_true = self.tensor_transform(y_true)
+        y_pred = self.tensor_transform(y_pred)
+        x = y_true * y_pred
+        res = tf.math.reduce_mean(x) / tf.math.reduce_std(x)
         return res
 
 ####################################################################################

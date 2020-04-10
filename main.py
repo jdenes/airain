@@ -9,7 +9,7 @@ from traders import LstmTrader
 from utils import load_data, fetch_fxcm_data, nice_plot, change_accuracy, normalize_data
 
 datafreq = 1
-tradefreq = 1
+tradefreq = 10
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
 h = 30
@@ -45,14 +45,19 @@ def fetch_data():
 
 def train_models():
     print('Training model...')
-    df, labels, prices = load_data('dataset_' + c + '_train', target_col=target_col, lag=lag,
-                                   tradefreq=tradefreq, datafreq=datafreq)
     trader = LstmTrader(h=h, normalize=True)
-    trader.ingest_traindata(df=df, prices=prices, labels=labels)
+    file = 'dataset_' + c + '_train_' + str(datafreq)
+    banks = ['0939.HK', '1288.HK', '1398.HK', '3968.HK', '3988.HK', 'ACA.PA', 'BAC', 'BNP.PA', 'BNS.TO', 'C', 'CBA.AX',
+             'CNF.PA', 'GLE.PA', 'GS', 'HDB',  'HSBC', 'ING', 'ITUB', 'JPM', 'LYG', 'MS', 'MUFG', 'PNC', 'RY.TO', 'SAN',
+             'SBRCY', 'SCHW', 'SMFG', 'TD', 'UBS', 'USB', 'WBK', 'WFC']
+
+    for file in enumerate(banks):
+        df, labels, prices = load_data(file, target_col, lag, tradefreq, datafreq)
+        trader.ingest_traindata(df, prices, labels)
+
     trader.train(epochs=epochs)
     trader.test(plot=True)
     trader.save(model_name='Huorn askopen NOW' + tf)
-    del trader, df, labels, prices
 
 # def backtest_models():
 #     curves, names = [], []

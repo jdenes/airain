@@ -2,6 +2,7 @@ import os
 import requests
 import numpy as np
 import pandas as pd
+import yfinance as yf
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from datetime import datetime, timedelta
@@ -10,25 +11,42 @@ from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, 
 cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
         '#e866f4', '#f668c2']
 
+encode = {'Buy': 2, 'Outperform': 2, 'Overweight': 2, 'Sector Outperform': 2,
+          'Market Perform': 1, 'Sector Perform': 1, 'Neutral': 1, 'Hold': 1, 'Equal-Weight': 1,
+          'Underperform': 0, 'Sell': 0}
+
 
 def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=False, enrich=True):
     """
     Given a data source, loads appropriate csv file.
     """
 
-    filename = './data/' + filename + '_' + str(datafreq) + '.csv'
-    filename = './data/jena_climate_2009_2016.csv'
+    number, asset = filename
+    filename = './data/finance/' + asset + '.csv'
+    # filename = './data/jena_climate_2009_2016.csv'
+
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
     df.index = df.index.rename('date')
     df = df.loc[~df.index.duplicated(keep='last')]
 
-    askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
-    askcol, bidcol = 'T (degC)', 'p (mbar)'
+    # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
+    # askcol, bidcol = 'T (degC)', 'p (mbar)'
+    askcol, bidcol = 'Close', 'Adj Close'
 
     if enrich:
         for col in df:
             if 'open' in col or 'close' in col:
                 df[col + 'delta'] = df[col].diff()
+
+    # df = df['2010-01-01':]
+
+    # ticker = yf.Ticker(asset)
+    # reco = ticker.recommendations['To Grade'].apply(lambda x: encode[x]).rename('Analysis')
+    # reco.index = reco.index.rename('date').strftime('%Y-%m-%d')
+    # reco = reco.groupby('date').sum()
+    # df = pd.concat([df, reco], join='outer', axis=1).sort_index()
+    # df['Analysis'] = df['Analysis'].ffill().fillna(0)
+    # df = df[(df.Analysis != 0).idxmax():]
 
     # ask_fut = df[askcol].shift(-lag-tradefreq)
     # bid_fut = df[bidcol].shift(-lag-tradefreq)
@@ -53,22 +71,24 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     # labels = pd.read_csv('data/labels_test.csv', header=None, index_col=0, squeeze=True)
 
     time_index = pd.Series(pd.to_datetime(df.index))
-    time_data = pd.concat((time_index.dt.year.rename('year'),
-                           time_index.dt.month.rename('month'),
-                           time_index.dt.day.rename('day'),
-                           time_index.dt.hour.rename('hour')),
+    time_data = pd.concat((# time_index.dt.year.rename('year'),
+                           time_index.dt.month.rename('month') - 1,
+                           # time_index.dt.day.rename('day') - 1,
+                           # time_index.dt.hour.rename('hour'),
+                           ),
                           axis=1).set_index(df.index)
-    time_data = pd.get_dummies(time_data, columns=['month'])
-    indicators = pd.concat((df[[askcol, bidcol]].rolling(5).mean().rename(columns=(lambda x: x+'sma5')),
+    # time_data = pd.get_dummies(time_data, columns=['month'])
+    indicators = pd.concat((df[[askcol, bidcol]] - df[[askcol, bidcol]].shift(tradefreq),
+                            df[[askcol, bidcol]].rolling(5).mean().rename(columns=(lambda x: x+'sma5')),
                             df[[askcol, bidcol]].rolling(30).mean().rename(columns=(lambda x: x+'sma30')),
                             df[[askcol, bidcol]].ewm(alpha=0.25).mean().rename(columns=(lambda x: x+'mwa25')),
                             df[[askcol, bidcol]].ewm(alpha=0.75).mean().rename(columns=(lambda x: x+'mwa75'))),
                            axis=1)
 
-    labels = df[askcol].shift(-lag-tradefreq)
-    labels = (df[askcol].shift(-lag-tradefreq) > df[askcol].shift(-lag)).astype(int)
-
-    prices = pd.concat((df, time_data, indicators), axis=1)
+    labels = (df[askcol].shift(-tradefreq) - df[askcol]) / df[askcol]  # .astype(int)
+    df = pd.concat([df, indicators], axis=1)
+    prices = time_data
+    prices['month'] = number
 
     # print(labels.value_counts(normalize=True))
     if keep_last:
@@ -76,7 +96,6 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     else:
         index = pd.notnull(df).all(1) & pd.notnull(prices).all(1) & pd.notnull(labels)
 
-    print(prices[index].columns)
     return df[index], labels[index], prices[index]
 
 
@@ -218,14 +237,14 @@ def normalize_data(data, data_max, data_min):
     """
     Normalizes data using min-max normalization.
     """
-    return 1 * (data - data_min) / (data_max - data_min) - 0
+    return 2 * (data - data_min) / (data_max - data_min) - 1
 
 
 def unnormalize_data(data, data_max, data_min):
     """
     Un-normalizes data using min-max normalization.
     """
-    return (data + 0) * (data_max - data_min) / 1 + data_min
+    return (data + 1) * (data_max - data_min) / 2 + data_min
 
 
 def nice_plot(ind, curves_list, names, title):
