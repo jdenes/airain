@@ -6,7 +6,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
 from datetime import datetime, timedelta
-from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score, classification_report
 
 cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
         '#e866f4', '#f668c2']
@@ -21,22 +21,18 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     Given a data source, loads appropriate csv file.
     """
 
-    number, asset = filename
-    filename = './data/finance/' + asset + '.csv'
+    # number, asset = filename
+    filename = './data/dataset_eurusd_train_{}.csv'.format(str(datafreq))
+    # filename = './data/finance/' + asset + '.csv'
     # filename = './data/jena_climate_2009_2016.csv'
 
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
     df.index = df.index.rename('date')
     df = df.loc[~df.index.duplicated(keep='last')]
 
-    # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
+    askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
     # askcol, bidcol = 'T (degC)', 'p (mbar)'
-    askcol, bidcol = 'Close', 'Adj Close'
-
-    if enrich:
-        for col in df:
-            if 'open' in col or 'close' in col:
-                df[col + 'delta'] = df[col].diff()
+    # askcoln bidcol = 'Close', 'Adj Close'
 
     # df = df['2010-01-01':]
 
@@ -47,56 +43,57 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     # df = pd.concat([df, reco], join='outer', axis=1).sort_index()
     # df['Analysis'] = df['Analysis'].ffill().fillna(0)
     # df = df[(df.Analysis != 0).idxmax():]
+    
+    df['labels'] = (((df[askcol].shift(-tradefreq) - df[askcol]) / df[askcol]) > 0).astype(int)
 
-    # ask_fut = df[askcol].shift(-lag-tradefreq)
-    # bid_fut = df[bidcol].shift(-lag-tradefreq)
-    # ask_now = df[askcol].shift(-lag)
-    # bid_now = df[bidcol].shift(-lag)
-    # labels = df['askclose'].copy()
-    #
-    # for i in ask_fut.index:
-    #     if ask_fut[i] > ask_now[i]:
-    #         labels[i] = 1
-    #     else:
-    #         labels[i] = 0
-    #
-    #     # elif ask_fut[i] <= ask_now[i]:
-    #     #     labels[i] = 0
-    #     # else:
-    #     #     labels[i] = 2
+    time_index = pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S', utc=True)
+    df['year'] = time_index.year
+    df['month'] = time_index.month - 1
+    df['day'] = time_index.day - 1
+    df['wday'] = time_index.weekday - 1
+    df['hour'] = time_index.hour
+    df['minute'] = time_index.minute
 
-    # labels = create_labels(df, 'askclose', window_size=11)
-    # labels = pd.Series(labels, index=df.index, dtype='Int64')
-    # labels.to_csv('data/labels_test.csv', header=False)
-    # labels = pd.read_csv('data/labels_test.csv', header=None, index_col=0, squeeze=True)
+    if enrich:
+        for col in df:
+            if 'open' in col or 'close' in col:
+                df[col + '_delta_1'] = df[col].diff(1)
+                df[col + '_delta_7'] = df[col].diff(7)
 
-    time_index = pd.Series(pd.to_datetime(df.index))
-    time_data = pd.concat((# time_index.dt.year.rename('year'),
-                           time_index.dt.month.rename('month') - 1,
-                           # time_index.dt.day.rename('day') - 1,
-                           # time_index.dt.hour.rename('hour'),
-                           ),
-                          axis=1).set_index(df.index)
-    # time_data = pd.get_dummies(time_data, columns=['month'])
-    indicators = pd.concat((df[[askcol, bidcol]] - df[[askcol, bidcol]].shift(tradefreq),
-                            df[[askcol, bidcol]].rolling(5).mean().rename(columns=(lambda x: x+'sma5')),
-                            df[[askcol, bidcol]].rolling(30).mean().rename(columns=(lambda x: x+'sma30')),
-                            df[[askcol, bidcol]].ewm(alpha=0.25).mean().rename(columns=(lambda x: x+'mwa25')),
-                            df[[askcol, bidcol]].ewm(alpha=0.75).mean().rename(columns=(lambda x: x+'mwa75'))),
-                           axis=1)
+    df[['mwa_25_ask', 'wma_25_bid']] = df[[askcol, bidcol]].ewm(alpha=0.25).mean()
+    df[['mwa_75_ask', 'wma_75_bid']] = df[[askcol, bidcol]].ewm(alpha=0.75).mean()
+    
+    for lag in [1, 7, 14, 30, 60]:
+        lag_col = 'lag_' + str(lag)
+        df[lag_col + '_ask'] = df[askcol].shift(lag)
+        df[lag_col + '_bid'] = df[bidcol].shift(lag)
+        df[lag_col + '_labels'] = df['labels'].shift(lag)
+        for win in [7, 28] :
+            col = 'sma_{}_{}'.format(str(lag), str(win))
+            df[col + '_ask'] = df[lag_col + '_ask'].transform(lambda x : x.rolling(win).mean())
+            df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x : x.rolling(win).mean())
+            df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x : x.rolling(win).mean())
+            
+    # df['asset'] = number
+    # df['asset_mean'] = df['labels'].mean()
+    # df['asset_std'] = df['labels'].std()
+    
+    for period in ['year', 'month', 'day', 'wday', 'hour', 'minute']:
+        df[period + '_mean'] = df.groupby(period)['labels'].transform('mean')
+        df[period + '_std'] = df.groupby(period)['labels'].transform('std')
+        df[period + '_ask_mean'] = df.groupby(period)[askcol].transform('mean')
+        df[period + '_bid_mean'] = df.groupby(period)[askcol].transform('mean')
 
-    labels = (df[askcol].shift(-tradefreq) - df[askcol]) / df[askcol]  # .astype(int)
-    df = pd.concat([df, indicators], axis=1)
-    prices = time_data
-    prices['month'] = number
+    labels = df['labels']
+    df = df.drop(['labels'], axis=1)
 
     # print(labels.value_counts(normalize=True))
     if keep_last:
         index = pd.notnull(df).all(1)
     else:
-        index = pd.notnull(df).all(1) & pd.notnull(prices).all(1) & pd.notnull(labels)
+        index = pd.notnull(df).all(1) & pd.notnull(labels)
 
-    return df[index], labels[index], prices[index]
+    return df[index], labels[index]
 
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
@@ -174,8 +171,11 @@ def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None
 
     if n_last is not None:
         df = con.get_candles(curr, period='m' + str(freq), number=n_last)
+        df.index = pd.to_datetime(df.index, unit='s')
+        df.to_csv(filename, encoding='utf-8')
 
     else:
+        count = 0
         df = pd.DataFrame()
         step = (1 + 0.5 * int(freq != 1)) * freq
         start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
@@ -185,15 +185,18 @@ def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None
         else:
             tmp2 = start + timedelta(weeks=step)
         while tmp2 <= end:
-            data = con.get_candles(curr, period='m' + str(freq), start=tmp1, stop=tmp2)
-            df = pd.concat([df, data]).drop_duplicates(keep='last')
-
+            df = con.get_candles(curr, period='m' + str(freq), start=tmp1, stop=tmp2)
+            df.index = pd.to_datetime(df.index, unit='s')
+            if count == 0:
+                df.to_csv(filename, encoding='utf-8')
+            else:
+                df.to_csv(filename, encoding='utf-8', mode='a', header=False)                
             tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
+            count += 1
             if tmp1 < end < tmp2:
                 tmp2 = end
 
-    df.index = pd.to_datetime(df.index, unit='s')
-    df.to_csv(filename, encoding='utf-8')
+    
 
 
 def change_accuracy(y_true, y_pred):
@@ -247,7 +250,7 @@ def unnormalize_data(data, data_max, data_min):
     return (data + 1) * (data_max - data_min) / 2 + data_min
 
 
-def nice_plot(ind, curves_list, names, title):
+def nice_plot(ind, curves_list, names_list, title):
 
     font_manager._rebuild()
     plt.rcParams['font.family'] = 'Lato'
@@ -256,7 +259,7 @@ def nice_plot(ind, curves_list, names, title):
 
     fig, ax = plt.subplots(figsize=(13, 7))
     for i, x in enumerate(curves_list):
-        pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names[i])
+        pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names_list[i])
     ax.tick_params(labelsize=12)
     ax.set_xticklabels([item.get_text()[5:-3] for item in ax.get_xticklabels()])
     ax.spines['right'].set_edgecolor('lightgray')

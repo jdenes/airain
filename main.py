@@ -4,16 +4,17 @@ import configparser
 import pandas as pd
 from datetime import timedelta
 from datetime import datetime as dt
+from tqdm import tqdm
 
 from traders import LstmTrader
 from utils import load_data, fetch_fxcm_data, nice_plot, change_accuracy, normalize_data
 
 datafreq = 1
-tradefreq = 10
+tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
 h = 30
-initial_gamble = 10000
+initial_gamble = 100
 fees = 0.0
 tolerance = 0e-5  # 2
 epochs = 50
@@ -35,28 +36,31 @@ target_col = 'close'
 def fetch_data():
     print('Fetching data...')
     con = fxcmpy.fxcmpy(config_file='./resources/fxcm.cfg', server='demo')
-    start, end = '2002-01-01 00:00:00', '2018-12-30 00:00:00'
+    start, end = '2002-01-01 00:00:00', '2020-01-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv',
                     curr=curr, start=start, end=end, freq=datafreq, con=con)
-    start, end = '2019-01-01 00:00:00', '2020-01-01 00:00:00'
+    start, end = '2020-01-01 00:00:00', '2020-06-01 00:00:00'
     fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + f + '.csv',
                     curr=curr, start=start, end=end, freq=datafreq, con=con)
 
 
 def train_models():
     print('Training model...')
-    trader = LstmTrader(h=h, normalize=True)
+    trader = LstmTrader(h=h, normalize=False)
     file = 'dataset_' + c + '_train_' + str(datafreq)
     banks = ['0939.HK', '1288.HK', '1398.HK', '3968.HK', '3988.HK', 'ACA.PA', 'BAC', 'BNP.PA', 'BNS.TO', 'C', 'CBA.AX',
              'CNF.PA', 'GLE.PA', 'GS', 'HDB',  'HSBC', 'ING', 'ITUB', 'JPM', 'LYG', 'MS', 'MUFG', 'PNC', 'RY.TO', 'SAN',
              'SBRCY', 'SCHW', 'SMFG', 'TD', 'UBS', 'USB', 'WBK', 'WFC']
 
-    for file in enumerate(banks):
-        df, labels, prices = load_data(file, target_col, lag, tradefreq, datafreq)
-        trader.ingest_traindata(df, prices, labels)
+    # for file in enumerate(banks):
+    #     df, labels = load_data(file, target_col, lag, tradefreq, datafreq)
+    #     trader.ingest_traindata(df, prices, labels)
+    
+    df, labels = load_data(file, target_col, lag, tradefreq, datafreq)
+    trader.ingest_traindata(df, labels)
 
     trader.train(epochs=epochs)
-    trader.test(plot=True)
+    trader.test(plot=False)
     trader.save(model_name='Huorn askopen NOW' + tf)
 
 # def backtest_models():
@@ -88,41 +92,40 @@ def train_models():
 
 
 def mega_backtest():
-    df, labels, prices = load_data('dataset_' + c + '_train', target_col, lag, tradefreq, datafreq, keep_last=False)
-    trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    trader.test()
 
-    # bid_trader = LstmTrader(load_from='Huorn bidopen NOW' + tf)
+    print('Loading data and model...')
+    df, labels = load_data('dataset_' + c + '_train', target_col, lag, tradefreq, datafreq, keep_last=False)
+    trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
+    # trader.test()
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
     index_list, profit_list = [], []
     order = {'is_buy': None}
     count = 1
-
     balance = initial_gamble
 
-    X, P, y, ind = trader.transform_data(df, prices, labels, get_index=True)
+    X, P, y, ind = trader.transform_data(df, labels, get_index=True)
     df = df.loc[ind]
 
     preds = trader.predict(X, P)
     y_true = pd.Series(y.flatten())
     y_pred = pd.Series(normalize_data(preds, trader.y_max, trader.y_min).flatten())
-    import numpy as np
-    print(change_accuracy(np.array(y_true), np.array(y_pred)))
-    print(((y_pred.shift(-1) > y_true) == (y_true.shift(-1) > y_true)).mean())
+
     # preds = labels[ind]
 
     with open('./resources/report_backtest.csv', 'w') as file:
         file.write(cols)
 
-    for i in range(lag, len(df)):
+    print('Backtesting...')
+    for i in tqdm(range(lag, len(df))):
 
         j = ind[i]
         if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
 
             now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
             gpl = 0
-            amount = int(balance * 3 / 100)
+            # amount = int(balance * 3 / 100)
+            amount = 100
 
             # Step 0: stats
             if count > 1:
@@ -132,22 +135,22 @@ def mega_backtest():
                 with open('./resources/report_backtest.csv', 'a') as file:
                     file.write(','.join([str(x) for x in info]) + '\n')
 
-            # Step two: close former position is needed, else continue
+            # Step one: close former position if needed, else continue
             if order['is_buy'] is not None:
                 if order['is_buy']:
                     pl = round((now_bid - order['open']) * order['amount'], 5)
                     gpl = gross_pl(pl, amount, now_bid)
-                    buy_correct += int(now_bid > order['open'])
+                    buy_correct += int(pl > 0)
                     buy += 1
                 else:
                     pl = round((order['open'] - now_ask) * order['amount'], 5)
                     gpl = gross_pl(pl, amount, now_ask)
-                    sell_correct += int(now_ask < order['open'])
+                    sell_correct += int(pl > 0)
                     sell += 1
             else:
                 do_nothing += 1
 
-            # Step one: decide what to do next
+            # Step two: decide what to do next
             pred_ask = pred_bid = preds[i - lag]
             label = labels[ind[i - lag]]
             order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
@@ -170,7 +173,7 @@ def mega_backtest():
 
 def buy_or_sell(n):
 
-    df, labels, prices = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
+    df, labels = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
     count = 0
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
@@ -286,10 +289,12 @@ def get_balance(con):
 
 def decide_order(amount, now_bid, now_ask, pred_bid, pred_ask):
     # if price is going up: buy
-    if pred_bid > (1 - tolerance) * now_ask:
+    # if pred_bid > (1 - tolerance) * now_ask:
+    if pred_ask == 1:
         order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
     # elif price is going down: sell
-    elif pred_ask < now_bid / (1 - tolerance):
+    # elif pred_ask < now_bid / (1 - tolerance):
+    elif pred_ask == 0:
         order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
     # else do nothing
     else:
