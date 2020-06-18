@@ -108,7 +108,7 @@ def train_models():
 def mega_backtest():
 
     print('Loading data and model...')
-    df, labels = load_data((1, 'XOM'), target_col, unit, lag, tradefreq, datafreq)
+    df, labels = load_data((3, 'INTC'), target_col, unit, lag, tradefreq, datafreq)
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
     # trader.test()
 
@@ -186,6 +186,21 @@ def mega_backtest():
         round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
     nice_plot(index_list, [profit_list], ['Profit evolution'],
               title='Equity evolution, with spread, tradefreq ' + str(tradefreq))
+
+
+def decide_order(amount, fut_open, fut_close, pred):
+    # if price is going up: buy
+    # if pred_bid > (1 - tolerance) * now_ask:
+    if pred == 1:
+        order = {'is_buy': True, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+    # elif price is going down: sell
+    # elif pred_ask < now_bid / (1 - tolerance):
+    elif pred == 0:
+        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+    # else do nothing
+    else:
+        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+    return order
 
 
 def buy_or_sell(n):
@@ -302,21 +317,6 @@ def get_balance(con):
     data = con.get_accounts()
     data = data[data['accountId'] == account_id]
     return data['balance'].values[0]
-
-
-def decide_order(amount, fut_open, fut_close, pred):
-    # if price is going up: buy
-    # if pred_bid > (1 - tolerance) * now_ask:
-    if pred == 1:
-        order = {'is_buy': True, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
-    # elif price is going down: sell
-    # elif pred_ask < now_bid / (1 - tolerance):
-    elif pred == 0:
-        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
-    # else do nothing
-    else:
-        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
-    return order
 
 
 def trade(con, order, amount):

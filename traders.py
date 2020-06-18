@@ -46,6 +46,8 @@ class Trader(object):
         self.X_test = None
         self.P_test = None
         self.y_test = None
+        
+        self.t1, self.t2 = '2019-06-01', '2020-01-01'
 
         if load_from is not None:
             self.load(model_name=load_from)
@@ -276,8 +278,8 @@ class LstmTrader(Trader):
         df, labels = df.to_numpy(), labels.to_numpy()
         X, P, y, ind = [], [], [], []
 
-        for i in range(self.h-1, len(df)):
-            indx = [int(i - self.h + x + 1) for x in range(self.h)]
+        for i in range(len(df)): # range(self.h-1, len(df)):
+            # indx = [int(i - self.h + x + 1) for x in range(self.h)]
             # X.append(df[indx])
             P.append(df[i])
             y.append(labels[i])
@@ -301,9 +303,8 @@ class LstmTrader(Trader):
 
         self.testsize = testsize
         self.valsize = valsize
-        t1, t2 = '2019-06-01', '2020-01-01'
 
-        df_train, labels_train = df.loc[:t1], labels.loc[:t1]
+        df_train, labels_train = df.loc[:self.t1], labels.loc[:self.t1]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
@@ -317,7 +318,7 @@ class LstmTrader(Trader):
             self.y_train = np.concatenate((self.y_train, y))
         del df_train, labels_train
 
-        df_test, labels_test = df.loc[t2:], labels.loc[t2:]
+        df_test, labels_test = df.loc[self.t2:], labels.loc[self.t2:]
         X, P, y = self.transform_data(df_test, labels_test)
         if self.X_test is None:
             self.X_test, self.P_test, self.y_test = X, P, y
@@ -327,7 +328,7 @@ class LstmTrader(Trader):
             self.y_test = np.concatenate((self.y_test, y))
         del df_test, labels_test
 
-        df_val, labels_val = df.loc[t1:t2], labels.loc[t1:t2]
+        df_val, labels_val = df.loc[self.t1:self.t2], labels.loc[self.t1:self.t2]
         X, P, y = self.transform_data(df_val, labels_val)
         if self.X_val is None:
             self.X_val, self.P_val, self.y_val = X, P, y

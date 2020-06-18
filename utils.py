@@ -90,6 +90,8 @@ def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, ke
     df['wday'] = time_index.weekday - 1
     # df['hour'] = time_index.hour
     # df['minute'] = time_index.minute
+    
+    i = df.index.get_loc('2019-06-03')
 
     if enrich:
         for col in df:
@@ -104,22 +106,22 @@ def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, ke
         df[lag_col + '_labels'] = df['labels'].shift(lag)
         for win in [7, 14, 30, 60] :
             col = 'sma_{}_{}'.format(str(lag), str(win))
-            df[col + '_ask'] = df[lag_col + '_ask'].transform(lambda x : x.rolling(win).mean())
-            df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x : x.rolling(win).mean())
-            df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x : x.rolling(win).mean())
+            df[col + '_ask'] = df[lag_col + '_ask'].transform(lambda x: x.rolling(win).mean())
+            df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x: x.rolling(win).mean())
+            df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
             
     df['asset'] = number
-    df['asset_mean'] = df.groupby('asset')['labels'].transform('mean')
-    df['asset_std'] = df.groupby('asset')['labels'].transform('std')
+    df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
+    df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())    # .transform('std')
     
     for period in ['year', 'month', 'day', 'wday']:  # , 'hour', 'minute']:
         for col in ['labels', 'volume']:
-            df[period + '_mean_' + col] = df.groupby(period)['labels'].transform('mean')
-            df[period + '_std_' + col] = df.groupby(period)['labels'].transform('std')
-            df[period + '_ask_mean_' + col] = df.groupby(period)[askcol].transform('mean')
-            df[period + '_bid_mean_' + col] = df.groupby(period)[bidcol].transform('mean')
+            df[period + '_mean_' + col] = df.groupby(period)['labels'].transform(lambda x: x.iloc[:i].mean())    # .transform('mean')
+            df[period + '_std_' + col] = df.groupby(period)['labels'].transform(lambda x: x.iloc[:i].std())      #.transform('std')
+            df[period + '_ask_mean_' + col] = df.groupby(period)[askcol].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
+            df[period + '_bid_mean_' + col] = df.groupby(period)[bidcol].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
 
-    # df = df['2020-01-01':]
+    df = df['2020-01-01':]
 
     labels = df['labels']
     df = df.drop(['labels'], axis=1)
@@ -128,7 +130,7 @@ def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, ke
         index = pd.notnull(df).all(1)
     else:
         index = pd.notnull(df).all(1) & pd.notnull(labels)
-    
+        
     return df[index], labels[index]
 
 
