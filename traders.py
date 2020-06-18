@@ -85,7 +85,7 @@ class Trader(object):
         y_mean = (self.y_train > 0).mean()
         # self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
         y_pred = self.predict(self.X_train, self.P_train)
-        print(classification_report(y_train, y_pred))
+        print(classification_report(y_train, y_pred, digits=4))
         # print(tf.math.confusion_matrix(self.y_train, y_pred))
         # print(compute_metrics(y_train, y_pred))
 
@@ -93,7 +93,7 @@ class Trader(object):
         y_mean = (self.y_test > 0).mean()
         # self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
         y_pred = self.predict(self.X_test, self.P_test)
-        print(classification_report(y_test, y_pred))
+        print(classification_report(y_test, y_pred, digits=4))
         # print(tf.math.confusion_matrix(self.y_test, y_pred))
         # print(compute_metrics(y_test, y_pred))
         
@@ -204,10 +204,10 @@ class Trader(object):
         self.p_max.to_csv(model_name + '/p_max.csv', header=False)
         self.p_min.to_csv(model_name + '/p_min.csv', header=False)
         np.save(model_name + '/X_train.npy', self.X_train)
-        np.save(model_name + '/P_train.npy', self.P_train)
+        self.P_train.to_csv(model_name + '/P_train.csv')
         np.save(model_name + '/y_train.npy', self.y_train)
         np.save(model_name + '/X_test.npy', self.X_test)
-        np.save(model_name + '/P_test.npy', self.P_test)
+        self.P_test.to_csv(model_name + '/P_test.csv')
         np.save(model_name + '/y_test.npy', self.y_test)
 
     def load(self, model_name, fast=False):
@@ -226,10 +226,10 @@ class Trader(object):
 
         if not fast:
             self.X_train = np.load(model_name + '/X_train.npy')
-            self.P_train = np.load(model_name + '/P_train.npy')
+            self.P_train = pd.read_csv(model_name + '/P_train.csv', index_col=0)
             self.y_train = np.load(model_name + '/y_train.npy')
             self.X_test = np.load(model_name + '/X_test.npy')
-            self.P_test = np.load(model_name + '/P_test.npy')
+            self.P_test = pd.read_csv(model_name + '/P_test.csv', index_col=0)
             self.y_test = np.load(model_name + '/y_test.npy')
 
 
@@ -270,7 +270,6 @@ class LstmTrader(Trader):
 
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
-            # prices = normalize_data(prices, self.p_max, self.p_min)
             # labels = normalize_data(labels, self.y_max, self.y_min)
 
         colnames = df.columns
@@ -302,17 +301,13 @@ class LstmTrader(Trader):
 
         self.testsize = testsize
         self.valsize = valsize
+        t1, t2 = '2019-06-01', '2020-01-01'
 
-        split = - int(self.testsize * len(df))
-        train_ind, test_ind = df.index[:split], df.index[split:]
-        train_ind, val_ind = train_ind[:split], train_ind[split:]
-        t1, t2 = '2018-01-01', '2019-01-01'
-
-        df_train, labels_train, = df.loc[:t1], labels.loc[:t1]
+        df_train, labels_train = df.loc[:t1], labels.loc[:t1]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
-
+        
         X, P, y = self.transform_data(df_train, labels_train)
         if self.X_train is None:
             self.X_train, self.P_train, self.y_train = X, P, y
@@ -356,6 +351,15 @@ class LstmTrader(Trader):
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
+            
+        # for P, y in zip([self.P_train, self.P_test, self.P_val],[self.y_train, self.y_test, self.y_val]):
+        #     P['labels'] = y
+        #     for period in ['year', 'month', 'day', 'wday']:
+        #         P[period + '_mean_'] = P.groupby(period)['labels'].transform('mean')
+        #         P[period + '_std_'] = P.groupby(period)['labels'].transform('std')
+        #         P[period + '_ask_mean_'] = P.groupby(period)['close'].transform('mean')
+        #         P[period + '_bid_mean_'] = P.groupby(period)['open'].transform('mean')
+        #     P.drop('labels', axis=1, inplace=True)
 
         print('_' * 100, '\n')
         print('Training on {} examples, with {} features...'.format(self.P_train.shape[0], self.P_train.shape[1]))

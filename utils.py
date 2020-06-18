@@ -16,25 +16,62 @@ encode = {'Buy': 2, 'Outperform': 2, 'Overweight': 2, 'Sector Outperform': 2,
           'Underperform': 0, 'Sell': 0}
 
 
-def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=False, enrich=True):
+def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, keep_last=False, enrich=True):
     """
     Given a data source, loads appropriate csv file.
     """
 
-    # number, asset = filename
-    filename = './data/dataset_eurusd_train_{}.csv'.format(str(datafreq))
-    # filename = './data/finance/' + asset + '.csv'
+    number, asset = filename
+    filename = './data/intrinio/' + asset.lower() + '_prices.csv'
     # filename = './data/jena_climate_2009_2016.csv'
 
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
     df.index = df.index.rename('date')
-    df = df.loc[~df.index.duplicated(keep='last')]
-
-    askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
+    df = df.loc[~df.index.duplicated(keep='last')].sort_index()
+    df.drop(['intraperiod', 'frequency'], axis=1, inplace=True)
+    
+    # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
     # askcol, bidcol = 'T (degC)', 'p (mbar)'
-    # askcoln bidcol = 'Close', 'Adj Close'
-
-    # df = df['2010-01-01':]
+    askcol, bidcol = 'close', 'open'
+    
+    keywords = { 'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
+                 'XOM':  ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],
+                 'KO':   ['ko', 'coca', 'cola', 'pepsi', 'soda'],
+                 'INTC': ['intc', 'intel', 'chip', 'cpu', 'computer'],
+                 'WMT':  ['wmt', 'walmart', 'food'],
+                 'MSFT': ['msft', 'microsoft', 'gates', 'apple', 'computer'],
+                 'IBM':  ['ibm', 'business', 'machine'],
+                 'CVX':  ['cvx', 'chevron', 'petrol', 'gas', 'energy'],
+                 'JNJ':  ['jnj', 'johnson', 'health', 'medi', 'pharma'],
+                 'PG':   ['pg', 'procter', 'gamble', 'health', 'care'],
+                 'PFE':  ['pfe', 'pfizer', 'health', 'medi', 'pharma'],
+                 'VZ' :  ['vz', 'verizon', 'comm'],
+                 'BA' :  ['ba', 'boeing', 'plane', 'air'],
+                 'MRK':  ['mrk', 'merck', 'health', 'medi', 'pharma'],
+                 'CSCO': ['csco', 'cisco', 'system', 'techn'],
+                 'HD':   ['hd', 'home', 'depot', 'construction'],
+                 'MCD':  ['mcd', 'donald', 'food', 'burger'],
+                 'MMM':  ['mmm', '3m'],
+                 'GE':   ['ge', 'general', 'electric', 'tech', 'energy'],
+                 'UTX':  ['utx', 'united', 'tech'],
+                 'NKE':  ['nke', 'nike', 'sport', 'wear'],
+                 'CAT':  ['cat', 'caterpillar', 'construction'],
+                 'V':    ['visa', 'bank', 'card', 'pay'],
+                 'JPM':  ['jpm', 'morgan', 'chase', 'bank'],
+                 'AXP':  ['axp', 'american', 'express', 'bank', 'card', 'pay'],
+                 'GS':   ['gs', 'goldman', 'sachs', 'bank'],
+                 'UNH':  ['unh', 'united', 'health', 'insurance'],
+                 'TRV':  ['trv', 'travel', 'insurance']
+                }
+    
+    path = './data/intrinio/{}_news_embed.csv'.format(asset.lower())
+    # embed = load_news(asset, keywords[asset])
+    # embed.to_csv(path, encoding='utf-8')
+    embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+    df = pd.concat([df, embed], axis=1).sort_index()
+    df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
+    df = df.dropna()
+    del embed
 
     # ticker = yf.Ticker(asset)
     # reco = ticker.recommendations['To Grade'].apply(lambda x: encode[x]).rename('Analysis')
@@ -44,57 +81,87 @@ def load_data(filename, target_col, lag=0, tradefreq=1, datafreq=1, keep_last=Fa
     # df['Analysis'] = df['Analysis'].ffill().fillna(0)
     # df = df[(df.Analysis != 0).idxmax():]
     
-    df['labels'] = (((df[askcol].shift(-tradefreq) - df[askcol]) / df[askcol]) > 0).astype(int)
+    df['labels'] = ((df[askcol].shift(-tradefreq) - df[bidcol].shift(-tradefreq)) > 0).astype(int)
 
-    time_index = pd.to_datetime(df.index, format='%Y-%m-%d %H:%M:%S', utc=True)
+    time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  #  %H:%M:%S', utc=True)
     df['year'] = time_index.year
     df['month'] = time_index.month - 1
     df['day'] = time_index.day - 1
     df['wday'] = time_index.weekday - 1
-    df['hour'] = time_index.hour
-    df['minute'] = time_index.minute
+    # df['hour'] = time_index.hour
+    # df['minute'] = time_index.minute
 
     if enrich:
         for col in df:
             if 'open' in col or 'close' in col:
                 df[col + '_delta_1'] = df[col].diff(1)
                 df[col + '_delta_7'] = df[col].diff(7)
-
-    df[['mwa_25_ask', 'wma_25_bid']] = df[[askcol, bidcol]].ewm(alpha=0.25).mean()
-    df[['mwa_75_ask', 'wma_75_bid']] = df[[askcol, bidcol]].ewm(alpha=0.75).mean()
     
     for lag in [1, 7, 14, 30, 60]:
         lag_col = 'lag_' + str(lag)
         df[lag_col + '_ask'] = df[askcol].shift(lag)
         df[lag_col + '_bid'] = df[bidcol].shift(lag)
         df[lag_col + '_labels'] = df['labels'].shift(lag)
-        for win in [7, 28] :
+        for win in [7, 14, 30, 60] :
             col = 'sma_{}_{}'.format(str(lag), str(win))
             df[col + '_ask'] = df[lag_col + '_ask'].transform(lambda x : x.rolling(win).mean())
             df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x : x.rolling(win).mean())
             df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x : x.rolling(win).mean())
             
-    # df['asset'] = number
-    # df['asset_mean'] = df['labels'].mean()
-    # df['asset_std'] = df['labels'].std()
+    df['asset'] = number
+    df['asset_mean'] = df.groupby('asset')['labels'].transform('mean')
+    df['asset_std'] = df.groupby('asset')['labels'].transform('std')
     
-    for period in ['year', 'month', 'day', 'wday', 'hour', 'minute']:
-        df[period + '_mean'] = df.groupby(period)['labels'].transform('mean')
-        df[period + '_std'] = df.groupby(period)['labels'].transform('std')
-        df[period + '_ask_mean'] = df.groupby(period)[askcol].transform('mean')
-        df[period + '_bid_mean'] = df.groupby(period)[askcol].transform('mean')
+    for period in ['year', 'month', 'day', 'wday']:  # , 'hour', 'minute']:
+        for col in ['labels', 'volume']:
+            df[period + '_mean_' + col] = df.groupby(period)['labels'].transform('mean')
+            df[period + '_std_' + col] = df.groupby(period)['labels'].transform('std')
+            df[period + '_ask_mean_' + col] = df.groupby(period)[askcol].transform('mean')
+            df[period + '_bid_mean_' + col] = df.groupby(period)[bidcol].transform('mean')
+
+    # df = df['2020-01-01':]
 
     labels = df['labels']
     df = df.drop(['labels'], axis=1)
 
-    # print(labels.value_counts(normalize=True))
     if keep_last:
         index = pd.notnull(df).all(1)
     else:
         index = pd.notnull(df).all(1) & pd.notnull(labels)
-
+    
     return df[index], labels[index]
 
+
+def load_news(asset, keywords=None):
+    
+    filename = './data/intrinio/' + asset.lower() + '_news.csv'
+    df = pd.read_csv(filename, encoding='utf-8', index_col=0)
+    df['date'] = df['publication_date'].str[:10]
+    df.drop(['url'], axis=1, inplace=True)
+    
+    if keywords is not None:
+        pattern = '(?i)' + '|'.join(keywords)
+        df = df[df['title'].str.contains(pattern) | df['summary'].str.contains(pattern)]
+    res = df[['date', 'title', 'summary']].groupby('date').apply(sum).drop('date', axis=1)
+    
+    from sentence_transformers import SentenceTransformer
+    from sklearn.decomposition import PCA
+    mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+    
+    # tmp = mod.encode(res['title'], show_progress_bar=True)
+    # tmp = PCA(n_components=100).fit_transform(tmp)
+    # embed_title = pd.DataFrame(tmp, index=res.index)
+    # embed_title.columns = ['news_title_{}'.format(i) for i in embed_title]
+    
+    tmp = mod.encode(res['summary'], show_progress_bar=True)
+    tmp = PCA(n_components=100).fit_transform(tmp)
+    embed_sum = pd.DataFrame(tmp, index=res.index)
+    embed_sum.columns = ['news_sum_{}'.format(i) for i in embed_sum]
+    
+    # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()
+
+    return embed_sum
+    
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
     """
@@ -137,7 +204,7 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     """
 
     base_url = r"https://www.alphavantage.co/query?function=FX_INTRADAY"
-    base_url += "&interval=" + str(freq) + "min&outputsize=full" + "&apikey=" + api_key
+    base_url += "&interval={}min&outputsize=full&apikey={}".format(str(freq), api_key)
 
     url = base_url + "&from_symbol=" + from_currency + "&to_symbol=" + to_currency
     print('Fetching:', url)
@@ -164,13 +231,13 @@ def fetch_currency_rate(filename, from_currency, to_currency, freq, api_key):
     print('New available EUR-GBP data shape:', df.shape)
 
 
-def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None):
+def fetch_fxcm_data(filename, curr, freq, con, unit='m', start=None, end=None, n_last=None):
     """
     Given currencies and start/end dates, as well as frequency, gets exchange rates from FXCM API.
     """
 
     if n_last is not None:
-        df = con.get_candles(curr, period='m' + str(freq), number=n_last)
+        df = con.get_candles(curr, period=unit+str(freq), number=n_last)
         df.index = pd.to_datetime(df.index, unit='s')
         df.to_csv(filename, encoding='utf-8')
 
@@ -185,18 +252,47 @@ def fetch_fxcm_data(filename, curr, freq, con, start=None, end=None, n_last=None
         else:
             tmp2 = start + timedelta(weeks=step)
         while tmp2 <= end:
-            df = con.get_candles(curr, period='m' + str(freq), start=tmp1, stop=tmp2)
+            df = con.get_candles(curr, period=unit+str(freq), start=tmp1, stop=tmp2)
             df.index = pd.to_datetime(df.index, unit='s')
             if count == 0:
                 df.to_csv(filename, encoding='utf-8')
             else:
-                df.to_csv(filename, encoding='utf-8', mode='a', header=False)                
+                df.to_csv(filename, encoding='utf-8', mode='a', header=False)
             tmp1, tmp2 = tmp1 + timedelta(weeks=step), tmp2 + timedelta(weeks=step)
             count += 1
             if tmp1 < end < tmp2:
                 tmp2 = end
 
-    
+
+def fetch_intrinio_news(filename, api_key, company):
+    base_url = 'https://api-v2.intrinio.com/companies/{}/news?page_size=100&api_key={}'.format(company, api_key)
+    url = base_url
+    next_page = 0
+    while next_page is not None:
+        data = requests.get(url).json()
+        df = pd.DataFrame(data['news']).set_index('id', drop=True)
+        df = df[df['summary'].str.len() > 180]
+        if next_page == 0:
+            df.to_csv(filename, encoding='utf-8')
+        else:
+            df.to_csv(filename, encoding='utf-8', mode='a', header=False)
+        next_page = data['next_page']
+        url = base_url + '&next_page={}'.format(str(next_page))
+
+
+def fetch_intrinio_prices(filename, api_key, company):
+    base_url = 'https://api-v2.intrinio.com/securities/{}/prices?page_size=100&api_key={}'.format(company, api_key)
+    url = base_url
+    next_page = 0
+    while next_page is not None:
+        data = requests.get(url).json()
+        df = pd.DataFrame(data['stock_prices']).set_index('date', drop=True)
+        if next_page == 0:
+            df.to_csv(filename, encoding='utf-8')
+        else:
+            df.to_csv(filename, encoding='utf-8', mode='a', header=False)
+        next_page = data['next_page']
+        url = base_url + '&next_page={}'.format(str(next_page))
 
 
 def change_accuracy(y_true, y_pred):
@@ -261,7 +357,7 @@ def nice_plot(ind, curves_list, names_list, title):
     for i, x in enumerate(curves_list):
         pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names_list[i])
     ax.tick_params(labelsize=12)
-    ax.set_xticklabels([item.get_text()[5:-3] for item in ax.get_xticklabels()])
+    ax.set_xticklabels([item.get_text() for item in ax.get_xticklabels()])  # item.get_text()[5:-3]
     ax.spines['right'].set_edgecolor('lightgray')
     ax.spines['top'].set_edgecolor('lightgray')
     ax.set_ylabel('')
@@ -273,40 +369,14 @@ def nice_plot(ind, curves_list, names_list, title):
     plt.show()
 
 
-def create_labels(df, col_name, window_size=11):
-    """
-    Data is labeled as per the logic in research paper
-    Label code : BUY => 1, SELL => 0, HOLD => 2
-    params :
-        df => Dataframe with data
-        col_name => name of column which should be used to determine strategy
-    returns : numpy array with integer codes for labels with
-              size = total-(window_size)+1
-    """
-
-    from tqdm.auto import tqdm
-    labels = np.zeros(len(df))
-    labels[:] = np.nan
-    print("Computing labels...")
-    pbar = tqdm(total=len(df))
-
-    for i in range(len(df) - window_size):
-
-        window_begin = i
-        window_end = window_begin + window_size + 1
-        window_middle = (window_begin + window_end) / 2
-
-        price = df.iloc[window_begin:window_end][col_name]
-        max_index = price.argmax() + window_begin
-        min_index = price.argmin() + window_begin
-
-        if max_index == window_middle:
-            labels[i] = 2
-        elif min_index == window_middle:
-            labels[i] = 1
-        else:
-            labels[i] = 0
-        pbar.update(1)
-
-    pbar.close()
-    return labels
+def merge_finance_csv(folder='./data/finance', filename='./data/finance/global.csv'):
+    files = [f for f in os.listdir(folder) if f.endswith('.csv')]
+    res = []
+    for i, f in enumerate(files):
+        df = pd.read_csv(os.path.join(folder, f), encoding='utf-8', index_col=0)
+        df['asset'] = f[:-4]
+        res.append(df)
+    res = pd.concat(res, axis=0, ignore_index=True)
+    # df = df.set_index('Date')
+    # df.index = pd.to_datetime(df.index, unit='s')
+    res.to_csv(filename, encoding='utf-8')

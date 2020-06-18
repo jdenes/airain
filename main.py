@@ -1,3 +1,4 @@
+import os
 import time
 import fxcmpy
 import configparser
@@ -7,8 +8,10 @@ from datetime import datetime as dt
 from tqdm import tqdm
 
 from traders import LstmTrader
-from utils import load_data, fetch_fxcm_data, nice_plot, change_accuracy, normalize_data
+from utils import fetch_fxcm_data, fetch_intrinio_news, fetch_intrinio_prices, merge_finance_csv
+from utils import load_data, nice_plot, change_accuracy, normalize_data
 
+unit = 'H' # 'm' ou 'd'
 datafreq = 1
 tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
@@ -27,37 +30,48 @@ config.read('./resources/alphavantage.cfg')
 api_key = config['ALPHAVANTAGE']['access_token']
 config.read('./resources/fxcm.cfg')
 account_id = config['FXCM']['account_id']
+config.read('./resources/intrinio.cfg')
+api_key = config['INTRINIO']['access_token']
 
 cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pred bid diff,true bid diff,tbuy,pbuy,' \
        'tsell,psell\n '
 target_col = 'close'
+
+companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
+             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV'] 
+
+
+def fetch_intrinio_data():
+    for company in companies:
+        print('Fetching {} data...'.format(company))    
+        path = './data/intrinio/{}'.format(company.lower())
+        fetch_intrinio_news(filename=path+'_news.csv', api_key=api_key, company=company)
+        fetch_intrinio_prices(filename=path+'_prices.csv', api_key=api_key, company=company)
 
 
 def fetch_data():
     print('Fetching data...')
     con = fxcmpy.fxcmpy(config_file='./resources/fxcm.cfg', server='demo')
     start, end = '2002-01-01 00:00:00', '2020-01-01 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + f + '.csv',
-                    curr=curr, start=start, end=end, freq=datafreq, con=con)
+    fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + unit + f + '.csv',
+                    curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-06-01 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + f + '.csv',
-                    curr=curr, start=start, end=end, freq=datafreq, con=con)
+    fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + unit + f + '.csv',
+                    curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
 
 
 def train_models():
     print('Training model...')
-    trader = LstmTrader(h=h, normalize=False)
-    file = 'dataset_' + c + '_train_' + str(datafreq)
-    banks = ['0939.HK', '1288.HK', '1398.HK', '3968.HK', '3988.HK', 'ACA.PA', 'BAC', 'BNP.PA', 'BNS.TO', 'C', 'CBA.AX',
-             'CNF.PA', 'GLE.PA', 'GS', 'HDB',  'HSBC', 'ING', 'ITUB', 'JPM', 'LYG', 'MS', 'MUFG', 'PNC', 'RY.TO', 'SAN',
-             'SBRCY', 'SCHW', 'SMFG', 'TD', 'UBS', 'USB', 'WBK', 'WFC']
-
-    # for file in enumerate(banks):
-    #     df, labels = load_data(file, target_col, lag, tradefreq, datafreq)
-    #     trader.ingest_traindata(df, prices, labels)
+    trader = LstmTrader(h=h, normalize=True)
     
-    df, labels = load_data(file, target_col, lag, tradefreq, datafreq)
-    trader.ingest_traindata(df, labels)
+    # filename = './data/dataset_{}_train_{}{}.csv'.format(c, unit, f)
+    banks = [f[:-4] for f in os.listdir('./data/finance/') if f.endswith('.csv')]
+    banks = companies
+
+    for file in enumerate(banks):
+        print('Loading {}...'.format(file[1]))
+        df, labels = load_data(file, target_col, unit, lag, tradefreq, datafreq)
+        trader.ingest_traindata(df, labels)
 
     trader.train(epochs=epochs)
     trader.test(plot=False)
@@ -94,22 +108,24 @@ def train_models():
 def mega_backtest():
 
     print('Loading data and model...')
-    df, labels = load_data('dataset_' + c + '_train', target_col, lag, tradefreq, datafreq, keep_last=False)
+    df, labels = load_data((1, 'XOM'), target_col, unit, lag, tradefreq, datafreq)
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
     # trader.test()
 
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-    index_list, profit_list = [], []
+    index_list, profit_list, benchmark = [], [], []
     order = {'is_buy': None}
     count = 1
     balance = initial_gamble
-
+    
     X, P, y, ind = trader.transform_data(df, labels, get_index=True)
     df = df.loc[ind]
 
     preds = trader.predict(X, P)
     y_true = pd.Series(y.flatten())
-    y_pred = pd.Series(normalize_data(preds, trader.y_max, trader.y_min).flatten())
+    y_pred = pd.Series(preds)
+    from sklearn.metrics import classification_report
+    print(classification_report(y_true, y_pred))
 
     # preds = labels[ind]
 
@@ -117,54 +133,55 @@ def mega_backtest():
         file.write(cols)
 
     print('Backtesting...')
-    for i in tqdm(range(lag, len(df))):
+    for i in tqdm(range(lag, len(df)-1)):
 
-        j = ind[i]
-        if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
+        j, k = ind[i], ind[i+1]
+        if dt.strptime(j, '%Y-%m-%d').minute % tradefreq == 0:
 
-            now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
+            now_close, now_open = df.loc[j]['close'], df.loc[j]['open']
+            fut_close, fut_open = df.loc[k]['close'], df.loc[k]['open']
             gpl = 0
             # amount = int(balance * 3 / 100)
             amount = 100
 
             # Step 0: stats
             if count > 1:
-                info = [j, pred_ask, now_ask, 1000 * (pred_ask - old_ask), 1000 * (now_ask - old_ask),
-                        pred_bid, now_bid, 1000 * (pred_bid - old_bid), 1000 * (now_bid - old_bid),
-                        now_bid > old_ask, pred_bid > old_ask, now_ask < old_bid, pred_ask < old_bid]
+                # info = [j, pred_ask, now_ask, 1000 * (pred_ask - old_ask), 1000 * (now_ask - old_ask),
+                #         pred_bid, now_bid, 1000 * (pred_bid - old_bid), 1000 * (now_bid - old_bid),
+                #         now_bid > old_ask, pred_bid > old_ask, now_ask < old_bid, pred_ask < old_bid]
                 with open('./resources/report_backtest.csv', 'a') as file:
-                    file.write(','.join([str(x) for x in info]) + '\n')
+                    pass #file.write(','.join([str(x) for x in info]) + '\n')
 
             # Step one: close former position if needed, else continue
             if order['is_buy'] is not None:
                 if order['is_buy']:
-                    pl = round((now_bid - order['open']) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_bid)
+                    pl = round((now_close - order['open']) * order['amount'], 5)
+                    gpl = gross_pl(pl, amount, now_close)
                     buy_correct += int(pl > 0)
                     buy += 1
                 else:
-                    pl = round((order['open'] - now_ask) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_ask)
+                    pl = round((order['open'] - now_close) * order['amount'], 5)
+                    gpl = gross_pl(pl, amount, now_close)
                     sell_correct += int(pl > 0)
                     sell += 1
             else:
                 do_nothing += 1
 
             # Step two: decide what to do next
-            pred_ask = pred_bid = preds[i - lag]
+            pred = preds[i - lag]
             label = labels[ind[i - lag]]
-            order = decide_order(amount, now_bid, now_ask, pred_bid, pred_ask)
+            order = decide_order(amount, fut_open, fut_close, pred)
 
             balance = round(balance + gpl, 2)
             profit_list.append(balance)
             index_list.append(ind[i])
-            old_ask, old_bid = now_ask, now_bid
+            old_open, old_close = now_open, now_close
             count += 1
 
     no_trade = round(100 * do_nothing / len(index_list), 3)
     buy_acc = round(100 * buy_correct / buy, 3) if buy != 0 else 'NA'
     sell_acc = round(100 * sell_correct / sell, 3) if sell != 0 else 'NA'
-
+    
     print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
         round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
     nice_plot(index_list, [profit_list], ['Profit evolution'],
@@ -287,18 +304,18 @@ def get_balance(con):
     return data['balance'].values[0]
 
 
-def decide_order(amount, now_bid, now_ask, pred_bid, pred_ask):
+def decide_order(amount, fut_open, fut_close, pred):
     # if price is going up: buy
     # if pred_bid > (1 - tolerance) * now_ask:
-    if pred_ask == 1:
-        order = {'is_buy': True, 'open': now_ask, 'exp_close': pred_bid, 'amount': amount}
+    if pred == 1:
+        order = {'is_buy': True, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
     # elif price is going down: sell
     # elif pred_ask < now_bid / (1 - tolerance):
-    elif pred_ask == 0:
-        order = {'is_buy': False, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
+    elif pred == 0:
+        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
     # else do nothing
     else:
-        order = {'is_buy': None, 'open': now_bid, 'exp_close': pred_ask, 'amount': amount}
+        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
     return order
 
 
@@ -406,8 +423,9 @@ def heart_beat():
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
-    train_models()
-    # mega_backtest()
-    # print(buy_or_sell(1000))
+    # merge_finance_csv()
+    # fetch_intrinio_data()
+    # train_models()
+    mega_backtest()
 
     # res = heart_beat()
