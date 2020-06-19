@@ -47,7 +47,7 @@ class Trader(object):
         self.P_test = None
         self.y_test = None
         
-        self.t1, self.t2 = '2019-06-01', '2020-01-01'
+        self.t1, self.t2 = '2019-06-03', '2020-01-01'
 
         if load_from is not None:
             self.load(model_name=load_from)
@@ -352,21 +352,12 @@ class LstmTrader(Trader):
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
-            
-        # for P, y in zip([self.P_train, self.P_test, self.P_val],[self.y_train, self.y_test, self.y_val]):
-        #     P['labels'] = y
-        #     for period in ['year', 'month', 'day', 'wday']:
-        #         P[period + '_mean_'] = P.groupby(period)['labels'].transform('mean')
-        #         P[period + '_std_'] = P.groupby(period)['labels'].transform('std')
-        #         P[period + '_ask_mean_'] = P.groupby(period)['close'].transform('mean')
-        #         P[period + '_bid_mean_'] = P.groupby(period)['open'].transform('mean')
-        #     P.drop('labels', axis=1, inplace=True)
-
+        
         print('_' * 100, '\n')
         print('Training on {} examples, with {} features...'.format(self.P_train.shape[0], self.P_train.shape[1]))
         y_mean = (self.y_train > 0).mean()
         print('Baseline for change accuracy is: {}'.format(max(y_mean, 1 - y_mean)))
-        print('Equality of consecutive labels: {}'.format((self.y_train[1:] == self.y_train[:-1]).mean()))
+        # print('Equality of consecutive labels: {}'.format((self.y_train[1:] == self.y_train[:-1]).mean()))
         print('_' * 100, '\n')
 
         # train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train},

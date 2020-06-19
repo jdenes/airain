@@ -68,47 +68,18 @@ def train_models():
     banks = [f[:-4] for f in os.listdir('./data/finance/') if f.endswith('.csv')]
     banks = companies
 
-    for file in enumerate(banks):
-        print('Loading {}...'.format(file[1]))
-        df, labels = load_data(file, target_col, unit, lag, tradefreq, datafreq)
-        trader.ingest_traindata(df, labels)
+    df, labels = load_data(None, target_col, unit, lag, tradefreq, datafreq)
+    trader.ingest_traindata(df, labels)
 
     trader.train(epochs=epochs)
     trader.test(plot=False)
     trader.save(model_name='Huorn askopen NOW' + tf)
 
-# def backtest_models():
-#     curves, names = [], []
-#     df, labels, prices = load_data(filename='dataset_'+ c + '_test', target_col='open', lag=lag,
-#                                   tradefreq=tradefreq, datafreq=datafreq)
-#     ask_trader = LstmTrader(h=h)
-#     ask_trader.load(model_name='Huorn askopen NOW' + tf, fast=True)
-#     ask_backtest = ask_trader.backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
-#     curves.append(ask_backtest['value']), names.append('ASK model')
-#     del ask_trader
-#
-#     df, labels, prices = load_data(filename='dataset_' + c + '_test', target_col='open', lag=lag,
-#                                   tradefreq=tradefreq, datafreq=datafreq)
-#     bid_trader = LstmTrader(h=h)
-#     bid_trader.load(model_name='Huorn bidopen NOW' + tf, fast=True)
-#     bid_backtest = bid_trader.backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
-#     curves.append(bid_backtest['value']), names.append('BID model')
-#     del bid_trader
-#
-#     baseline = Dummy().backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
-#     curves.append(baseline['value'][tradefreq-lag:]), names.append('Pure USD')
-#     random = Randommy().backtest(df, labels, prices, tradefreq, lag, initial_gamble, fees)
-#     curves.append(random['value'][tradefreq-lag:]), names.append('Random')
-#     # print([len(x) for x in curves])
-#
-#     nice_plot(ind=ask_backtest['index'], curves_list=curves, names=names,
-#               title='Equity evolution, without spread, tradefreq ' + str(tradefreq))
-
 
 def mega_backtest():
 
     print('Loading data and model...')
-    df, labels = load_data((3, 'INTC'), target_col, unit, lag, tradefreq, datafreq)
+    df, labels = load_data((4, 'WMT'), target_col, unit, lag, tradefreq, datafreq)
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
     # trader.test()
 
@@ -125,10 +96,8 @@ def mega_backtest():
     y_true = pd.Series(y.flatten())
     y_pred = pd.Series(preds)
     from sklearn.metrics import classification_report
-    print(classification_report(y_true, y_pred))
-
-    # preds = labels[ind]
-
+    print(classification_report(y_true, y_pred, digits=4))
+    
     with open('./resources/report_backtest.csv', 'w') as file:
         file.write(cols)
 
@@ -171,7 +140,7 @@ def mega_backtest():
             pred = preds[i - lag]
             label = labels[ind[i - lag]]
             order = decide_order(amount, fut_open, fut_close, pred)
-
+            
             balance = round(balance + gpl, 2)
             profit_list.append(balance)
             index_list.append(ind[i])
