@@ -5,6 +5,7 @@
       <w>askclose</w>
       <w>askopen</w>
       <w>backtest</w>
+      <w>backtesting</w>
       <w>bidclose</w>
       <w>bidopen</w>
       <w>cryptocurrency</w>
@@ -19,10 +20,12 @@
       <w>fxcm</w>
       <w>huorn</w>
       <w>indx</w>
+      <w>intrinio</w>
       <w>joblib</w>
       <w>lstm</w>
       <w>pclose</w>
       <w>randommy</w>
+      <w>sbert</w>
       <w>testsize</w>
       <w>tradefreq</w>
       <w>traindata</w>

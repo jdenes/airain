@@ -17,7 +17,7 @@ tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
 h = 30
-initial_gamble = 100
+initial_gamble = 1000
 fees = 0.0
 tolerance = 0e-5  # 2
 epochs = 50
@@ -33,8 +33,6 @@ account_id = config['FXCM']['account_id']
 config.read('./resources/intrinio.cfg')
 api_key = config['INTRINIO']['access_token']
 
-cols = 'date,pred ask,true ask,pred ask diff,true ask diff,pred bid,true bid,pred bid diff,true bid diff,tbuy,pbuy,' \
-       'tsell,psell\n '
 target_col = 'close'
 
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
@@ -68,7 +66,7 @@ def train_models():
     banks = [f[:-4] for f in os.listdir('./data/finance/') if f.endswith('.csv')]
     banks = companies
 
-    df, labels = load_data(None, target_col, unit, lag, tradefreq, datafreq)
+    df, labels = load_data(None, target_col, unit, tradefreq, datafreq)
     trader.ingest_traindata(df, labels)
 
     trader.train(epochs=epochs)
@@ -79,82 +77,77 @@ def train_models():
 def mega_backtest():
 
     print('Loading data and model...')
-    df, labels = load_data((4, 'WMT'), target_col, unit, lag, tradefreq, datafreq)
-    trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    # trader.test()
+    for asset in enumerate(companies):
+        print(asset)
+        df, labels = load_data(asset, target_col, unit, tradefreq, datafreq)
+        trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
+        # trader.test()
 
-    buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-    index_list, profit_list, benchmark = [], [], []
-    order = {'is_buy': None}
-    count = 1
-    balance = initial_gamble
-    
-    X, P, y, ind = trader.transform_data(df, labels, get_index=True)
-    df = df.loc[ind]
+        buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
+        index_list, profit_list, benchmark = [], [], []
+        order = {'is_buy': None}
+        count = 1
+        balance = bench_balance = initial_gamble
 
-    preds = trader.predict(X, P)
-    y_true = pd.Series(y.flatten())
-    y_pred = pd.Series(preds)
-    from sklearn.metrics import classification_report
-    print(classification_report(y_true, y_pred, digits=4))
-    
-    with open('./resources/report_backtest.csv', 'w') as file:
-        file.write(cols)
+        X, P, y, ind = trader.transform_data(df, labels, get_index=True)
+        df = df.loc[ind]
 
-    print('Backtesting...')
-    for i in tqdm(range(lag, len(df)-1)):
+        preds = trader.predict(X, P)
+        y_true = pd.Series(y.flatten())
+        y_pred = pd.Series(preds)
+        from sklearn.metrics import classification_report
+        print(classification_report(y_true, y_pred, digits=4))
 
-        j, k = ind[i], ind[i+1]
-        if dt.strptime(j, '%Y-%m-%d').minute % tradefreq == 0:
+        print('Backtesting...')
+        for i in tqdm(range(lag, len(df)-1)):
 
-            now_close, now_open = df.loc[j]['close'], df.loc[j]['open']
-            fut_close, fut_open = df.loc[k]['close'], df.loc[k]['open']
-            gpl = 0
-            # amount = int(balance * 3 / 100)
-            amount = 100
+            j, k = ind[i], ind[i+1]
+            if dt.strptime(j, '%Y-%m-%d').minute % tradefreq == 0:
 
-            # Step 0: stats
-            if count > 1:
-                # info = [j, pred_ask, now_ask, 1000 * (pred_ask - old_ask), 1000 * (now_ask - old_ask),
-                #         pred_bid, now_bid, 1000 * (pred_bid - old_bid), 1000 * (now_bid - old_bid),
-                #         now_bid > old_ask, pred_bid > old_ask, now_ask < old_bid, pred_ask < old_bid]
-                with open('./resources/report_backtest.csv', 'a') as file:
-                    pass #file.write(','.join([str(x) for x in info]) + '\n')
+                now_close, now_open = df.loc[j]['close'], df.loc[j]['open']
+                fut_close, fut_open = df.loc[k]['close'], df.loc[k]['open']
+                pl, gpl = 0, 0
+                # amount = int(balance * 3 / 100)
+                amount = 1000
+                amount = int(amount / now_open)
 
-            # Step one: close former position if needed, else continue
-            if order['is_buy'] is not None:
-                if order['is_buy']:
-                    pl = round((now_close - order['open']) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_close)
-                    buy_correct += int(pl > 0)
-                    buy += 1
+                # Step one: close former position if needed, else continue
+                if order['is_buy'] is not None:
+                    if order['is_buy']:
+                        pl = round((now_close - order['open']) * order['amount'], 5)
+                        # gpl = gross_pl(pl, amount, now_close)
+                        buy_correct += int(pl > 0)
+                        buy += 1
+                    else:
+                        pl = round((order['open'] - now_close) * order['amount'], 5)
+                        # gpl = gross_pl(pl, amount, now_close)
+                        sell_correct += int(pl > 0)
+                        sell += 1
                 else:
-                    pl = round((order['open'] - now_close) * order['amount'], 5)
-                    gpl = gross_pl(pl, amount, now_close)
-                    sell_correct += int(pl > 0)
-                    sell += 1
-            else:
-                do_nothing += 1
+                    do_nothing += 1
 
-            # Step two: decide what to do next
-            pred = preds[i - lag]
-            label = labels[ind[i - lag]]
-            order = decide_order(amount, fut_open, fut_close, pred)
-            
-            balance = round(balance + gpl, 2)
-            profit_list.append(balance)
-            index_list.append(ind[i])
-            old_open, old_close = now_open, now_close
-            count += 1
+                # Step one bis: compute metrics and stuff
+                balance = round(balance + pl, 2)
+                profit_list.append(balance)
+                if count > 1:
+                    bench_balance = round(bench_balance + (now_close - order['open']) * amount, 2)
+                benchmark.append(bench_balance)
+                index_list.append(ind[i])
+                count += 1
 
-    no_trade = round(100 * do_nothing / len(index_list), 3)
-    buy_acc = round(100 * buy_correct / buy, 3) if buy != 0 else 'NA'
-    sell_acc = round(100 * sell_correct / sell, 3) if sell != 0 else 'NA'
-    
-    print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
-        round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
-    nice_plot(index_list, [profit_list], ['Profit evolution'],
-              title='Equity evolution, with spread, tradefreq ' + str(tradefreq))
+                # Step two: decide what to do next
+                pred = preds[i - lag]
+                label = labels[ind[i - lag]]
+                order = decide_order(amount, fut_open, fut_close, pred)
+
+        no_trade = round(100 * do_nothing / len(index_list), 3)
+        buy_acc = round(100 * buy_correct / buy, 3) if buy != 0 else 'NA'
+        sell_acc = round(100 * sell_correct / sell, 3) if sell != 0 else 'NA'
+
+        print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
+            round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
+        nice_plot(index_list, [profit_list, benchmark], ['Profit evolution', 'Benchmark'],
+                  title='Equity evolution for ' + str(asset[1]))
 
 
 def decide_order(amount, fut_open, fut_close, pred):
@@ -172,90 +165,6 @@ def decide_order(amount, fut_open, fut_close, pred):
     return order
 
 
-def buy_or_sell(n):
-
-    df, labels = load_data('dataset_' + c + '_test', target_col, lag, tradefreq, datafreq, keep_last=True)
-    count = 0
-
-    buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-    normal_close, force_close, normal_sum, force_sum = 0, 0, 0, 0
-    index_list, profit_list, orders = [], [], []
-
-    balance = initial_gamble
-
-    for i in range(lag, len(df)):
-
-        j = df.index[i]
-        if dt.strptime(j, '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
-
-            now_ask, now_bid = df.loc[j]['askclose'], df.loc[j]['bidclose']
-            amount = int(balance * 3 / 100)
-            new_orders = []
-            gpl = 0
-
-            # Step one: iterate over open positions to see if some can be closed
-
-            while orders:
-                order = orders.pop()
-
-                # If some positions are beneficial, close them
-                if order['is_buy'] and (now_bid > order['open']):
-                    pl = round((now_bid - order['open']) * order['amount'], 5)
-                    gpl += gross_pl(pl, amount, now_bid)
-                    buy_correct += int(now_bid > order['open'])
-                    buy += 1
-                    normal_close += 1
-                    normal_sum += pl
-                elif not order['is_buy'] and (now_ask < order['open']):
-                    pl = round((order['open'] - now_ask) * order['amount'], 5)
-                    gpl += gross_pl(pl, amount, now_ask)
-                    sell_correct += int(now_ask < order['open'])
-                    sell += 1
-                    normal_close += 1
-                    normal_sum += pl
-
-                # Close if open for too long
-                elif count - order['time'] > n:
-                    force_close += 1
-                    if order['is_buy']:
-                        pl = round((now_bid - order['open']) * order['amount'], 5)
-                        gpl += gross_pl(pl, amount, now_bid)
-                        buy_correct += int(now_bid > order['open'])
-                        buy += 1
-                        force_sum += pl
-                    else:
-                        pl = round((order['open'] - now_ask) * order['amount'], 5)
-                        gpl += gross_pl(pl, amount, now_ask)
-                        sell_correct += int(now_ask < order['open'])
-                        sell += 1
-                        force_sum += pl
-
-                # Else keep them
-                else:
-                    new_orders.append(order)
-
-            # Step two: open one buy and one sell
-            new_orders.append({'is_buy': True, 'open': now_ask, 'amount': amount, 'time': count})
-            new_orders.append({'is_buy': False, 'open': now_bid, 'amount': amount, 'time': count})
-            orders = new_orders
-
-            balance = round(balance + gpl, 2)
-            profit_list.append(balance)
-            index_list.append(j)
-            count += 1
-
-    no_trade = round(100 * do_nothing / len(index_list), 3)
-    buy_acc = round(100 * buy_correct / buy, 3) if buy != 0 else 'NA'
-    sell_acc = round(100 * sell_correct / sell, 3) if sell != 0 else 'NA'
-
-    print('Overall profit: {} | Correct share buy {} | Correct share sell {} | Share of done nothing {}'.format(
-        round(balance - initial_gamble, 2), buy_acc, sell_acc, no_trade))
-    print(normal_close, normal_sum, force_close, force_sum)
-    # nice_plot(index_list, [profit_list], ['Profit evolution'],
-    #          title='Equity evolution, with spread, tradefreq ' + str(tradefreq))
-    return balance
-
-
 def gross_pl(pl, K, price):
     return round((K / 10) * pl * (1 / price), 2)
 
@@ -263,7 +172,6 @@ def gross_pl(pl, K, price):
 def get_price_data(con):
     fetch_fxcm_data('./data/dataset_' + c + '_now_' + f + '.csv', curr=curr, freq=datafreq, con=con, n_last=30)
     df, labels, price = load_data(filename='dataset_' + c + '_now', target_col='open',
-                                  lag=lag,
                                   tradefreq=tradefreq,
                                   datafreq=datafreq,
                                   keep_last=True)
@@ -309,8 +217,8 @@ def heart_beat():
     order = {'is_buy': None}
     buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
 
-    with open('./resources/report.csv', 'w') as file:
-        file.write(cols)
+    # with open('./resources/report.csv', 'w') as file:
+    #     file.write(cols)
 
     print('{} : S\t initialization took {}'.format(dt.now(), dt.now() - t1))
 

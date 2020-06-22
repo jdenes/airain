@@ -2,11 +2,16 @@ import os
 import requests
 import numpy as np
 import pandas as pd
-import yfinance as yf
+import joblib as jl
+
 import matplotlib.pyplot as plt
+import matplotlib.dates as dates
 from matplotlib import font_manager
 from datetime import datetime, timedelta
+
+from sentence_transformers import SentenceTransformer
 from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score, classification_report
+from sklearn.decomposition import PCA
 
 cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
         '#e866f4', '#f668c2']
@@ -15,46 +20,47 @@ encode = {'Buy': 2, 'Outperform': 2, 'Overweight': 2, 'Sector Outperform': 2,
           'Market Perform': 1, 'Sector Perform': 1, 'Neutral': 1, 'Hold': 1, 'Equal-Weight': 1,
           'Underperform': 0, 'Sell': 0}
 
-keywords = { 'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
-             'XOM':  ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],
-             'KO':   ['ko', 'coca', 'cola', 'pepsi', 'soda'],
-             'INTC': ['intc', 'intel', 'chip', 'cpu', 'computer'],
-             'WMT':  ['wmt', 'walmart', 'food'],
-             'MSFT': ['msft', 'microsoft', 'gates', 'apple', 'computer'],
-             'IBM':  ['ibm', 'business', 'machine'],
-             'CVX':  ['cvx', 'chevron', 'petrol', 'gas', 'energy'],
-             'JNJ':  ['jnj', 'johnson', 'health', 'medi', 'pharma'],
-             'PG':   ['pg', 'procter', 'gamble', 'health', 'care'],
-             'PFE':  ['pfe', 'pfizer', 'health', 'medi', 'pharma'],
-             'VZ' :  ['vz', 'verizon', 'comm'],
-             'BA' :  ['ba', 'boeing', 'plane', 'air'],
-             'MRK':  ['mrk', 'merck', 'health', 'medi', 'pharma'],
-             'CSCO': ['csco', 'cisco', 'system', 'techn'],
-             'HD':   ['hd', 'home', 'depot', 'construction'],
-             'MCD':  ['mcd', 'donald', 'food', 'burger'],
-             'MMM':  ['mmm', '3m'],
-             'GE':   ['ge', 'general', 'electric', 'tech', 'energy'],
-             'UTX':  ['utx', 'united', 'tech'],
-             'NKE':  ['nke', 'nike', 'sport', 'wear'],
-             'CAT':  ['cat', 'caterpillar', 'construction'],
-             'V':    ['visa', 'bank', 'card', 'pay'],
-             'JPM':  ['jpm', 'morgan', 'chase', 'bank'],
-             'AXP':  ['axp', 'american', 'express', 'bank', 'card', 'pay'],
-             'GS':   ['gs', 'goldman', 'sachs', 'bank'],
-             'UNH':  ['unh', 'united', 'health', 'insurance'],
-             'TRV':  ['trv', 'travel', 'insurance']
+keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
+            'XOM': ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],
+            'KO': ['ko', 'coca', 'cola', 'pepsi', 'soda'],
+            'INTC': ['intc', 'intel', 'chip', 'cpu', 'computer'],
+            'WMT': ['wmt', 'walmart', 'food'],
+            'MSFT': ['msft', 'microsoft', 'gates', 'apple', 'computer'],
+            'IBM': ['ibm', 'business', 'machine'],
+            'CVX': ['cvx', 'chevron', 'petrol', 'gas', 'energy'],
+            'JNJ': ['jnj', 'johnson', 'health', 'medi', 'pharma'],
+            'PG': ['pg', 'procter', 'gamble', 'health', 'care'],
+            'PFE': ['pfe', 'pfizer', 'health', 'medi', 'pharma'],
+            'VZ': ['vz', 'verizon', 'comm'],
+            'BA': ['ba', 'boeing', 'plane', 'air'],
+            'MRK': ['mrk', 'merck', 'health', 'medi', 'pharma'],
+            'CSCO': ['csco', 'cisco', 'system', 'techn'],
+            'HD': ['hd', 'home', 'depot', 'construction'],
+            'MCD': ['mcd', 'donald', 'food', 'burger'],
+            'MMM': ['mmm', '3m'],
+            'GE': ['ge', 'general', 'electric', 'tech', 'energy'],
+            'UTX': ['utx', 'united', 'tech'],
+            'NKE': ['nke', 'nike', 'sport', 'wear'],
+            'CAT': ['cat', 'caterpillar', 'construction'],
+            'V': ['visa', 'bank', 'card', 'pay'],
+            'JPM': ['jpm', 'morgan', 'chase', 'bank'],
+            'AXP': ['axp', 'american', 'express', 'bank', 'card', 'pay'],
+            'GS': ['gs', 'goldman', 'sachs', 'bank'],
+            'UNH': ['unh', 'united', 'health', 'insurance'],
+            'TRV': ['trv', 'travel', 'insurance']
             }
 
-def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, keep_last=False):
+
+def load_data(filename, target_col, unit='m', tradefreq=1, datafreq=1, keep_last=False):
     """
     Given a data source, loads appropriate csv file.
     """
-    
+
     t1 = '2019-06-03'
     res = pd.DataFrame()
 
     for number, asset in enumerate(keywords.keys()):
-        
+
         file = './data/intrinio/' + asset.lower() + '_prices.csv'
         # filename = './data/jena_climate_2009_2016.csv'
 
@@ -62,56 +68,70 @@ def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, ke
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.drop(['intraperiod', 'frequency'], axis=1, inplace=True)
-        
+
         # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
         # askcol, bidcol = 'T (degC)', 'p (mbar)'
         askcol, bidcol = 'close', 'open'
-        
+
         path = './data/intrinio/{}_news_embed.csv'.format(asset.lower())
-        # embed = load_news(asset, keywords[asset])
-        # embed.to_csv(path, encoding='utf-8')
-        embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        if not os.path.exists(path):
+            embed = load_news(asset, keywords[asset])
+            embed.to_csv(path, encoding='utf-8')
+        else:
+            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+
+        dim = 75
+        path = './data/pca_sbert_{}.joblib'.format(dim)
+        if not os.path.exists(path):
+            pca = train_sbert_pca(dim=dim)
+        else:
+            pca = jl.load(path)
+        embed = pd.DataFrame(pca.transform(embed), index=embed.index)
+        embed.columns = ['news_sum_{}'.format(i) for i in embed]
+
         df = pd.concat([df, embed], axis=1).sort_index()
         df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
         df = df.dropna()
         del embed
-        
+
         df['labels'] = ((df[askcol].shift(-tradefreq) - df[bidcol].shift(-tradefreq)) > 0).astype(int)
 
-        time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  #  %H:%M:%S', utc=True)
+        time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year
         df['month'] = time_index.month - 1
         df['day'] = time_index.day - 1
         df['wday'] = time_index.weekday - 1
         # df['hour'] = time_index.hour
         # df['minute'] = time_index.minute
-        
+
         i = df.index.get_loc(t1)
 
         for col in ['open', 'close', 'adj_open', 'adj_close']:
             df[col + '_delta_1'] = df[col].diff(1)
             df[col + '_delta_7'] = df[col].diff(7)
-        
+
         for lag in [1, 7, 14, 30, 60]:
             lag_col = 'lag_' + str(lag)
             df[lag_col + '_ask'] = df[askcol].shift(lag)
             df[lag_col + '_bid'] = df[bidcol].shift(lag)
             df[lag_col + '_labels'] = df['labels'].shift(lag)
-            for win in [7, 14, 30, 60] :
+            for win in [7, 14, 30, 60]:
                 col = 'sma_{}_{}'.format(str(lag), str(win))
                 df[col + '_ask'] = df[lag_col + '_ask'].transform(lambda x: x.rolling(win).mean())
                 df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x: x.rolling(win).mean())
                 df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
-                
+
         df['asset'] = number
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
-        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())    # .transform('std')
-        
+        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())  # .transform('std')
+
         for period in ['year', 'day', 'wday']:  # , 'month', 'hour', 'minute']:
             for col in ['labels', 'volume', askcol, bidcol]:
-                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())    # .transform('mean')
-                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].std())      #.transform('std')
-        
+                df[period + '_mean_' + col] = df.groupby(period)[col].transform(
+                    lambda x: x.iloc[:i].mean())  # .transform('mean')
+                df[period + '_std_' + col] = df.groupby(period)[col].transform(
+                    lambda x: x.iloc[:i].std())  # .transform('std')
+
         res = pd.concat([res, df], axis=0)
 
     # Computing overall aggregate features
@@ -121,14 +141,14 @@ def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, ke
         for col in ['labels', 'volume']:
             res['ov_{}_mean_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
             res['ov_{}_std_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
-   
+
     if filename is not None:
         res = res['2020-01-01':]
         res = res[res['asset'] == filename[0]]
-    
+
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
-    
+
     if keep_last:
         index = pd.notnull(res).all(1)
     else:
@@ -138,35 +158,42 @@ def load_data(filename, target_col, unit='m', lag=0, tradefreq=1, datafreq=1, ke
 
 
 def load_news(asset, keywords=None):
-    
     filename = './data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
     df['date'] = df['publication_date'].str[:10]
     df.drop(['url'], axis=1, inplace=True)
-    
+
     if keywords is not None:
         pattern = '(?i)' + '|'.join(keywords)
         df = df[df['title'].str.contains(pattern) | df['summary'].str.contains(pattern)]
     res = df[['date', 'title', 'summary']].groupby('date').apply(sum).drop('date', axis=1)
-    
-    from sentence_transformers import SentenceTransformer
-    from sklearn.decomposition import PCA
+
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-    
+
     # tmp = mod.encode(res['title'], show_progress_bar=True)
-    # tmp = PCA(n_components=100).fit_transform(tmp)
     # embed_title = pd.DataFrame(tmp, index=res.index)
     # embed_title.columns = ['news_title_{}'.format(i) for i in embed_title]
-    
+
     tmp = mod.encode(res['summary'], show_progress_bar=True)
-    tmp = PCA(n_components=100).fit_transform(tmp)
     embed_sum = pd.DataFrame(tmp, index=res.index)
     embed_sum.columns = ['news_sum_{}'.format(i) for i in embed_sum]
-    
+
     # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()
 
     return embed_sum
-    
+
+
+def train_sbert_pca(dim=100):
+    df = pd.DataFrame()
+    for asset in keywords.keys():
+        path = './data/intrinio/{}_news_embed.csv'.format(asset.lower())
+        embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        df = pd.concat([df, embed], axis=0, ignore_index=True)
+    pca = PCA(n_components=dim)
+    pca.fit(df)
+    jl.dump(pca, './data/pca_sbert_{}.joblib'.format(dim))
+    return pca
+
 
 def fetch_crypto_rate(filename, from_currency, to_currency, start, end, freq):
     """
@@ -242,13 +269,12 @@ def fetch_fxcm_data(filename, curr, freq, con, unit='m', start=None, end=None, n
     """
 
     if n_last is not None:
-        df = con.get_candles(curr, period=unit+str(freq), number=n_last)
+        df = con.get_candles(curr, period=unit + str(freq), number=n_last)
         df.index = pd.to_datetime(df.index, unit='s')
         df.to_csv(filename, encoding='utf-8')
 
     else:
         count = 0
-        df = pd.DataFrame()
         step = (1 + 0.5 * int(freq != 1)) * freq
         start, end = datetime.strptime(start, '%Y-%m-%d %H:%M:%S'), datetime.strptime(end, '%Y-%m-%d %H:%M:%S')
         tmp1 = start
@@ -257,7 +283,7 @@ def fetch_fxcm_data(filename, curr, freq, con, unit='m', start=None, end=None, n
         else:
             tmp2 = start + timedelta(weeks=step)
         while tmp2 <= end:
-            df = con.get_candles(curr, period=unit+str(freq), start=tmp1, stop=tmp2)
+            df = con.get_candles(curr, period=unit + str(freq), start=tmp1, stop=tmp2)
             df.index = pd.to_datetime(df.index, unit='s')
             if count == 0:
                 df.to_csv(filename, encoding='utf-8')
@@ -351,29 +377,32 @@ def unnormalize_data(data, data_max, data_min):
     return (data + 1) * (data_max - data_min) / 2 + data_min
 
 
-def nice_plot(ind, curves_list, names_list, title, xbins=10):
-
+def nice_plot(ind, curves_list, names_list, title):
     font_manager._rebuild()
     plt.rcParams['font.family'] = 'Lato'
     plt.rcParams['font.sans-serif'] = 'Lato'
     plt.rcParams['font.weight'] = 500
-    plt.locator_params(axis='x', nbins=xbins)
+    # plt.locator_params(axis='x', nbins=xbins)
+    from datetime import datetime
+    ind = [datetime.strptime(x, '%Y-%m-%d') for x in ind]
+    formatter = dates.DateFormatter('%d/%m/%Y')
 
     fig, ax = plt.subplots(figsize=(13, 7))
-    colors=['green', 'red', 'orange']
-    c_list = ['gray']
+    colors = ['green', 'red', 'orange']
     for i, x in enumerate(curves_list):
+        c_list = ['gray']
         for j in range(len(x) - 1):
-            start, stop = x[j], x[j+1]
-            color = colors[0 if stop-start>0 else 1 if stop-start<0 else 2]
+            start, stop = x[j], x[j + 1]
+            color = colors[0 if stop - start > 0 else 1 if stop - start < 0 else 2]
             c_list.append(color)
-            ax.plot([j, j+1], [start, stop], linewidth=2, color=color)
-            ax.fill_between([j, j+1], [start, stop], alpha=0.2, color=color)
+            ax.plot([ind[j], ind[j + 1]], [start, stop], linewidth=2, color=color)
+            # ax.fill_between([ind[j], ind[j+1]], [start, stop], alpha=0.2, color=color)
         for j in range(len(x)):
-            ax.plot(j, x[j], '.', color=c_list[j])
+            ax.plot(ind[j], x[j], '.', color=c_list[j])
         # pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names_list[i], style='.-')
-    ax.set_xticklabels(ind)
+    # ax.set_xticklabels(ind)
     ax.tick_params(labelsize=12)
+    ax.xaxis.set_major_formatter(formatter)
     # ax.set_xticklabels([item.get_text() for item in ax.get_xticklabels()])  # item.get_text()[5:-3]
     ax.spines['right'].set_edgecolor('lightgray')
     ax.spines['top'].set_edgecolor('lightgray')
