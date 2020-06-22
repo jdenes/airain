@@ -66,7 +66,7 @@ def train_models():
     banks = [f[:-4] for f in os.listdir('./data/finance/') if f.endswith('.csv')]
     banks = companies
 
-    df, labels = load_data(None, target_col, unit, tradefreq, datafreq)
+    df, labels = load_data('./data/intrinio/', tradefreq, datafreq)
     trader.ingest_traindata(df, labels)
 
     trader.train(epochs=epochs)
@@ -79,7 +79,7 @@ def mega_backtest():
     print('Loading data and model...')
     for asset in enumerate(companies):
         print(asset)
-        df, labels = load_data(asset, target_col, unit, tradefreq, datafreq)
+        df, labels = load_data('./data/intrinio/', tradefreq, datafreq, asset)
         trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
         # trader.test()
 
@@ -169,13 +169,16 @@ def gross_pl(pl, K, price):
     return round((K / 10) * pl * (1 / price), 2)
 
 
-def get_price_data(con):
-    fetch_fxcm_data('./data/dataset_' + c + '_now_' + f + '.csv', curr=curr, freq=datafreq, con=con, n_last=30)
-    df, labels, price = load_data(filename='dataset_' + c + '_now', target_col='open',
-                                  tradefreq=tradefreq,
-                                  datafreq=datafreq,
-                                  keep_last=True)
-    return df, labels, price
+def get_price_data(con=None):
+    # fetch_fxcm_data('./data/dataset_' + c + '_now_' + f + '.csv', curr=curr, freq=datafreq, con=con, n_last=30)
+    folder = './data/intrinio/'
+    for company in companies:
+        print('Fetching most recent {} data...'.format(company))
+        path = folder + company.lower()
+        fetch_intrinio_news(filename=path+'_news.csv', api_key=api_key, company=company, update=True)
+        fetch_intrinio_prices(filename=path+'_prices.csv', api_key=api_key, company=company, update=True)
+    df, labels = load_data(folder, tradefreq, datafreq, keep_last=True)
+    return df, labels
 
 
 def get_current_askbid(con):
@@ -300,9 +303,10 @@ def heart_beat():
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
-    # merge_finance_csv()
+    df, labels = get_price_data()
+    # print(labels)
     # fetch_intrinio_data()
     # train_models()
-    mega_backtest()
+    # mega_backtest()
 
     # res = heart_beat()

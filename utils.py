@@ -51,7 +51,7 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             }
 
 
-def load_data(filename, target_col, unit='m', tradefreq=1, datafreq=1, keep_last=False):
+def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
     """
     Given a data source, loads appropriate csv file.
     """
@@ -61,24 +61,30 @@ def load_data(filename, target_col, unit='m', tradefreq=1, datafreq=1, keep_last
 
     for number, asset in enumerate(keywords.keys()):
 
-        file = './data/intrinio/' + asset.lower() + '_prices.csv'
+        file = folder + asset.lower() + '_prices.csv'
         # filename = './data/jena_climate_2009_2016.csv'
 
         df = pd.read_csv(file, encoding='utf-8', index_col=0)
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.drop(['intraperiod', 'frequency'], axis=1, inplace=True)
+        df.drop([col for col in df if 'adj' in col], axis=1, inplace=True)
 
         # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
         # askcol, bidcol = 'T (degC)', 'p (mbar)'
         askcol, bidcol = 'close', 'open'
 
-        path = './data/intrinio/{}_news_embed.csv'.format(asset.lower())
+        path = folder + '{}_news_embed.csv'.format(asset.lower())
         if not os.path.exists(path):
             embed = load_news(asset, keywords[asset])
             embed.to_csv(path, encoding='utf-8')
+        # elif index max de l'embed != index max des news: ajouter la diff
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+            text = pd.read_csv(folder + '{}_news.csv'.format(asset.lower()), encoding='utf-8', index_col=0)
+            if embed.index.max() != text.index.max(): # pas index mais dates !
+                embed = load_news(asset, keywords[asset])
+                embed.to_csv(path, encoding='utf-8')
 
         dim = 75
         path = './data/pca_sbert_{}.joblib'.format(dim)
@@ -106,7 +112,7 @@ def load_data(filename, target_col, unit='m', tradefreq=1, datafreq=1, keep_last
 
         i = df.index.get_loc(t1)
 
-        for col in ['open', 'close', 'adj_open', 'adj_close']:
+        for col in ['open', 'close']:
             df[col + '_delta_1'] = df[col].diff(1)
             df[col + '_delta_7'] = df[col].diff(7)
 
@@ -142,9 +148,9 @@ def load_data(filename, target_col, unit='m', tradefreq=1, datafreq=1, keep_last
             res['ov_{}_mean_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
             res['ov_{}_std_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
 
-    if filename is not None:
+    if subset is not None:
         res = res['2020-01-01':]
-        res = res[res['asset'] == filename[0]]
+        res = res[res['asset'] == subset[0]]
 
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
@@ -295,7 +301,7 @@ def fetch_fxcm_data(filename, curr, freq, con, unit='m', start=None, end=None, n
                 tmp2 = end
 
 
-def fetch_intrinio_news(filename, api_key, company):
+def fetch_intrinio_news(filename, api_key, company, update=False):
     base_url = 'https://api-v2.intrinio.com/companies/{}/news?page_size=100&api_key={}'.format(company, api_key)
     url = base_url
     next_page = 0
@@ -303,27 +309,35 @@ def fetch_intrinio_news(filename, api_key, company):
         data = requests.get(url).json()
         df = pd.DataFrame(data['news']).set_index('id', drop=True)
         df = df[df['summary'].str.len() > 180]
-        if next_page == 0:
+        if next_page == 0 and not update:
             df.to_csv(filename, encoding='utf-8')
         else:
             df.to_csv(filename, encoding='utf-8', mode='a', header=False)
-        next_page = data['next_page']
+        next_page = data['next_page'] if not update else None
         url = base_url + '&next_page={}'.format(str(next_page))
+    if update:
+        df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
+        df = df.loc[~df.index.duplicated(keep='last')]
+        df.to_csv(filename, encoding='utf-8')
 
 
-def fetch_intrinio_prices(filename, api_key, company):
+def fetch_intrinio_prices(filename, api_key, company, update=False):
     base_url = 'https://api-v2.intrinio.com/securities/{}/prices?page_size=100&api_key={}'.format(company, api_key)
     url = base_url
     next_page = 0
     while next_page is not None:
         data = requests.get(url).json()
         df = pd.DataFrame(data['stock_prices']).set_index('date', drop=True)
-        if next_page == 0:
+        if next_page == 0 and not update:
             df.to_csv(filename, encoding='utf-8')
         else:
             df.to_csv(filename, encoding='utf-8', mode='a', header=False)
-        next_page = data['next_page']
+        next_page = data['next_page'] if not update else None
         url = base_url + '&next_page={}'.format(str(next_page))
+    if update:
+        df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
+        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
+        df.to_csv(filename, encoding='utf-8')
 
 
 def change_accuracy(y_true, y_pred):
