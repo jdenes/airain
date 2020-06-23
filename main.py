@@ -303,10 +303,10 @@ def heart_beat():
 if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
-    df, labels = get_price_data()
-    # print(labels)
     # fetch_intrinio_data()
-    # train_models()
+    # df, labels = get_price_data()
+    # print(labels)
+    train_models()
     # mega_backtest()
 
     # res = heart_beat()

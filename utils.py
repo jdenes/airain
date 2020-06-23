@@ -78,13 +78,18 @@ def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
         if not os.path.exists(path):
             embed = load_news(asset, keywords[asset])
             embed.to_csv(path, encoding='utf-8')
-        # elif index max de l'embed != index max des news: ajouter la diff
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-            text = pd.read_csv(folder + '{}_news.csv'.format(asset.lower()), encoding='utf-8', index_col=0)
-            if embed.index.max() != text.index.max(): # pas index mais dates !
-                embed = load_news(asset, keywords[asset])
+            news_path = folder + '{}_news.csv'.format(asset.lower())
+            news_index = pd.read_csv(news_path, encoding='utf-8', index_col=0).index
+            if embed.index.max() != news_index.max():
+                print('Updating embeddings for ' + asset)
+                embed = load_news(asset, keywords[asset], last_day=embed.index.max())
+                embed.to_csv(path, encoding='utf-8', mode='a', header=False)
+                embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+                embed = embed.loc[~embed.index.duplicated(keep='last')]
                 embed.to_csv(path, encoding='utf-8')
+            del news_index
 
         dim = 75
         path = './data/pca_sbert_{}.joblib'.format(dim)
@@ -163,16 +168,17 @@ def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
     return res[index], labels[index]
 
 
-def load_news(asset, keywords=None):
+def load_news(asset, keywords=None, last_day=None):
     filename = './data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0)
-    df['date'] = df['publication_date'].str[:10]
-    df.drop(['url'], axis=1, inplace=True)
+    df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
 
+    if last_day is not None:
+        df = df[:last_day]
     if keywords is not None:
         pattern = '(?i)' + '|'.join(keywords)
         df = df[df['title'].str.contains(pattern) | df['summary'].str.contains(pattern)]
-    res = df[['date', 'title', 'summary']].groupby('date').apply(sum).drop('date', axis=1)
+    res = df[['title', 'summary']].groupby(df.index).apply(sum)
 
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
 
@@ -186,7 +192,7 @@ def load_news(asset, keywords=None):
 
     # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()
 
-    return embed_sum
+    return embed_sum.sort_index()
 
 
 def train_sbert_pca(dim=100):
@@ -307,8 +313,10 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
     next_page = 0
     while next_page is not None:
         data = requests.get(url).json()
-        df = pd.DataFrame(data['news']).set_index('id', drop=True)
+        df = pd.DataFrame(data['news'])
         df = df[df['summary'].str.len() > 180]
+        df['date'] = df['publication_date'].str[:10]
+        df = df.set_index('date', drop=True)
         if next_page == 0 and not update:
             df.to_csv(filename, encoding='utf-8')
         else:
