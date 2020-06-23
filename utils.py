@@ -80,16 +80,13 @@ def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
             embed.to_csv(path, encoding='utf-8')
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-            news_path = folder + '{}_news.csv'.format(asset.lower())
-            news_index = pd.read_csv(news_path, encoding='utf-8', index_col=0).index
-            if embed.index.max() != news_index.max():
-                print('Updating embeddings for ' + asset)
-                embed = load_news(asset, keywords[asset], last_day=embed.index.max())
+            if keep_last:
+                last_embed = embed.index.max()
+                embed = load_news(asset, keywords[asset], last_day=last_embed)
                 embed.to_csv(path, encoding='utf-8', mode='a', header=False)
                 embed = pd.read_csv(path, encoding='utf-8', index_col=0)
                 embed = embed.loc[~embed.index.duplicated(keep='last')]
                 embed.to_csv(path, encoding='utf-8')
-            del news_index
 
         dim = 75
         path = './data/pca_sbert_{}.joblib'.format(dim)
@@ -170,11 +167,11 @@ def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
 
 def load_news(asset, keywords=None, last_day=None):
     filename = './data/intrinio/' + asset.lower() + '_news.csv'
-    df = pd.read_csv(filename, encoding='utf-8', index_col=0)
+    df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
     df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
 
     if last_day is not None:
-        df = df[:last_day]
+        df = df[last_day:]
     if keywords is not None:
         pattern = '(?i)' + '|'.join(keywords)
         df = df[df['title'].str.contains(pattern) | df['summary'].str.contains(pattern)]
@@ -325,7 +322,7 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
         url = base_url + '&next_page={}'.format(str(next_page))
     if update:
         df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
-        df = df.loc[~df.index.duplicated(keep='last')]
+        df = df.drop_duplicates()
         df.to_csv(filename, encoding='utf-8')
 
 

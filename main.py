@@ -177,7 +177,7 @@ def get_price_data(con=None):
         path = folder + company.lower()
         fetch_intrinio_news(filename=path+'_news.csv', api_key=api_key, company=company, update=True)
         fetch_intrinio_prices(filename=path+'_prices.csv', api_key=api_key, company=company, update=True)
-    df, labels = load_data(folder, tradefreq, datafreq, keep_last=True)
+    df, labels = load_data(folder, tradefreq, datafreq, keep_last=False)
     return df, labels
 
 
@@ -304,9 +304,10 @@ if __name__ == "__main__":
     # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     # fetch_intrinio_data()
-    # df, labels = get_price_data()
-    # print(labels)
-    train_models()
+    df, labels = get_price_data()
+    yesterday = df.index.max()
+    print(df.loc[yesterday])
+    # train_models()
     # mega_backtest()
 
     # res = heart_beat()
