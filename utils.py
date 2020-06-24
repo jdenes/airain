@@ -51,7 +51,7 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             }
 
 
-def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
+def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False):
     """
     Given a data source, loads appropriate csv file.
     """
@@ -150,9 +150,9 @@ def load_data(folder, tradefreq=1, datafreq=1, subset=None, keep_last=False):
             res['ov_{}_mean_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
             res['ov_{}_std_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
 
-    if subset is not None:
-        res = res['2020-01-01':]
-        res = res[res['asset'] == subset[0]]
+    if start_from is not None:
+        res = res[start_from:]
+        # res = res[res['asset'] == subset[0]]
 
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
