@@ -38,7 +38,7 @@ target_col = 'close'
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV'] 
 performers = ['AAPL', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'PG', 'PFE', 'VZ', 'MRK',
-              'CSCO', 'HD', 'MCD', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'GS', 'UNH']
+              'CSCO', 'HD', 'MCD', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'GS', 'UNH']
 
 
 def fetch_intrinio_data():
@@ -116,7 +116,7 @@ def mega_backtest():
                     pl, gpl = 0, 0
                     # amount = int(balance * 3 / 100)
                     amount = initial_gamble
-                    amount = int(amount / now_open)
+                    amount = round(amount / now_open, 5)
 
                     # Step one: close former position if needed, else continue
                     if order['is_buy'] is not None:
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     # fetch_data()
     # fetch_intrinio_data()
     # train_models()
-    mega_backtest()
-    # get_next_preds()
+    # mega_backtest()
+    get_next_preds()
 
     # res = heart_beat()
