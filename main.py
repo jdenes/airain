@@ -17,7 +17,7 @@ tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
 h = 30
-initial_gamble = 1000
+initial_gamble = 100
 fees = 0.0
 tolerance = 0e-5  # 2
 epochs = 50
@@ -37,8 +37,8 @@ target_col = 'close'
 
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV'] 
-performers = ['AAPL', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'PG', 'PFE', 'VZ', 'MRK',
-              'CSCO', 'HD', 'MCD', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'GS', 'UNH']
+performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
+              'CSCO', 'HD', 'MMM', 'GE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH']
 
 
 def fetch_intrinio_data():
@@ -116,7 +116,7 @@ def mega_backtest():
                     pl, gpl = 0, 0
                     # amount = int(balance * 3 / 100)
                     amount = initial_gamble
-                    amount = round(amount / now_open, 5)
+                    amount = int(amount * 20 / now_open)
 
                     # Step one: close former position if needed, else continue
                     if order['is_buy'] is not None:
@@ -153,7 +153,8 @@ def mega_backtest():
             sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
 
             profits.append(profit)
-            print('Overall profit: {}. Correct buy: {}%. Proportion of hold: {}%.'.format(profit, buy_acc, no_trade))
+            print('Profit: {}. Correct buy: {}%. Correct sell: {}%. Holds: {}%.'.format(
+                  profit, buy_acc, sell_acc, no_trade))
             if do_plot:
                 nice_plot(index_list, [profit_list, benchmark], ['Profit evolution', 'Benchmark'],
                           title='Equity evolution for ' + str(asset[1]))
@@ -163,7 +164,7 @@ def mega_backtest():
     m_prof = round(sum(profits) / len(profits), 2)
     print('Average profit across assets: {}. Number of profitable assets: {}/{}.'.format(m_prof, n_pos, len(profits)))
     print('_' * 100, '\n')
-    # print([c for i, c in enumerate(companies) if profits[i] > 50])
+    # print([c for i, c in enumerate(companies) if profits[i] > 100])
 
 
 def decide_order(amount, fut_open, fut_close, pred):
@@ -174,7 +175,7 @@ def decide_order(amount, fut_open, fut_close, pred):
     # elif price is going down: sell
     # elif pred_ask < now_bid / (1 - tolerance):
     elif pred == 0:
-        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+        order = {'is_buy': False, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
     # else do nothing
     else:
         order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
@@ -197,30 +198,6 @@ def get_last_data(con=None):
     return df, labels
 
 
-def get_current_askbid(con):
-    data = con.get_prices('EUR/USD')
-    # t1 = dt.now()
-    # t1 = t1 + timedelta(hours=1) - timedelta(seconds=t1.second, microseconds=t1.microsecond)
-    # data = data.truncate(after=t1)
-    # print(data.index[0])
-    data = data.tail(n=1).mean(axis=0)
-    now_ask = data['Ask']
-    now_bid = data['Bid']
-    return now_ask, now_bid
-
-
-def get_balance(con):
-    data = con.get_accounts()
-    data = data[data['accountId'] == account_id]
-    return data['balance'].values[0]
-
-
-def trade(con, order, amount):
-    is_buy = order['is_buy']
-    if is_buy is not None:
-        con.open_trade(symbol='EUR/USD', is_buy=is_buy, amount=amount, time_in_force='GTC', order_type='AtMarket')
-
-
 def get_next_preds():
     now = time.time()
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
@@ -229,10 +206,19 @@ def get_next_preds():
     df = df.loc[yesterday]
     X, P, _, _ = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
+    res = {'date': yesterday}
     print('On {}, predictions for next day are:'.format(yesterday))
     for i, pred in enumerate(preds):
-        print('{:<5s}: {}'.format(companies[i], pred))
-    print('Inference took {} sec'.format(round(time.time()-now)))
+        if companies[i] in performers:
+            res[companies[i]] = pred
+            print('{:<5s}: {}'.format(companies[i], pred))
+    path = './resources/recommendations.csv'
+    res = pd.DataFrame([res]).set_index('date', drop=True)
+    df = pd.read_csv(path, encoding='utf-8', index_col=0)
+    df = pd.concat([df, res], axis=0)
+    df = df.loc[~df.index.duplicated(keep='last')]
+    df.to_csv(path, encoding='utf-8')
+    print('Inference took {} seconds.'.format(round(time.time()-now)))
 
 
 if __name__ == "__main__":
