@@ -47,7 +47,7 @@ class Trader(object):
         self.P_test = None
         self.y_test = None
         
-        self.t1, self.t2 = '2019-09-01', '2020-01-01'
+        self.t1, self.t2 = '2020-01-01', '2020-04-01'
 
         if load_from is not None:
             self.load(model_name=load_from)

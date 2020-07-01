@@ -56,7 +56,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
     Given a data source, loads appropriate csv file.
     """
 
-    t1 = '2019-06-03'
+    t1 = '2020-01-02'
     res = pd.DataFrame()
 
     for number, asset in enumerate(keywords.keys()):
@@ -143,7 +143,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
         res = pd.concat([res, df], axis=0)
 
     # Computing overall aggregate features
-    res = res.sort_index()
+    res = res.rename_axis('date').sort_values(['date', 'asset'])
     i = res.index.get_loc(t1).stop
     for period in ['year', 'day', 'wday']:
         for col in ['labels', 'volume']:
@@ -156,7 +156,6 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
 
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
-
     if keep_last:
         index = pd.notnull(res).all(1)
     else:
@@ -401,34 +400,29 @@ def nice_plot(ind, curves_list, names_list, title):
     plt.rcParams['font.family'] = 'Lato'
     plt.rcParams['font.sans-serif'] = 'Lato'
     plt.rcParams['font.weight'] = 500
-    # plt.locator_params(axis='x', nbins=xbins)
     from datetime import datetime
     ind = [datetime.strptime(x, '%Y-%m-%d') for x in ind]
     formatter = dates.DateFormatter('%d/%m/%Y')
-
     fig, ax = plt.subplots(figsize=(13, 7))
-    colors = ['green', 'red', 'orange']
     for i, x in enumerate(curves_list):
-        c_list = ['gray']
-        for j in range(len(x) - 1):
-            start, stop = x[j], x[j + 1]
-            color = colors[0 if stop - start > 0 else 1 if stop - start < 0 else 2]
-            c_list.append(color)
-            ax.plot([ind[j], ind[j + 1]], [start, stop], linewidth=2, color=color)
-            # ax.fill_between([ind[j], ind[j+1]], [start, stop], alpha=0.2, color=color)
-        for j in range(len(x)):
-            ax.plot(ind[j], x[j], '.', color=c_list[j])
-        # pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names_list[i], style='.-')
-    # ax.set_xticklabels(ind)
+        # c_list = ['gray']
+        # for j in range(len(x) - 1):
+        #     start, stop = x[j], x[j + 1]
+        #     color = ['green', 'red', 'orange'][0 if stop - start > 0 else 1 if stop - start < 0 else 2]
+        #     c_list.append(color)
+        #     ax.plot([ind[j], ind[j + 1]], [start, stop], linewidth=2, color=color)
+        #     # ax.fill_between([ind[j], ind[j+1]], [start, stop], alpha=0.2, color=color)
+        # for j in range(len(x)):
+        #     ax.plot(ind[j], x[j], '.', color=c_list[j])
+        pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names_list[i], style='.-')
     ax.tick_params(labelsize=12)
-    ax.xaxis.set_major_formatter(formatter)
-    # ax.set_xticklabels([item.get_text() for item in ax.get_xticklabels()])  # item.get_text()[5:-3]
+    # ax.xaxis.set_major_formatter(formatter)
     ax.spines['right'].set_edgecolor('lightgray')
     ax.spines['top'].set_edgecolor('lightgray')
     ax.set_ylabel('')
     ax.set_xlabel('')
     plt.title(title, fontweight=500, fontsize=25, loc='left')
-    # plt.legend(loc='upper left', fontsize=15)
+    plt.legend(loc='upper left', fontsize=15)
     plt.grid(alpha=0.3)
     # plt.savefig(path, bbox_inches='tight',format="png", dpi=300, transparent=True)
     plt.show()

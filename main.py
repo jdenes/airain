@@ -17,7 +17,7 @@ tradefreq = 1
 f, tf = str(datafreq), str(tradefreq)
 lag = 0
 h = 30
-initial_gamble = 100
+initial_gamble = 2000
 fees = 0.0
 tolerance = 0e-5  # 2
 epochs = 50
@@ -37,8 +37,7 @@ target_col = 'close'
 
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV'] 
-performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
-              'CSCO', 'HD', 'MMM', 'GE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH']
+performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS', 'TRV']
 
 
 def fetch_intrinio_data():
@@ -62,7 +61,7 @@ def fetch_data():
 
 def train_models():
     print('Training model...')
-    trader = LstmTrader(h=h, normalize=True)
+    trader = LstmTrader(h=h, normalize=False)
     
     # filename = './data/dataset_{}_train_{}{}.csv'.format(c, unit, f)
     banks = [f[:-4] for f in os.listdir('./data/finance/') if f.endswith('.csv')]
@@ -76,14 +75,13 @@ def train_models():
     trader.save(model_name='Huorn askopen NOW' + tf)
 
 
-def mega_backtest():
+def mega_backtest(plot=False):
 
     print('_' * 100, '\n')
     print('Initializing backtest...')
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    ov_df, ov_labels = load_data('./data/intrinio/', tradefreq, datafreq, start_from='2020-01-01')
+    ov_df, ov_labels = load_data('./data/intrinio/', tradefreq, datafreq, start_from='2020-04-01')
     profits = []
-    do_plot = False
 
     for asset in enumerate(companies):
         if asset[1] in performers:
@@ -92,8 +90,6 @@ def mega_backtest():
 
             buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
             index_list, profit_list, benchmark = [], [], []
-            order = {'is_buy': None}
-            count = 1
             balance = bench_balance = initial_gamble
 
             df, labels = ov_df[ov_df['asset'] == asset[0]], ov_labels[ov_df['asset'] == asset[0]]
@@ -106,84 +102,105 @@ def mega_backtest():
             from sklearn.metrics import classification_report
             print(classification_report(y_true, y_pred, digits=4))
 
-            for i in range(lag, len(df)-1):
+            for i in range(lag, len(df)):
 
-                j, k = ind[i], ind[i+1]
+                j = ind[i]
                 if dt.strptime(j, '%Y-%m-%d').minute % tradefreq == 0:
 
-                    now_close, now_open = df.loc[j]['close'], df.loc[j]['open']
-                    fut_close, fut_open = df.loc[k]['close'], df.loc[k]['open']
+                    open, close = df.loc[j]['open'], df.loc[j]['close'],
                     pl, gpl = 0, 0
-                    # amount = int(balance * 3 / 100)
+                    # quantity = int(balance * 3 / 100)
                     amount = initial_gamble
-                    amount = int(amount * 20 / now_open)
+                    quantity = int(amount * 20 / open)
 
-                    # Step one: close former position if needed, else continue
+                    # Step 1 (morning) : decide what to do today and open position
+                    pred = preds[i - lag]
+                    label = labels[ind[i - lag]]
+                    order = decide_order(quantity, open, pred, j)
+
+                    # Step 2 (evening): close position
                     if order['is_buy'] is not None:
                         if order['is_buy']:
-                            pl = round((now_close - order['open']) * order['amount'], 5)
-                            # gpl = gross_pl(pl, amount, now_close)
+                            pl = round((close - order['open']) * order['quantity'], 2)
+                            # gpl = gross_pl(pl, quantity, now_close)
                             buy_correct += int(pl > 0)
                             buy += 1
                         else:
-                            pl = round((order['open'] - now_close) * order['amount'], 5)
-                            # gpl = gross_pl(pl, amount, now_close)
+                            pl = round((order['open'] - close) * order['quantity'], 2)
+                            # gpl = gross_pl(pl, quantity, now_close)
                             sell_correct += int(pl > 0)
                             sell += 1
                     else:
                         do_nothing += 1
 
-                    # Step one bis: compute metrics and stuff
+                    # Step 3 bis: compute metrics and stuff
                     balance = round(balance + pl, 2)
                     profit_list.append(balance)
-                    if count > 1:
-                        bench_balance = round(bench_balance + (now_close - order['open']) * amount, 2)
+                    bench_balance = round(bench_balance + (close - order['open']) * quantity, 2)
                     benchmark.append(bench_balance)
                     index_list.append(ind[i])
-                    count += 1
-
-                    # Step two: decide what to do next
-                    pred = preds[i - lag]
-                    label = labels[ind[i - lag]]
-                    order = decide_order(amount, fut_open, fut_close, pred)
 
             profit = round(balance - initial_gamble, 2)
+            bench = round(bench_balance - initial_gamble, 2)
             no_trade = round(100 * do_nothing / len(index_list), 2)
             buy_acc = round(100 * buy_correct / buy, 2) if buy != 0 else 'NA'
             sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
 
             profits.append(profit)
-            print('Profit: {}. Correct buy: {}%. Correct sell: {}%. Holds: {}%.'.format(
-                  profit, buy_acc, sell_acc, no_trade))
-            if do_plot:
-                nice_plot(index_list, [profit_list, benchmark], ['Profit evolution', 'Benchmark'],
-                          title='Equity evolution for ' + str(asset[1]))
+            print('Profit: {}. Bench: {}. Correct buy: {}%. Correct sell: {}%. Holds: {}%.'.format(
+                  profit, bench, buy_acc, sell_acc, no_trade))
+            if plot:
+                nice_plot(index_list, [profit_list, benchmark], ['Algorithm', 'Benchmark'],
+                          title='Profit evolution for ' + str(asset[1]))
 
     print('_' * 100, '\n')
     n_pos = len([x for x in profits if x > 0])
     m_prof = round(sum(profits) / len(profits), 2)
     print('Average profit across assets: {}. Number of profitable assets: {}/{}.'.format(m_prof, n_pos, len(profits)))
     print('_' * 100, '\n')
-    # print([c for i, c in enumerate(companies) if profits[i] > 100])
+    # print([co for i, co in enumerate(companies) if profits[i] > initial_gamble/2])
 
 
-def decide_order(amount, fut_open, fut_close, pred):
+def decide_order(quantity, open, pred, date):
     # if price is going up: buy
     # if pred_bid > (1 - tolerance) * now_ask:
     if pred == 1:
-        order = {'is_buy': True, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+        order = {'is_buy': True, 'open': open, 'quantity': quantity, 'date': date}
     # elif price is going down: sell
     # elif pred_ask < now_bid / (1 - tolerance):
     elif pred == 0:
-        order = {'is_buy': False, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+        order = {'is_buy': False, 'open': open, 'quantity': quantity, 'date': date}
     # else do nothing
     else:
-        order = {'is_buy': None, 'open': fut_open, 'exp_close': fut_close, 'amount': amount}
+        order = {'is_buy': None, 'open': open, 'quantity': quantity, 'date': date}
     return order
 
 
 def gross_pl(pl, K, price):
     return round((K / 10) * pl * (1 / price), 2)
+
+
+def get_yesterday_accuracy():
+    print('_' * 100, '\n')
+    folder = './data/intrinio/'
+    df, _ = load_data(folder, tradefreq, datafreq)
+    labels = df['close'].shift(-tradefreq) - df['open'].shift(-tradefreq)
+    recommendation = pd.read_csv('./resources/recommendations.csv', encoding='utf-8', index_col=0)
+    col_names = recommendation.columns
+    ind = df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])
+    df, labels = df[ind], labels[ind]
+    recommendation = recommendation.iloc[-1].reset_index(drop=True)
+    labels = labels.loc[recommendation.name].reset_index(drop=True)
+    df = df.loc[recommendation.name].reset_index(drop=True)
+    quantity = (initial_gamble * 20 / df['open']).floor()
+    print("Correctness of yesterday's predictions ({}):".format(recommendation.name))
+    print('_' * 100, '\n')
+    res = (recommendation == (labels > 0))
+    res_1 = (2 * recommendation - 1) * quantity * labels
+    for i, x in enumerate(res_1):
+        print('{:<5s} | Quantity: {:.0f}. Profit: {:.2f}'.format(col_names[i], quantity[i], x))
+    print('_' * 100, '\n')
+    print('Accuracy was {:.2f}%. Profit was {:.2f}.'.format(100 * res.mean(), res_1.sum()))
 
 
 def get_last_data(con=None):
@@ -204,7 +221,7 @@ def get_next_preds():
     df, labels = get_last_data()
     yesterday = df.index.max()
     df = df.loc[yesterday]
-    X, P, _, _ = trader.transform_data(df, labels, get_index=True)
+    X, P, _, ind = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
     res = {'date': yesterday}
     print('On {}, predictions for next day are:'.format(yesterday))
@@ -222,11 +239,9 @@ def get_next_preds():
 
 
 if __name__ == "__main__":
-    # fetch_currency_rate('./data/dataset_eurgbp.csv', 'EUR', 'GBP', 5, alpha_key)
     # fetch_data()
     # fetch_intrinio_data()
     # train_models()
-    # mega_backtest()
+    # mega_backtest(plot=False)
     get_next_preds()
-
-    # res = heart_beat()
+    # get_yesterday_accuracy()
