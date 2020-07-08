@@ -37,7 +37,7 @@ target_col = 'close'
 
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV'] 
-performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS', 'TRV']
+performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
 
 
 def fetch_intrinio_data():
@@ -192,13 +192,14 @@ def get_yesterday_accuracy():
     recommendation = recommendation.iloc[-1].reset_index(drop=True)
     labels = labels.loc[recommendation.name].reset_index(drop=True)
     df = df.loc[recommendation.name].reset_index(drop=True)
-    quantity = (initial_gamble * 20 / df['open']).floor()
+    quantity = (initial_gamble * 20 / df['open']).round()
     print("Correctness of yesterday's predictions ({}):".format(recommendation.name))
     print('_' * 100, '\n')
     res = (recommendation == (labels > 0))
     res_1 = (2 * recommendation - 1) * quantity * labels
     for i, x in enumerate(res_1):
-        print('{:<5s} | Quantity: {:.0f}. Profit: {:.2f}'.format(col_names[i], quantity[i], x))
+        print('{:<5s} | Quantity: {:.0f}. Profit: {:.2f}. Open: {}, Close: {}'.format(
+              col_names[i], quantity[i], x, df['open'][i], df['close'][i]))
     print('_' * 100, '\n')
     print('Accuracy was {:.2f}%. Profit was {:.2f}.'.format(100 * res.mean(), res_1.sum()))
 
@@ -224,11 +225,12 @@ def get_next_preds():
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
     res = {'date': yesterday}
+    quantity = (initial_gamble * 20 / df['close']).round()
     print('On {}, predictions for next day are:'.format(yesterday))
     for i, pred in enumerate(preds):
         if companies[i] in performers:
             res[companies[i]] = pred
-            print('{:<5s}: {}'.format(companies[i], pred))
+            print('{:<5s}: {}, quantity: {:.0f}'.format(companies[i], pred, quantity[i]))
     path = './resources/recommendations.csv'
     res = pd.DataFrame([res]).set_index('date', drop=True)
     df = pd.read_csv(path, encoding='utf-8', index_col=0)
