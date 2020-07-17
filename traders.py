@@ -52,7 +52,7 @@ class Trader(object):
         if load_from is not None:
             self.load(model_name=load_from)
 
-    def transform_data(self, df, prices, labels, get_index=False, keep_last=False):
+    def transform_data(self, df, labels, get_index=False, keep_last=False):
         """
         Converts dataframe file to appropriate data format for this agent type.
         """
@@ -78,21 +78,26 @@ class Trader(object):
         Once model is trained, uses test data to output performance metrics.
         """
 
-        y_train, y_test = self.y_train, self.y_test
+        y_train, y_val, y_test = self.y_train, self.y_val, self.y_test
         # if self.normalize:
         #     y_train = unnormalize_data(y_train, self.y_max, self.y_min)
         #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
         print("Performance metrics on train...")
-        y_mean = (self.y_train > 0).mean()
         # self.model.evaluate({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train)
         y_pred = self.predict(self.X_train, self.P_train)
         print(classification_report(y_train, y_pred, digits=4))
         # print(tf.math.confusion_matrix(self.y_train, y_pred))
         # print(compute_metrics(y_train, y_pred))
 
+        print("Performance metrics on val...")
+        # self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
+        y_pred = self.predict(self.X_val, self.P_val)
+        print(classification_report(y_val, y_pred, digits=4))
+        # print(tf.math.confusion_matrix(self.y_test, y_pred))
+        # print(compute_metrics(y_test, y_pred))
+
         print("Performance metrics on test...")
-        y_mean = (self.y_test > 0).mean()
         # self.model.evaluate({'input_X': self.X_test, 'input_P': self.P_test}, self.y_test)
         y_pred = self.predict(self.X_test, self.P_test)
         print(classification_report(y_test, y_pred, digits=4))
@@ -131,7 +136,7 @@ class Trader(object):
         """
         Given parameters, decides what to do at next steps based on predictive model.
         """
-        X, _, ind = self.transform_data(df, prices, labels, get_index=True)
+        X, _, ind = self.transform_data(df, labels, get_index=True)
         current_price = prices[ind].to_numpy()
         y_pred = self.predict(X, prices)
         print(compute_metrics(current_price[shift:], y_pred[:-shift]))
@@ -175,8 +180,8 @@ class Trader(object):
         """
         Predicts next value and consequently next optimal portfolio.
         """
-        X, _, _ = self.transform_data(df, prices, labels, get_index=True, keep_last=True)
-        y_pred = self.predict(X, prices)
+        X, P, _ = self.transform_data(df, labels, get_index=True, keep_last=True)
+        y_pred = self.predict(X, P)
 
         return y_pred[-1]
 
@@ -278,7 +283,7 @@ class LstmTrader(Trader):
         df, labels = df.to_numpy(), labels.to_numpy()
         X, P, y, ind = [], [], [], []
 
-        for i in range(len(df)): # range(self.h-1, len(df)):
+        for i in range(len(df)):  # range(self.h-1, len(df))
             # indx = [int(i - self.h + x + 1) for x in range(self.h)]
             # X.append(df[indx])
             P.append(df[i])
@@ -286,7 +291,6 @@ class LstmTrader(Trader):
             ind.append(index[i])
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
-        # X = np.stack((X,) * 3, axis=-1)
         # y = y.reshape((len(y), 1))
         # y = to_categorical(y)
         P = pd.DataFrame(P, columns=colnames)
@@ -360,10 +364,8 @@ class LstmTrader(Trader):
         # print('Equality of consecutive labels: {}'.format((self.y_train[1:] == self.y_train[:-1]).mean()))
         print('_' * 100, '\n')
 
-        # train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train},
-        #                                                  self.y_train))
+        # train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
         # train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
-        #
         # val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         # val_data = val_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
@@ -392,42 +394,24 @@ class LstmTrader(Trader):
         # class_weight = {}
         # for i, l in enumerate(labels):
         #     class_weight[int(l)] = (1 / count[i]) * len(self.y_train) / len(labels)
-        #
+
         # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        # embed_layer = tf.keras.layers.Embedding(input_dim=35, output_dim=10, trainable=True)(price_layer)
-        # reshape_layer = tf.keras.layers.Flatten()(embed_layer)
-        # drop0_layer = tf.keras.layers.Dropout(0.1, name='dropout_0')(reshape_layer)
-        # comp_layer = tf.keras.layers.Dense(20, name='price_dense')(drop0_layer)
-        #
-        # bilstm_layer = tf.keras.layers.LSTM(164, name='bilstm')(input_layer)
-        # # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
-        # drop1_layer = tf.keras.layers.Dropout(0.1, name='dropout_1')(bilstm_layer)
-        #
-        # concat_layer = tf.keras.layers.concatenate([drop1_layer, comp_layer], name='concat')
+
+        # lstm_layer = tf.keras.layers.LSTM(164, name='lstm')(input_layer)
+        # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
+        # drop1_layer = tf.keras.layers.Dropout(0.1, name='dropout_1')(lstm_layer)
+
+        # concat_layer = tf.keras.layers.concatenate([lstm_layer, price_layer], name='concat')
         # dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
         # drop2_layer = tf.keras.layers.Dropout(0.1, name='dropout_2')(dense_layer)
-        # # output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
-        #
-        # # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
-        # # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        # # conv1 = tf.keras.layers.Conv2D(30, name='conv1', kernel_size=2)(input_layer)
-        # # conv2 = tf.keras.layers.Conv2D(10, name='conv2', kernel_size=2)(conv1)
-        # # flatt = tf.keras.layers.Flatten()(conv2)
-        # # # comp_layer = tf.keras.layers.Dense(2, activation='softsign', name='price_dense')(price_layer)
-        # # # concat_layer = tf.keras.layers.concatenate([lstm_layer, comp_layer], name='concat')
-        # # dense_layer = tf.keras.layers.Dense(100, activation='relu', name='combine')(flatt)
-        # output_layer = tf.keras.layers.Dense(1, name='output')(drop2_layer)
-        #
+        # output_layer = tf.keras.layers.Dense(2, name='output')(drop2_layer)
         # self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         # print(self.model.summary())
-        #
-        # self.model.compile(optimizer='adam', loss='mae', metrics=[self.change_accuracy, self.sigma])
-        # # self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy', self.sigma])
-        #
-        # checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5',
-        #                                                 monitor='val_loss', save_best_only=True)
-        #
+
+        # self.model.compile(optimizer='adam', loss='mae')
+        # self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        # checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5', monitor='val_loss', save_best_only=True)
         # self.model.fit(train_data,
         #                epochs=self.epochs,
         #                steps_per_epoch=self.steps,

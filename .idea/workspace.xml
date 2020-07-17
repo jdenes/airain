@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Added random simulation">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -164,7 +167,12 @@
       <workItem from="1593117788204" duration="57000" />
       <workItem from="1593157723080" duration="10467000" />
       <workItem from="1593432253903" duration="31755000" />
-      <workItem from="1593680500649" duration="15191000" />
+      <workItem from="1593680500649" duration="18321000" />
+      <workItem from="1594624882757" duration="15981000" />
+      <workItem from="1594670554341" duration="820000" />
+      <workItem from="1594722724885" duration="2750000" />
+      <workItem from="1594764596614" duration="2192000" />
+      <workItem from="1594806304173" duration="25687000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -187,43 +195,64 @@
       <option name="project" value="LOCAL" />
       <updated>1580901446795</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Better recommendation interface">
+      <created>1594223516933</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1594223516933</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Improved code indus for MlTraders" />
     <MESSAGE value="Improved data fetching + test with EUR-GBP" />
     <MESSAGE value="Added random simulation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added random simulation" />
+    <MESSAGE value="Better recommendation interface" />
+    <option name="LAST_COMMIT_MESSAGE" value="Better recommendation interface" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="265" y="0" key="CommitChangelistDialog2" timestamp="1592994238765">
+    <state x="265" y="0" key="CommitChangelistDialog2" timestamp="1594223515983">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state x="265" y="0" key="CommitChangelistDialog2/0.0.1280.720@0.0.1280.720" timestamp="1592994238765" />
-    <state width="1237" height="221" key="GridCell.Tab.0.bottom" timestamp="1594221405413">
+    <state x="265" y="0" key="CommitChangelistDialog2/0.0.1280.720@0.0.1280.720" timestamp="1594223515983" />
+    <state width="1237" height="206" key="GridCell.Tab.0.bottom" timestamp="1594973171868">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="280" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1593771378512" />
-    <state width="1237" height="221" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1594221405413" />
-    <state width="1237" height="221" key="GridCell.Tab.0.center" timestamp="1594221405413">
+    <state width="1237" height="206" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1594909757209" />
+    <state width="1237" height="206" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1594973171868" />
+    <state width="1237" height="206" key="GridCell.Tab.0.center" timestamp="1594973171868">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="280" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1593771378512" />
-    <state width="1237" height="221" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1594221405413" />
-    <state width="1237" height="221" key="GridCell.Tab.0.left" timestamp="1594221405413">
+    <state width="1237" height="206" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1594909757209" />
+    <state width="1237" height="206" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1594973171868" />
+    <state width="1237" height="206" key="GridCell.Tab.0.left" timestamp="1594973171868">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="280" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1593771378512" />
-    <state width="1237" height="221" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1594221405413" />
-    <state width="1237" height="221" key="GridCell.Tab.0.right" timestamp="1594221405413">
+    <state width="1237" height="206" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1594909757209" />
+    <state width="1237" height="206" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1594973171868" />
+    <state width="1237" height="206" key="GridCell.Tab.0.right" timestamp="1594973171868">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="280" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1593771378512" />
-    <state width="1237" height="221" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1594221405413" />
+    <state width="1237" height="206" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1594909757209" />
+    <state width="1237" height="206" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1594973171868" />
     <state width="498" height="446" key="SwitcherDM" timestamp="1593162975546">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -231,6 +260,6 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/currotrade$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1594221405413" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1594973171853" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

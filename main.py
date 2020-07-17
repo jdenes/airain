@@ -184,24 +184,27 @@ def get_yesterday_accuracy():
     print('_' * 100, '\n')
     folder = './data/intrinio/'
     df, _ = load_data(folder, tradefreq, datafreq)
-    labels = df['close'].shift(-tradefreq) - df['open'].shift(-tradefreq)
-    recommendation = pd.read_csv('./resources/recommendations.csv', encoding='utf-8', index_col=0)
-    col_names = recommendation.columns
+    reco = pd.read_csv('./resources/recommendations.csv', encoding='utf-8', index_col=0)
+    col_names = reco.columns
     ind = df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])
-    df, labels = df[ind], labels[ind]
-    recommendation = recommendation.iloc[-1].reset_index(drop=True)
-    labels = labels.loc[recommendation.name].reset_index(drop=True)
-    df = df.loc[recommendation.name].reset_index(drop=True)
-    quantity = (initial_gamble * 20 / df['open']).round()
-    print("Correctness of yesterday's predictions ({}):".format(recommendation.name))
+    df = df[ind]
+    date = reco.iloc[-1].name
+    reco = reco.iloc[-2].reset_index(drop=True)
+    df = df.loc[date].reset_index(drop=True)
+    labels = df['close'] > df['open']
+    quantity = (initial_gamble * 20 / df['open']).astype(int)
+    print("Correctness of yesterday's predictions")
+    print("Computed with data from {}, traded on {}.".format(reco.name, date))
     print('_' * 100, '\n')
-    res = (recommendation == (labels > 0))
-    res_1 = (2 * recommendation - 1) * quantity * labels
-    for i, x in enumerate(res_1):
-        print('{:<5s} | Quantity: {:.0f}. Profit: {:.2f}. Open: {}, Close: {}'.format(
-              col_names[i], quantity[i], x, df['open'][i], df['close'][i]))
+    accuracy = (reco == labels)
+    profits = (2 * reco - 1) * (df['close'] - df['open']) * quantity
+    print('Asset | Quantity | Reco | Profit/Loss |    Open |   Close')
+    print('-'*57)
+    for i, x in enumerate(profits):
+        print('{:5s} | {:8d} | {:4d} | {:11.2f} | {:7.2f} | {:7.2f}'.format(
+              col_names[i], quantity[i], reco[i], x, df['open'][i], df['close'][i]))
     print('_' * 100, '\n')
-    print('Accuracy was {:.2f}%. Profit was {:.2f}.'.format(100 * res.mean(), res_1.sum()))
+    print('Accuracy was {:.2f}%. Total P/L was {:.2f}.'.format(100 * accuracy.mean(), profits.sum()))
 
 
 def get_last_data(con=None):
@@ -246,4 +249,4 @@ if __name__ == "__main__":
     # train_models()
     # mega_backtest(plot=False)
     get_next_preds()
-    # get_yesterday_accuracy()
+    get_yesterday_accuracy()

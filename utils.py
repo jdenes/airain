@@ -107,6 +107,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
         time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year
         df['month'] = time_index.month - 1
+        df['quarter'] = df['month'] // 3
         df['day'] = time_index.day - 1
         df['wday'] = time_index.weekday - 1
         # df['hour'] = time_index.hour
@@ -133,7 +134,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())  # .transform('std')
 
-        for period in ['year', 'day', 'wday']:  # , 'month', 'hour', 'minute']:
+        for period in ['year', 'month', 'day', 'wday']:  # 'hour', 'minute'
             for col in ['labels', 'volume', askcol, bidcol]:
                 df[period + '_mean_' + col] = df.groupby(period)[col].transform(
                     lambda x: x.iloc[:i].mean())  # .transform('mean')
