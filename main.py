@@ -35,14 +35,18 @@ api_key = config['INTRINIO']['access_token']
 
 target_col = 'close'
 
+# Removed UTX
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
-             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'UTX', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV'] 
+             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV']
+leverages = {'AAPL': 20, 'XOM': 20, 'KO': 20, 'INTC': 10, 'WMT': 10, 'MSFT': 20, 'IBM': 20, 'CVX': 20, 'JNJ': 10,
+             'PG': 20, 'PFE': 20, 'VZ': 10, 'BA': 20, 'MRK': 10, 'CSCO': 20, 'HD': 20, 'MCD': 20, 'MMM': 20,
+             'GE': 10, 'NKE': 20, 'CAT': 20, 'V': 20, 'JPM': 20, 'AXP': 20, 'GS': 20, 'UNH': 20, 'TRV': 20}
 performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
 
 
 def fetch_intrinio_data():
     for company in companies:
-        print('Fetching {} data...'.format(company))    
+        print('Fetching {} data...'.format(company))
         path = './data/intrinio/{}'.format(company.lower())
         fetch_intrinio_news(filename=path+'_news.csv', api_key=api_key, company=company)
         fetch_intrinio_prices(filename=path+'_prices.csv', api_key=api_key, company=company)
@@ -182,21 +186,20 @@ def gross_pl(pl, K, price):
 
 def get_yesterday_accuracy():
     print('_' * 100, '\n')
+    print("Correctness of yesterday's predictions")
     folder = './data/intrinio/'
     df, _ = load_data(folder, tradefreq, datafreq)
     reco = pd.read_csv('./resources/recommendations.csv', encoding='utf-8', index_col=0)
     col_names = reco.columns
-    ind = df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])
-    df = df[ind]
+    df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])]
     date = reco.iloc[-1].name
     reco = reco.iloc[-2].reset_index(drop=True)
     df = df.loc[date].reset_index(drop=True)
-    labels = df['close'] > df['open']
-    quantity = (initial_gamble * 20 / df['open']).astype(int)
-    print("Correctness of yesterday's predictions")
+    lev = pd.Series([leverages[co] for co in col_names])
+    quantity = (initial_gamble * lev / df['open']).astype(int)
     print("Computed with data from {}, traded on {}.".format(reco.name, date))
     print('_' * 100, '\n')
-    accuracy = (reco == labels)
+    accuracy = (reco == (df['close'] > df['open']))
     profits = (2 * reco - 1) * (df['close'] - df['open']) * quantity
     print('Asset | Quantity | Reco | Profit/Loss |    Open |   Close')
     print('-'*57)
@@ -220,20 +223,25 @@ def get_last_data(con=None):
 
 
 def get_next_preds():
+    print('_' * 100, '\n')
     now = time.time()
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
     df, labels = get_last_data()
     yesterday = df.index.max()
-    df = df.loc[yesterday]
+    df = df.loc[yesterday].reset_index(drop=True)
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
     res = {'date': yesterday}
-    quantity = (initial_gamble * 20 / df['close']).round()
+    lev = pd.Series([leverages[co] for co in companies])
+    quantity = (initial_gamble * lev / df['close']).astype(int)
     print('On {}, predictions for next day are:'.format(yesterday))
+    print('_' * 100, '\n')
+    print('Asset | Quantity | Reco')
+    print('-'*24)
     for i, pred in enumerate(preds):
         if companies[i] in performers:
             res[companies[i]] = pred
-            print('{:<5s}: {}, quantity: {:.0f}'.format(companies[i], pred, quantity[i]))
+            print('{:5s} | {:8d} | {:4d}'.format(companies[i], quantity[i], pred))
     path = './resources/recommendations.csv'
     res = pd.DataFrame([res]).set_index('date', drop=True)
     df = pd.read_csv(path, encoding='utf-8', index_col=0)
@@ -244,9 +252,8 @@ def get_next_preds():
 
 
 if __name__ == "__main__":
-    # fetch_data()
     # fetch_intrinio_data()
-    # train_models()
+    train_models()
     # mega_backtest(plot=False)
-    get_next_preds()
-    get_yesterday_accuracy()
+    # get_next_preds()
+    # get_yesterday_accuracy()

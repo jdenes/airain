@@ -141,6 +141,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(
                     lambda x: x.iloc[:i].std())  # .transform('std')
 
+        # essayer Kalman Filter
         res = pd.concat([res, df], axis=0)
 
     # Computing overall aggregate features
