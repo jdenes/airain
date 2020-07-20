@@ -8,6 +8,7 @@ from datetime import datetime as dt
 from tqdm import tqdm
 
 from traders import LstmTrader
+from api_emulator import Emulator
 from utils import fetch_fxcm_data, fetch_intrinio_news, fetch_intrinio_prices, merge_finance_csv
 from utils import load_data, nice_plot, change_accuracy, normalize_data
 
@@ -26,12 +27,15 @@ curr = 'EUR/USD'
 c = 'eurusd'
 
 config = configparser.ConfigParser()
-config.read('./resources/alphavantage.cfg')
-api_key = config['ALPHAVANTAGE']['access_token']
+# config.read('./resources/alphavantage.cfg')
+# api_key = config['ALPHAVANTAGE']['access_token']
 config.read('./resources/fxcm.cfg')
 account_id = config['FXCM']['account_id']
 config.read('./resources/intrinio.cfg')
 api_key = config['INTRINIO']['access_token']
+config.read('./resources/trading212.cfg')
+user_name = config['TRADING212']['user_name']
+pwd = config['TRADING212']['password']
 
 target_col = 'close'
 
@@ -115,7 +119,7 @@ def mega_backtest(plot=False):
                     pl, gpl = 0, 0
                     # quantity = int(balance * 3 / 100)
                     amount = initial_gamble
-                    quantity = int(amount * 20 / open)
+                    quantity = int(amount * leverages[asset[1]] / open)
 
                     # Step 1 (morning) : decide what to do today and open position
                     pred = preds[i - lag]
@@ -253,7 +257,8 @@ def get_next_preds():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    train_models()
-    # mega_backtest(plot=False)
+    # train_models()
+    # mega_backtest(plot=True)
     # get_next_preds()
     # get_yesterday_accuracy()
+    emulator = Emulator(user_name, pwd)
