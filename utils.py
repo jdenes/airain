@@ -51,7 +51,7 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             }
 
 
-def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False):
+def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=False):
     """
     Given a data source, loads appropriate csv file.
     """
@@ -80,7 +80,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
             embed.to_csv(path, encoding='utf-8')
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-            if keep_last:
+            if update_embed:
                 last_embed = embed.index.max()
                 embed = load_news(asset, keywords[asset], last_day=last_embed)
                 embed.to_csv(path, encoding='utf-8', mode='a', header=False)
@@ -158,7 +158,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, keep_last=False)
 
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
-    if keep_last:
+    if update_embed:
         index = pd.notnull(res).all(1)
     else:
         index = pd.notnull(res).all(1) & pd.notnull(labels)

@@ -124,7 +124,7 @@ def mega_backtest(plot=False):
                     # Step 1 (morning) : decide what to do today and open position
                     pred = preds[i - lag]
                     label = labels[ind[i - lag]]
-                    order = decide_order(quantity, open, pred, j)
+                    order = decide_order(asset[1], quantity, open, pred, j)
 
                     # Step 2 (evening): close position
                     if order['is_buy'] is not None:
@@ -169,18 +169,18 @@ def mega_backtest(plot=False):
     # print([co for i, co in enumerate(companies) if profits[i] > initial_gamble/2])
 
 
-def decide_order(quantity, open, pred, date):
+def decide_order(asset, quantity, open, pred, date):
     # if price is going up: buy
     # if pred_bid > (1 - tolerance) * now_ask:
     if pred == 1:
-        order = {'is_buy': True, 'open': open, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': True, 'open': open, 'quantity': quantity, 'date': date}
     # elif price is going down: sell
     # elif pred_ask < now_bid / (1 - tolerance):
     elif pred == 0:
-        order = {'is_buy': False, 'open': open, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': False, 'open': open, 'quantity': quantity, 'date': date}
     # else do nothing
     else:
-        order = {'is_buy': None, 'open': open, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': None, 'open': open, 'quantity': quantity, 'date': date}
     return order
 
 
@@ -214,28 +214,26 @@ def get_yesterday_accuracy():
     print('Accuracy was {:.2f}%. Total P/L was {:.2f}.'.format(100 * accuracy.mean(), profits.sum()))
 
 
-def get_last_data(con=None):
-    # fetch_fxcm_data('./data/dataset_' + c + '_now_' + f + '.csv', curr=curr, freq=datafreq, con=con, n_last=30)
+def update_data():
     folder = './data/intrinio/'
     for company in companies:
         print('Fetching most recent {} data...'.format(company))
         path = folder + company.lower()
         fetch_intrinio_news(filename=path+'_news.csv', api_key=api_key, company=company, update=True)
         fetch_intrinio_prices(filename=path+'_prices.csv', api_key=api_key, company=company, update=True)
-    df, labels = load_data(folder, tradefreq, datafreq, keep_last=True)
-    return df, labels
+    load_data(folder, tradefreq, datafreq, update_embed=True)
 
 
-def get_next_preds():
+def get_recommendations():
     print('_' * 100, '\n')
     now = time.time()
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    df, labels = get_last_data()
+    df, labels = load_data('./data/intrinio/', tradefreq, datafreq)
     yesterday = df.index.max()
     df = df.loc[yesterday].reset_index(drop=True)
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
-    res = {'date': yesterday}
+    reco, order_book = {'date': yesterday}, []
     lev = pd.Series([leverages[co] for co in companies])
     quantity = (initial_gamble * lev / df['close']).astype(int)
     print('On {}, predictions for next day are:'.format(yesterday))
@@ -244,21 +242,33 @@ def get_next_preds():
     print('-'*24)
     for i, pred in enumerate(preds):
         if companies[i] in performers:
-            res[companies[i]] = pred
+            reco[companies[i]] = pred
+            order_book.append({'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i])})
             print('{:5s} | {:8d} | {:4d}'.format(companies[i], quantity[i], pred))
     path = './resources/recommendations.csv'
-    res = pd.DataFrame([res]).set_index('date', drop=True)
+    reco = pd.DataFrame([reco]).set_index('date', drop=True)
     df = pd.read_csv(path, encoding='utf-8', index_col=0)
-    df = pd.concat([df, res], axis=0)
+    df = pd.concat([df, reco], axis=0)
     df = df.loc[~df.index.duplicated(keep='last')]
     df.to_csv(path, encoding='utf-8')
     print('Inference took {} seconds.'.format(round(time.time()-now)))
+    return order_book
+
+
+def place_orders(order_book):
+    emulator = Emulator(user_name, pwd)
+    for order in order_book:
+        emulator.open_trade(order)
+    time.sleep(60)
+    emulator.close_all_trades()
+    emulator.quit()
 
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # train_models()
     # mega_backtest(plot=True)
-    # get_next_preds()
+    update_data()
     # get_yesterday_accuracy()
-    emulator = Emulator(user_name, pwd)
+    order_book = get_recommendations()
+    # place_orders(order_book)
