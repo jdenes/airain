@@ -27,10 +27,6 @@ curr = 'EUR/USD'
 c = 'eurusd'
 
 config = configparser.ConfigParser()
-# config.read('./resources/alphavantage.cfg')
-# api_key = config['ALPHAVANTAGE']['access_token']
-config.read("../resources/fxcm.cfg")
-account_id = config['FXCM']['account_id']
 config.read('../resources/intrinio.cfg')
 api_key = config['INTRINIO']['access_token']
 config.read('../resources/trading212.cfg')
@@ -42,7 +38,7 @@ target_col = 'close'
 # Removed UTX
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV']
-leverages = {'AAPL': 20, 'XOM': 20, 'KO': 20, 'INTC': 10, 'WMT': 10, 'MSFT': 20, 'IBM': 20, 'CVX': 20, 'JNJ': 10,
+leverages = {'AAPL': 20, 'XOM': 10, 'KO': 20, 'INTC': 10, 'WMT': 10, 'MSFT': 20, 'IBM': 20, 'CVX': 20, 'JNJ': 10,
              'PG': 20, 'PFE': 20, 'VZ': 10, 'BA': 20, 'MRK': 10, 'CSCO': 20, 'HD': 20, 'MCD': 20, 'MMM': 20,
              'GE': 10, 'NKE': 20, 'CAT': 20, 'V': 20, 'JPM': 20, 'AXP': 20, 'GS': 20, 'UNH': 20, 'TRV': 20}
 performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
@@ -168,15 +164,12 @@ def mega_backtest(plot=False):
 
 
 def decide_order(asset, quantity, open, pred, date):
-    # if price is going up: buy
     # if pred_bid > (1 - tolerance) * now_ask:
     if pred == 1:
         order = {'asset': asset, 'is_buy': True, 'open': open, 'quantity': quantity, 'date': date}
-    # elif price is going down: sell
     # elif pred_ask < now_bid / (1 - tolerance):
     elif pred == 0:
         order = {'asset': asset, 'is_buy': False, 'open': open, 'quantity': quantity, 'date': date}
-    # else do nothing
     else:
         order = {'asset': asset, 'is_buy': None, 'open': open, 'quantity': quantity, 'date': date}
     return order
@@ -186,28 +179,30 @@ def gross_pl(pl, K, price):
     return round((K / 10) * pl * (1 / price), 2)
 
 
-def get_yesterday_accuracy():
+def get_yesterday_perf():
+    
     print('_' * 100, '\n')
     print("Correctness of yesterday's predictions")
-    folder = '../data/intrinio/'
-    df, _ = load_data(folder, tradefreq, datafreq)
+    
+    df, _ = load_data('../data/intrinio/', tradefreq, datafreq)
     reco = pd.read_csv('../resources/recommendations.csv', encoding='utf-8', index_col=0)
-    col_names = reco.columns
-    df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])]
-    date = reco.iloc[-1].name
+    prices = pd.read_csv('../resources/open_prices.csv', encoding='utf-8', index_col=0)
+    
+    date, col_names = reco.iloc[-1].name, reco.columns
+    df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])].loc[date].reset_index(drop=True)
     reco = reco.iloc[-2].reset_index(drop=True)
-    df = df.loc[date].reset_index(drop=True)
-    lev = pd.Series([leverages[co] for co in col_names])
-    quantity = (initial_gamble * lev / df['open']).astype(int)
-    print("Computed with data from {}, traded on {}.".format(reco.name, date))
-    print('_' * 100, '\n')
+    prices = prices[col_names].loc[date].reset_index(drop=True)
+    quantity = (initial_gamble * pd.Series([leverages[co] for co in col_names]) / df['open']).astype(int)
     accuracy = (reco == (df['close'] > df['open']))
     profits = (2 * reco - 1) * (df['close'] - df['open']) * quantity
-    print('Asset | Quantity | Reco | Profit/Loss |    Open |   Close')
-    print('-'*57)
+
+    print("Computed with data from {}, traded on {}.".format(reco.name, date))
+    print('_' * 100, '\n')
+    print('Asset | Quantity | Reco | Profit/Loss | Exp Open | Act Open | Exp Close')
+    print('-'*71)
     for i, x in enumerate(profits):
-        print('{:5s} | {:8d} | {:4d} | {:11.2f} | {:7.2f} | {:7.2f}'.format(
-              col_names[i], quantity[i], reco[i], x, df['open'][i], df['close'][i]))
+        print('{:5s} | {:8d} | {:4d} | {:11.2f} | {:8.2f} | {:8.2f} | {:9.2f}'.format(
+              col_names[i], quantity[i], reco[i], x, df['open'][i], prices[i], df['close'][i]))
     print('_' * 100, '\n')
     print('Accuracy was {:.2f}%. Total P/L was {:.2f}.'.format(100 * accuracy.mean(), profits.sum()))
 
@@ -259,22 +254,19 @@ def place_orders(order_book):
     path = '../resources/open_prices.csv'
     append_data(path, prices)
     time.sleep(60)
-    emulator.close_all_trades()
+    # emulator.close_all_trades()
     emulator.quit()
 
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    # train_models()
+    train_models()
     # mega_backtest(plot=True)
     # update_data()
-    # get_yesterday_accuracy()
+    # get_yesterday_perf()
     # order_book = get_recommendations()
     # place_orders(order_book)
 
-    emulator = Emulator(user_name, pwd)
-    prices = emulator.get_open_prices()
-    prices = pd.DataFrame([prices]).set_index('date', drop=True)
-    path = '../resources/open_prices.csv'
-    append_data(path, prices)
-    emulator.quit()
+    # emulator = Emulator(user_name, pwd)
+    # prices = emulator.get_open_prices()
+    # emulator.quit()

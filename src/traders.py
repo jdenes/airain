@@ -47,7 +47,7 @@ class Trader(object):
         self.P_test = None
         self.y_test = None
         
-        self.t1, self.t2 = '2020-01-01', '2020-04-01'
+        self.t1, self.t2 = '2020-04-01', '2020-06-01'
 
         if load_from is not None:
             self.load(model_name=load_from)
@@ -383,7 +383,7 @@ class LstmTrader(Trader):
             'num_iterations': 200000,
             'boost_from_average': False,
             'verbose': -1,
-            'early_stopping_rounds': 200,
+            'early_stopping_rounds': 500,
         }
         
         train_data = lgb.Dataset(self.P_train, label=self.y_train)

@@ -9,18 +9,18 @@ class Emulator:
     def __init__(self, user_name, password):
         self.user_name = user_name
         self.password = password
-        self.driver = webdriver.Firefox(log_path='./logs/geckodriver.log')
+        self.driver = webdriver.Firefox(log_path='../logs/geckodriver.log')
         self.driver.get("https://demo.trading212.com/")
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
-        time.sleep(6)
+        time.sleep(7)
 
     def open_trade(self, order):
         if order['is_buy'] is None:
             time.sleep(1)
             return self
-        dir = 'buy' if order['is_buy'] is True else 'sell'
+        dir = 'buy' if order['is_buy'] == 1 else 'sell'
         xpath = f"//div[@data-code='{order['asset']}']//span[@class='buy-sell-price-container {dir}']"
         self.driver.find_element_by_xpath(xpath).click()
         self.driver.find_element_by_xpath("//div[@class='dropdown-arrow svg-icon-holder']").click()

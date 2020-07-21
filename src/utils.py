@@ -62,7 +62,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     for number, asset in enumerate(keywords.keys()):
 
         file = folder + asset.lower() + '_prices.csv'
-        # filename = './data/jena_climate_2009_2016.csv'
+        # filename = '../data/jena_climate_2009_2016.csv'
 
         df = pd.read_csv(file, encoding='utf-8', index_col=0)
         df.index = df.index.rename('date')
@@ -89,7 +89,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 embed.to_csv(path, encoding='utf-8')
 
         dim = 75
-        path = './data/pca_sbert_{}.joblib'.format(dim)
+        path = '../data/pca_sbert_{}.joblib'.format(dim)
         if not os.path.exists(path):
             pca = train_sbert_pca(dim=dim)
         else:
@@ -167,7 +167,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
 
 def load_news(asset, keywords=None, last_day=None):
-    filename = './data/intrinio/' + asset.lower() + '_news.csv'
+    filename = '../data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
     df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
 
@@ -196,12 +196,12 @@ def load_news(asset, keywords=None, last_day=None):
 def train_sbert_pca(dim=100):
     df = pd.DataFrame()
     for asset in keywords.keys():
-        path = './data/intrinio/{}_news_embed.csv'.format(asset.lower())
+        path = '../data/intrinio/{}_news_embed.csv'.format(asset.lower())
         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
         df = pd.concat([df, embed], axis=0, ignore_index=True)
     pca = PCA(n_components=dim)
     pca.fit(df)
-    jl.dump(pca, './data/pca_sbert_{}.joblib'.format(dim))
+    jl.dump(pca, '../data/pca_sbert_{}.joblib'.format(dim))
     return pca
 
 
@@ -430,7 +430,7 @@ def nice_plot(ind, curves_list, names_list, title):
     plt.show()
 
 
-def merge_finance_csv(folder='./data/finance', filename='./data/finance/global.csv'):
+def merge_finance_csv(folder='../data/finance', filename='../data/finance/global.csv'):
     files = [f for f in os.listdir(folder) if f.endswith('.csv')]
     res = []
     for i, f in enumerate(files):
