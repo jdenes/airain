@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from traders import LstmTrader
 from api_emulator import Emulator
-from utils import fetch_fxcm_data, fetch_intrinio_news, fetch_intrinio_prices, merge_finance_csv
+from utils import fetch_fxcm_data, fetch_intrinio_news, fetch_intrinio_prices, append_data
 from utils import load_data, nice_plot, change_accuracy, normalize_data
 
 unit = 'H'  # 'm' ou 'd'
@@ -29,11 +29,11 @@ c = 'eurusd'
 config = configparser.ConfigParser()
 # config.read('./resources/alphavantage.cfg')
 # api_key = config['ALPHAVANTAGE']['access_token']
-config.read('./resources/fxcm.cfg')
+config.read("../resources/fxcm.cfg")
 account_id = config['FXCM']['account_id']
-config.read('./resources/intrinio.cfg')
+config.read('../resources/intrinio.cfg')
 api_key = config['INTRINIO']['access_token']
-config.read('./resources/trading212.cfg')
+config.read('../resources/trading212.cfg')
 user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
@@ -51,31 +51,29 @@ performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ
 def fetch_intrinio_data():
     for company in companies:
         print('Fetching {} data...'.format(company))
-        path = './data/intrinio/{}'.format(company.lower())
+        path = '../data/intrinio/{}'.format(company.lower())
         fetch_intrinio_news(filename=path+'_news.csv', api_key=api_key, company=company)
         fetch_intrinio_prices(filename=path+'_prices.csv', api_key=api_key, company=company)
 
 
 def fetch_data():
     print('Fetching data...')
-    con = fxcmpy.fxcmpy(config_file='./resources/fxcm.cfg', server='demo')
+    con = fxcmpy.fxcmpy(config_file='../resources/fxcm.cfg', server='demo')
     start, end = '2002-01-01 00:00:00', '2020-01-01 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_' + c + '_train_' + unit + f + '.csv',
+    fetch_fxcm_data(filename='../data/dataset_' + c + '_train_' + unit + f + '.csv',
                     curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
     start, end = '2020-01-01 00:00:00', '2020-06-01 00:00:00'
-    fetch_fxcm_data(filename='./data/dataset_' + c + '_test_' + unit + f + '.csv',
+    fetch_fxcm_data(filename='../data/dataset_' + c + '_test_' + unit + f + '.csv',
                     curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
 
 
 def train_models():
     print('Training model...')
     trader = LstmTrader(h=h, normalize=False)
-    
-    # filename = './data/dataset_{}_train_{}{}.csv'.format(c, unit, f)
-    banks = [f[:-4] for f in os.listdir('./data/finance/') if f.endswith('.csv')]
+    banks = [f[:-4] for f in os.listdir('../data/finance/') if f.endswith('.csv')]
     banks = companies
 
-    df, labels = load_data('./data/intrinio/', tradefreq, datafreq)
+    df, labels = load_data('../data/intrinio/', tradefreq, datafreq)
     trader.ingest_traindata(df, labels)
 
     trader.train(epochs=epochs)
@@ -88,7 +86,7 @@ def mega_backtest(plot=False):
     print('_' * 100, '\n')
     print('Initializing backtest...')
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    ov_df, ov_labels = load_data('./data/intrinio/', tradefreq, datafreq, start_from='2020-04-01')
+    ov_df, ov_labels = load_data('../data/intrinio/', tradefreq, datafreq, start_from='2020-04-01')
     profits = []
 
     for asset in enumerate(companies):
@@ -191,9 +189,9 @@ def gross_pl(pl, K, price):
 def get_yesterday_accuracy():
     print('_' * 100, '\n')
     print("Correctness of yesterday's predictions")
-    folder = './data/intrinio/'
+    folder = '../data/intrinio/'
     df, _ = load_data(folder, tradefreq, datafreq)
-    reco = pd.read_csv('./resources/recommendations.csv', encoding='utf-8', index_col=0)
+    reco = pd.read_csv('../resources/recommendations.csv', encoding='utf-8', index_col=0)
     col_names = reco.columns
     df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])]
     date = reco.iloc[-1].name
@@ -215,7 +213,7 @@ def get_yesterday_accuracy():
 
 
 def update_data():
-    folder = './data/intrinio/'
+    folder = '../data/intrinio/'
     for company in companies:
         print('Fetching most recent {} data...'.format(company))
         path = folder + company.lower()
@@ -228,7 +226,7 @@ def get_recommendations():
     print('_' * 100, '\n')
     now = time.time()
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    df, labels = load_data('./data/intrinio/', tradefreq, datafreq)
+    df, labels = load_data('../data/intrinio/', tradefreq, datafreq)
     yesterday = df.index.max()
     df = df.loc[yesterday].reset_index(drop=True)
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
@@ -245,12 +243,9 @@ def get_recommendations():
             reco[companies[i]] = pred
             order_book.append({'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i])})
             print('{:5s} | {:8d} | {:4d}'.format(companies[i], quantity[i], pred))
-    path = './resources/recommendations.csv'
+    path = '../resources/recommendations.csv'
     reco = pd.DataFrame([reco]).set_index('date', drop=True)
-    df = pd.read_csv(path, encoding='utf-8', index_col=0)
-    df = pd.concat([df, reco], axis=0)
-    df = df.loc[~df.index.duplicated(keep='last')]
-    df.to_csv(path, encoding='utf-8')
+    append_data(path, reco)
     print('Inference took {} seconds.'.format(round(time.time()-now)))
     return order_book
 
@@ -259,6 +254,10 @@ def place_orders(order_book):
     emulator = Emulator(user_name, pwd)
     for order in order_book:
         emulator.open_trade(order)
+    prices = emulator.get_open_prices()
+    prices = pd.DataFrame([prices]).set_index('date', drop=True)
+    path = '../resources/open_prices.csv'
+    append_data(path, prices)
     time.sleep(60)
     emulator.close_all_trades()
     emulator.quit()
@@ -268,7 +267,14 @@ if __name__ == "__main__":
     # fetch_intrinio_data()
     # train_models()
     # mega_backtest(plot=True)
-    update_data()
+    # update_data()
     # get_yesterday_accuracy()
-    order_book = get_recommendations()
+    # order_book = get_recommendations()
     # place_orders(order_book)
+
+    emulator = Emulator(user_name, pwd)
+    prices = emulator.get_open_prices()
+    prices = pd.DataFrame([prices]).set_index('date', drop=True)
+    path = '../resources/open_prices.csv'
+    append_data(path, prices)
+    emulator.quit()

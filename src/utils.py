@@ -441,3 +441,13 @@ def merge_finance_csv(folder='./data/finance', filename='./data/finance/global.c
     # df = df.set_index('Date')
     # df.index = pd.to_datetime(df.index, unit='s')
     res.to_csv(filename, encoding='utf-8')
+
+
+def append_data(path, new_row):
+    if os.path.exists(path):
+        df = pd.read_csv(path, encoding='utf-8', index_col=0)
+        df = pd.concat([df, new_row], axis=0)
+        df = df.loc[~df.index.duplicated(keep='last')]
+        df.to_csv(path, encoding='utf-8')
+    else:
+        new_row.to_csv(path, encoding='utf-8')
