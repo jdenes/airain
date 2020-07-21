@@ -139,7 +139,7 @@ class MlTrader(Trader):
         Save model to folder.
         """
         super().save(model_name=model_name)
-        model_name = './models/' + model_name
+        model_name = '../models/' + model_name
         if self.model is not None:
             jl.dump(self.model, model_name + '/model.joblib')
 
@@ -148,7 +148,7 @@ class MlTrader(Trader):
         Load model from folder.
         """
         super().load(model_name=model_name, fast=fast)
-        model_name = './models/' + model_name
+        model_name = '../models/' + model_name
         self.model = jl.load(model_name + '/model.joblib')
 
 

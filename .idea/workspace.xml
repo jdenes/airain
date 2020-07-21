@@ -2,13 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/currotrade.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/currotrade.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api_emulator.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tdtraders.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/traders.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tdtraders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tdtraders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -174,6 +173,7 @@
       <workItem from="1595318255852" duration="6825000" />
       <workItem from="1595327298453" duration="687000" />
       <workItem from="1595330547503" duration="1274000" />
+      <workItem from="1595332123937" duration="2351000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -230,6 +230,10 @@
     <option name="LAST_COMMIT_MESSAGE" value="Better recommendation interface" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="233" y="20" key="#Inspections" timestamp="1595332258210">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="233" y="20" key="#Inspections/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595332258210" />
     <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1595330407696">
       <screen x="0" y="0" width="1280" height="720" />
     </state>

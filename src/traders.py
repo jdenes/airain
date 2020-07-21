@@ -190,7 +190,7 @@ class Trader(object):
         Save model to folder.
         """
 
-        model_name = './models/' + model_name
+        model_name = '../models/' + model_name
         if not os.path.exists(model_name):
             os.makedirs(model_name)
 
@@ -222,7 +222,7 @@ class Trader(object):
         Load model from folder.
         """
 
-        model_name = './models/' + model_name
+        model_name = '../models/' + model_name
         with open(model_name + '/attributes.json', 'r') as file:
             self.__dict__ = json.load(file)
 
@@ -411,7 +411,8 @@ class LstmTrader(Trader):
 
         # self.model.compile(optimizer='adam', loss='mae')
         # self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        # checkpoint = tf.keras.callbacks.ModelCheckpoint('./models/checkpoint.hdf5', monitor='val_loss', save_best_only=True)
+        # checkpoint = tf.keras.callbacks.ModelCheckpoint('../models/checkpoint.hdf5', monitor='val_loss',
+        # save_best_only=True)
         # self.model.fit(train_data,
         #                epochs=self.epochs,
         #                steps_per_epoch=self.steps,
@@ -427,7 +428,7 @@ class LstmTrader(Trader):
         Save model to folder.
         """
         super().save(model_name)
-        model_name = './models/' + model_name
+        model_name = '../models/' + model_name
         if self.model is not None:
             self.model.save_model(model_name + '/model.h5')
         np.save(model_name + '/P_train.npy', self.P_train)
@@ -438,7 +439,7 @@ class LstmTrader(Trader):
         Load model from folder.
         """
         super().load(model_name=model_name, fast=fast)
-        model_name = './models/' + model_name
+        model_name = '../models/' + model_name
         # self.model = tf.keras.models.load_model(model_name + '/model.h5')
         self.model = lgb.Booster(model_file=model_name + '/model.h5')
 
