@@ -22,6 +22,19 @@ def generate_table(dataframe, max_rows=10):
 
 app_body_tab_overview = [
     html.Div([
+        html.Div([
+            html.Span("BALANCE"),
+            html.Span("$51 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+            html.Span("PROFIT", style={'marginLeft': '100px'}),
+            html.Span("$1 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+            html.Span("Last update", style={'marginLeft': '100px'}),
+            html.Span("July 23, 2020", style={'marginLeft': '10px'}),
+            ], style={'margin': '15px', 'float': 'left'}),
+        html.Button('UPDATE', className='app-body-summary-button'),
+        html.Br(style={'clear': 'both'})
+    ],
+        className='app-body-summary-section'),
+    html.Div([
         "here, a plot of balance evolution (true v. theoretical)"
     ],
         className='app-body-balance-section'),
@@ -44,7 +57,7 @@ app_body_tab_predict = [
     html.Div(
         style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column', 'padding': '10px 5px 10px 10px'},
         children=[
-            html.Button("Update data", className='app-body-update-button'),
+            html.Button("UPDATE DATA", className='app-body-update-button'),
             html.Div("✔  Data are up to date", className='app-body-status-section'),
             html.Div("Showing the N last entry in PRICES to check date", className='app-body-prices-section'),
             html.Div("Showing the N last entry in NEWS to check date", className='app-body-news-section'),
@@ -53,7 +66,7 @@ app_body_tab_predict = [
     html.Div(
         style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column', 'padding': '10px 5px 10px 5px'},
         children=[
-            html.Button("Compute recommendations", className='app-body-update-button'),
+            html.Button("COMPUTE ORDERS", className='app-body-update-button'),
             html.Div("⚠  Today's recommendation are not computed", className='app-body-status-section'),
             html.Div("Showing the N last recommendations if data is updated", className='app-body-news-section'),
         ]
@@ -61,13 +74,48 @@ app_body_tab_predict = [
     html.Div(
         style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column', 'padding': '10px 10px 10px 5px'},
         children=[
-            html.Button("Open trades", className='app-body-update-button'),
+            html.Button("PLACE ORDERS", className='app-body-update-button'),
             html.Div("⚠  Orders have not been placed", className='app-body-status-section'),
             html.Div("Showing quantities if recommendation is ready", className='app-body-news-section'),
         ]
     ),
 ]
 
+
+app_body_tab_model = [
+    html.Div([
+        "Current specifications of the model: T1, T2, PCA, etc."
+    ],
+        className='app-body-spec-section'),
+    html.Div([
+        "Training tab : Change those specs to retrain model"
+    ],
+        className='app-body-retrain-section'),
+    html.Div([
+        "Raw metrics on test results"
+    ],
+        className='app-body-yesterday-section'),
+    html.Div([
+        "Raw metrics on train/val"
+    ],
+        className='app-body-pred-section'),
+    html.Div([
+        html.Div([
+            html.Span("ACCURACY"),
+            html.Span("57.25%", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+            html.Span("BACKTEST MONTHLY PROFIT", style={'marginLeft': '100px'}),
+            html.Span("$10 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+            html.Span("TRAINED ON", style={'marginLeft': '100px'}),
+            html.Span("July 23, 2020", style={'marginLeft': '10px'}),
+        ], style={'margin': '15px', 'float': 'left'}),
+        html.Button('RETRAIN', className='app-body-summary-button'),
+        html.Br(style={'clear': 'both'})
+    ],
+        className='app-body-summary-section'),
+]
+
+
+#############################################################################################
 
 assets_path = os.path.join(os.getcwd(), '../resources/')
 app = dash.Dash(__name__, assets_folder=assets_path)
@@ -91,11 +139,13 @@ app.layout = html.Div([
                                  selected_className='nav-bar-tab-selected'),
                          dcc.Tab(label='Predict & order', value='tab-2', className='nav-bar-tab',
                                  selected_className='nav-bar-tab-selected'),
-                         dcc.Tab(label='Recent performance', value='tab-3', className='nav-bar-tab',
+                         dcc.Tab(label='Performance', value='tab-3', className='nav-bar-tab',
                                  selected_className='nav-bar-tab-selected'),
-                         dcc.Tab(label='Long term performance', value='tab-4', className='nav-bar-tab',
+                         dcc.Tab(label='Model', value='tab-4', className='nav-bar-tab',
                                  selected_className='nav-bar-tab-selected'),
-                         dcc.Tab(label='Trading212 status', value='tab-5', className='nav-bar-tab',
+                         dcc.Tab(label='Backtest', value='tab-5', className='nav-bar-tab',
+                                 selected_className='nav-bar-tab-selected'),
+                         dcc.Tab(label='Trading212', value='tab-6', className='nav-bar-tab',
                                  selected_className='nav-bar-tab-selected'),
                      ]
                      ),
@@ -116,13 +166,13 @@ def render_content(tab):
     elif tab == 'tab-2':
         return app_body_tab_predict
     elif tab == 'tab-3':
-        return html.Div([
-            html.H3('Tab content 3')
-        ])
+        pass
     elif tab == 'tab-4':
-        return html.Div([
-            html.H3('Tab content 4')
-        ])
+        return app_body_tab_model
+    elif tab == 'tab-5':
+        pass
+    elif tab == 'tab-6':
+        pass
 
 
 if __name__ == '__main__':

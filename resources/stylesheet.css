@@ -13,7 +13,9 @@ body {
   --gray-11: #2C2C2C;
   --gray-14: #323232;
   --gray-16: #373737;
-  --mypurple: #BB86FC;
+  --base-purple: #BB86FC;
+  --light-purple: #DBB2FF;
+  --dark-purple: #985EFF;
   --classic-border: 1px #323232 solid;
   background-color: var(--gray-05);
   color: #FFFFFF;
@@ -43,6 +45,21 @@ body {
   background-color: var(--gray-00);
 }
 
+button {
+  display: block;
+  border: none;
+  font-family: Lato,Open Sans,sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  background-color: var(--base-purple);
+  color: var(--gray-00);
+  cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--light-purple);
+}
+
 /* Second level components */
 
 .nav-bar-header {
@@ -64,20 +81,37 @@ body {
 
 /* TAB 1 */
 
+.app-body-summary-section {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 10px 10px 10px 10px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+.app-body-summary-button {
+  width: 100px;
+  margin: 0 6px 0 auto;
+  padding: 10px;
+  border-radius: 3px;
+}
+
 .app-body-balance-section {
   float: left;
-  height: 265px;
+  height: 230px;
   width: 700px;
-  margin: 10px 10px 0 10px;
+  margin: 0 10px 0 10px;
   padding: 15px;
   background-color: var(--gray-05);
   border-radius: 3px;
 }
 
 .app-body-perf-section {
-  height: 265px;
+  height: 230px;
   overflow: auto;
-  margin: 10px 10px 0 10px;
+  margin: 0 10px 0 10px;
   padding: 15px;
   background-color: var(--gray-05);
   border-radius: 3px;
@@ -85,7 +119,7 @@ body {
 
 .app-body-yesterday-section {
   float: left;
-  height: 200px;
+  height: 180px;
   width: 500px;
   margin: 10px 10px 0 10px;
   padding: 15px;
@@ -94,7 +128,7 @@ body {
 }
 
 .app-body-pred-section {
-  height: 200px;
+  height: 180px;
   overflow: auto;
   margin: 10px 10px 0 10px;
   padding: 15px;
@@ -105,30 +139,21 @@ body {
 /* TAB 2 */
 
 .app-body-update-button {
-  display: block;
   width: 100%;
   margin: 0;
   padding: 15px;
-  border: none;
-  font-family: Lato,Open Sans,sans-serif;
-  color: #FFFFFF;
-  font-size: 13px;
-  font-weight: 700;
-  background-color: var(--gray-07);
   border-radius: 3px 3px 0 0;
-  cursor: pointer;
 }
 
 .app-body-update-button:hover {
-  background-color: var(--mypurple);
-  color: var(--gray-00);
+  background-color: var(--light-purple);
 }
 
 .app-body-status-section {
   margin: 0;
   padding: 15px;
   border-top: var(--classic-border);
-  color: var(--mypurple);
+  color: var(--base-purple);
   font-weight: 600;
   text-align: center;
   background-color: var(--gray-05);
@@ -146,6 +171,27 @@ body {
 .app-body-news-section {
   flex: 1 1 auto;
   margin: 10px 0 0 0;
+  padding: 15px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+/* TAB 3 */
+
+.app-body-spec-section {
+  float: left;
+  height: 230px;
+  width: 400px;
+  margin: 10px 10px 0 10px;
+  padding: 15px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+.app-body-retrain-section {
+  height: 230px;
+  overflow: auto;
+  margin: 10px 10px 0 10px;
   padding: 15px;
   background-color: var(--gray-05);
   border-radius: 3px;
@@ -176,6 +222,10 @@ body {
   border-right: none!important;
 }
 
+.nav-bar-tab:hover {
+  background-color: var(--gray-09)!important;
+}
+
 .nav-bar-tab-selected {
   height: 17px!important;
   width: auto!important;
@@ -186,7 +236,11 @@ body {
   font-weight: 700!important;
   color: #FFFFFF!important;
   background-color: var(--gray-09)!important;
-  border-left: 3px var(--mypurple) solid !important;
+  border-left: 3px var(--base-purple) solid !important;
+}
+
+.nav-bar-tab-selected:hover {
+  background-color: var(--gray-11)!important;
 }
 
 .custom-tabs-container {
