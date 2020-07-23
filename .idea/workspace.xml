@@ -2,10 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/src/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -59,7 +62,29 @@
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.app">
+    <configuration name="app" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="currotrade" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/app.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="main" type="PythonConfigurationType" factoryName="Python">
       <module name="currotrade" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -82,6 +107,10 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Python.main" />
+      <item itemvalue="Python.app" />
+    </list>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -173,6 +202,7 @@
       <workItem from="1595327298453" duration="687000" />
       <workItem from="1595330547503" duration="1274000" />
       <workItem from="1595332123937" duration="10194000" />
+      <workItem from="1595404565825" duration="50640000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -233,34 +263,35 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="233" y="20" key="#Inspections/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595332258210" />
-    <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1595330407696">
+    <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1595408808650">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595330407696" />
+    <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1280.720@0.0.1280.720" timestamp="1595408808650" />
     <state x="265" y="0" key="CommitChangelistDialog2" timestamp="1594223515983">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="265" y="0" key="CommitChangelistDialog2/0.0.1280.720@0.0.1280.720" timestamp="1594223515983" />
-    <state width="1237" height="164" key="GridCell.Tab.0.bottom" timestamp="1595345659806">
+    <state width="1237" height="164" key="GridCell.Tab.0.bottom" timestamp="1595508082488">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="164" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595344786924" />
-    <state width="1237" height="164" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1595345659806" />
-    <state width="1237" height="164" key="GridCell.Tab.0.center" timestamp="1595345659806">
+    <state width="1237" height="164" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1595508082488" />
+    <state width="1237" height="164" key="GridCell.Tab.0.center" timestamp="1595508082488">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="164" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595344786924" />
-    <state width="1237" height="164" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1595345659806" />
-    <state width="1237" height="164" key="GridCell.Tab.0.left" timestamp="1595345659806">
+    <state width="1237" height="164" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1595508082488" />
+    <state width="1237" height="164" key="GridCell.Tab.0.left" timestamp="1595508082488">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="164" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595344786924" />
-    <state width="1237" height="164" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1595345659806" />
-    <state width="1237" height="164" key="GridCell.Tab.0.right" timestamp="1595345659806">
+    <state width="1237" height="164" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1595508082488" />
+    <state width="1237" height="164" key="GridCell.Tab.0.right" timestamp="1595508082488">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="164" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595344786924" />
-    <state width="1237" height="164" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1595345659806" />
+    <state width="1237" height="164" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1595508082488" />
     <state width="498" height="446" key="SwitcherDM" timestamp="1593162975546">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -268,6 +299,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/currotrade$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1595345595433" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1595507978342" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1595508082481" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
   </component>
 </project>

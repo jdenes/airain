@@ -247,6 +247,7 @@ def get_recommendations():
 
 def place_orders(order_book):
     emulator = Emulator(user_name, pwd)
+    emulator.close_all_trades()
     for order in order_book:
         emulator.open_trade(order)
     prices = emulator.get_open_prices()
@@ -254,18 +255,17 @@ def place_orders(order_book):
     path = '../resources/open_prices.csv'
     append_data(path, prices)
     time.sleep(60)
-    # emulator.close_all_trades()
     emulator.quit()
 
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    train_models()
+    # train_models()
     # mega_backtest(plot=True)
     # update_data()
-    # get_yesterday_perf()
-    # order_book = get_recommendations()
+    order_book = get_recommendations()
     # place_orders(order_book)
+    # get_yesterday_perf()
 
     # emulator = Emulator(user_name, pwd)
     # prices = emulator.get_open_prices()

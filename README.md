@@ -6,7 +6,7 @@ Airain is an entrepreneurial research project aiming at building an AI able to p
 (currency exchange rate, cryptocurrency, securities, etc.).
 On top of that, this AI is able to trade according to its prediction to maximize gain.
 
-![Python](https://img.shields.io/badge/python-v3.6+-orange.svg)
+![Python](https://img.shields.io/badge/python-v3.6+-green.svg)
 ![License](https://img.shields.io/badge/copyrights-reserved-red.svg)
 
 ## Example

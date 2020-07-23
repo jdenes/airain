@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchElementException
 
 
 class Emulator:
@@ -14,7 +15,7 @@ class Emulator:
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
-        time.sleep(7)
+        time.sleep(10)
 
     def open_trade(self, order):
         if order['is_buy'] is None:
@@ -30,8 +31,11 @@ class Emulator:
         return self
 
     def close_all_trades(self):
-        self.driver.find_element_by_xpath("//span[@class='account-panel-close-all svg-icon-holder']").click()
-        self.driver.find_element_by_xpath("//div[@class='close-all-positions-button button blue-button']").click()
+        try:
+            self.driver.find_element_by_xpath("//span[@class='account-panel-close-all svg-icon-holder']").click()
+            self.driver.find_element_by_xpath("//div[@class='close-all-positions-button button blue-button']").click()
+        except NoSuchElementException:
+            print("Found no position to close.")
         time.sleep(1)
         return self
 

@@ -39,7 +39,6 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'MCD': ['mcd', 'donald', 'food', 'burger'],
             'MMM': ['mmm', '3m'],
             'GE': ['ge', 'general', 'electric', 'tech', 'energy'],
-            'UTX': ['utx', 'united', 'tech'],
             'NKE': ['nke', 'nike', 'sport', 'wear'],
             'CAT': ['cat', 'caterpillar', 'construction'],
             'V': ['visa', 'bank', 'card', 'pay'],
@@ -47,7 +46,8 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'AXP': ['axp', 'american', 'express', 'bank', 'card', 'pay'],
             'GS': ['gs', 'goldman', 'sachs', 'bank'],
             'UNH': ['unh', 'united', 'health', 'insurance'],
-            'TRV': ['trv', 'travel', 'insurance']
+            'TRV': ['trv', 'travel', 'insurance'],
+            'UTX': ['utx', 'united', 'tech'],
             }
 
 
