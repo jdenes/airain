@@ -263,9 +263,9 @@ if __name__ == "__main__":
     # train_models()
     # mega_backtest(plot=True)
     # update_data()
-    order_book = get_recommendations()
-    place_orders(order_book)
-    # get_yesterday_perf()
+    # order_book = get_recommendations()
+    # place_orders(order_book)
+    get_yesterday_perf()
 
     # emulator = Emulator(user_name, pwd)
     # prices = emulator.get_open_prices()

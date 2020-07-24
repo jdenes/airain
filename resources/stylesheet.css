@@ -14,7 +14,7 @@ body {
   --gray-14: #323232;
   --gray-16: #373737;
   --base-purple: #BB86FC;
-  --light-purple: #DBB2FF;
+  --light-purple: #C394FC;
   --dark-purple: #985EFF;
   --classic-border: 1px #323232 solid;
   background-color: var(--gray-05);
@@ -60,7 +60,9 @@ button:hover {
     background-color: var(--light-purple);
 }
 
+/***************************/
 /* Second level components */
+/***************************/
 
 .nav-bar-header {
   height: 17px;
@@ -79,14 +81,91 @@ button:hover {
   border-bottom: var(--classic-border);
 }
 
-/* TAB 1 */
+/* Rows */
 
-.app-body-summary-section {
+.app-body-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-body-row-top {
+  display: flex;
+  flex: 1 1 50%;
+  padding: 10px 10px 5px 10px;
+}
+
+.app-body-row-middle {
+  display: flex;
+  flex: 1 1 50%;
+  padding: 5px 10px 5px 10px;
+}
+
+.app-body-row-bottom {
+  display: flex;
+  flex: 1 1 50%;
+  padding: 5px 10px 10px 10px;
+}
+
+.app-body-longrow-middle {
+  display: flex;
+  flex: 1 1 65%;
+  padding: 5px 10px 5px 10px;
+}
+
+/* Cells */
+
+.app-body-cell-left {
+  flex: 1 1 45%;
+  margin-right: 5px;
+  padding: 15px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+.app-body-cell-middle {
+  flex: 1 1 45%;
+  margin-left: 5px;
+  margin-right: 5px;
+  padding: 15px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+.app-body-cell-right {
+  flex: 1 1 45%;
+  margin-left: 5px;
+  padding: 15px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+.app-body-largecell-left {
+  flex: 1 1 60%;
+  margin-right: 5px;
+  padding: 15px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+/* Summary bars */
+
+.app-body-summary-bar-top {
   display: flex;
   align-items: center;
   font-size: 14px;
   font-weight: 700;
-  margin: 10px 10px 10px 10px;
+  margin: 10px 10px 5px 10px;
+  background-color: var(--gray-05);
+  border-radius: 3px;
+}
+
+.app-body-summary-bar-bottom {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 5px 10px 10px 10px;
   background-color: var(--gray-05);
   border-radius: 3px;
 }
@@ -97,6 +176,10 @@ button:hover {
   padding: 10px;
   border-radius: 3px;
 }
+
+/*********/
+/* TAB 1 */
+/*********/
 
 .app-body-balance-section {
   float: left;
@@ -171,27 +254,6 @@ button:hover {
 .app-body-news-section {
   flex: 1 1 auto;
   margin: 10px 0 0 0;
-  padding: 15px;
-  background-color: var(--gray-05);
-  border-radius: 3px;
-}
-
-/* TAB 3 */
-
-.app-body-spec-section {
-  float: left;
-  height: 230px;
-  width: 400px;
-  margin: 10px 10px 0 10px;
-  padding: 15px;
-  background-color: var(--gray-05);
-  border-radius: 3px;
-}
-
-.app-body-retrain-section {
-  height: 230px;
-  overflow: auto;
-  margin: 10px 10px 0 10px;
   padding: 15px;
   background-color: var(--gray-05);
   border-radius: 3px;

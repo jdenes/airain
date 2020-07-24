@@ -20,42 +20,40 @@ def generate_table(dataframe, max_rows=10):
     ])
 
 
-app_body_tab_overview = [
-    html.Div([
-        html.Div([
-            html.Span("BALANCE"),
-            html.Span("$51 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
-            html.Span("PROFIT", style={'marginLeft': '100px'}),
-            html.Span("$1 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
-            html.Span("Last update", style={'marginLeft': '100px'}),
-            html.Span("July 23, 2020", style={'marginLeft': '10px'}),
-            ], style={'margin': '15px', 'float': 'left'}),
-        html.Button('UPDATE', className='app-body-summary-button'),
-        html.Br(style={'clear': 'both'})
-    ],
-        className='app-body-summary-section'),
-    html.Div([
-        "here, a plot of balance evolution (true v. theoretical)"
-    ],
-        className='app-body-balance-section'),
-    html.Div([
-        "here, a list of performances"
-    ],
-        className='app-body-perf-section'),
-    html.Div([
-        "here, a list of yesterday performances"
-    ],
-        className='app-body-yesterday-section'),
-    html.Div([
-        "here, a list of predictions for next day"
-    ],
-        className='app-body-pred-section'),
-]
-
+app_body_tab_overview = html.Div(
+    className='app-body-container',
+    children=[
+        html.Div(
+            className='app-body-summary-bar-top',
+            children=[
+                html.Div([
+                    html.Span("BALANCE"),
+                    html.Span("$51 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+                    html.Span("PROFIT", style={'marginLeft': '100px'}),
+                    html.Span("$1 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+                    html.Span("Last update", style={'marginLeft': '100px'}),
+                    html.Span("July 23, 2020", style={'marginLeft': '10px'}),
+                ], style={'margin': '15px', 'float': 'left'}),
+                html.Button('UPDATE', className='app-body-summary-button'),
+            ]),
+        html.Div(
+            className='app-body-longrow-middle',
+            children=[
+                html.Div(["here, a plot of balance evolution (true v. theory)"], className='app-body-largecell-left'),
+                html.Div(["here, a list of performances"], className='app-body-cell-right'),
+            ]),
+        html.Div(
+            className='app-body-row-bottom',
+            children=[
+                html.Div(["here, a list of yesterday performances"], className='app-body-cell-left'),
+                html.Div(["here, a list of predictions for next day"], className='app-body-cell-right'),
+            ]),
+    ])
 
 app_body_tab_predict = [
     html.Div(
-        style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column', 'padding': '10px 5px 10px 10px'},
+        style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column',
+               'padding': '10px 5px 10px 10px'},
         children=[
             html.Button("UPDATE DATA", className='app-body-update-button'),
             html.Div("✔  Data are up to date", className='app-body-status-section'),
@@ -64,7 +62,8 @@ app_body_tab_predict = [
         ]
     ),
     html.Div(
-        style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column', 'padding': '10px 5px 10px 5px'},
+        style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column',
+               'padding': '10px 5px 10px 5px'},
         children=[
             html.Button("COMPUTE ORDERS", className='app-body-update-button'),
             html.Div("⚠  Today's recommendation are not computed", className='app-body-status-section'),
@@ -72,7 +71,8 @@ app_body_tab_predict = [
         ]
     ),
     html.Div(
-        style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column', 'padding': '10px 10px 10px 5px'},
+        style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column',
+               'padding': '10px 10px 10px 5px'},
         children=[
             html.Button("PLACE ORDERS", className='app-body-update-button'),
             html.Div("⚠  Orders have not been placed", className='app-body-status-section'),
@@ -81,39 +81,36 @@ app_body_tab_predict = [
     ),
 ]
 
-
-app_body_tab_model = [
-    html.Div([
-        "Current specifications of the model: T1, T2, PCA, etc."
-    ],
-        className='app-body-spec-section'),
-    html.Div([
-        "Training tab : Change those specs to retrain model"
-    ],
-        className='app-body-retrain-section'),
-    html.Div([
-        "Raw metrics on test results"
-    ],
-        className='app-body-yesterday-section'),
-    html.Div([
-        "Raw metrics on train/val"
-    ],
-        className='app-body-pred-section'),
-    html.Div([
-        html.Div([
-            html.Span("ACCURACY"),
-            html.Span("57.25%", style={'marginLeft': '10px', 'color': '#BB86FC'}),
-            html.Span("BACKTEST MONTHLY PROFIT", style={'marginLeft': '100px'}),
-            html.Span("$10 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
-            html.Span("TRAINED ON", style={'marginLeft': '100px'}),
-            html.Span("July 23, 2020", style={'marginLeft': '10px'}),
-        ], style={'margin': '15px', 'float': 'left'}),
-        html.Button('RETRAIN', className='app-body-summary-button'),
-        html.Br(style={'clear': 'both'})
-    ],
-        className='app-body-summary-section'),
-]
-
+app_body_tab_model = html.Div(
+    className='app-body-container',
+    children=[
+        html.Div(
+            className='app-body-row-top',
+            children=[
+                html.Div(["Current specifications of the model: T1, T2, PCA, etc."], className='app-body-cell-left'),
+                html.Div(["Training tab : Change those specs to retrain model"], className='app-body-cell-right')
+            ]),
+        html.Div(
+            className='app-body-row-middle',
+            children=[
+                html.Div(["Settings and raw metrics on train"], className='app-body-cell-left'),
+                html.Div(["Settings and raw metrics on val"], className='app-body-cell-middle'),
+                html.Div(["Settings and raw metrics on test"], className='app-body-cell-right')
+            ]),
+        html.Div(
+            className='app-body-summary-bar-bottom',
+            children=[
+                html.Div([
+                    html.Span("ACCURACY"),
+                    html.Span("57.25%", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+                    html.Span("BACKTEST MONTHLY PROFIT", style={'marginLeft': '100px'}),
+                    html.Span("$10 245.56", style={'marginLeft': '10px', 'color': '#BB86FC'}),
+                    html.Span("TRAINED ON", style={'marginLeft': '100px'}),
+                    html.Span("July 23, 2020", style={'marginLeft': '10px'}),
+                ], style={'margin': '15px', 'float': 'left'}),
+                html.Button('RETRAIN', className='app-body-summary-button'),
+            ]),
+    ])
 
 #############################################################################################
 
