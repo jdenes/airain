@@ -63,7 +63,7 @@ def fetch_data():
                     curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
 
 
-def train_models():
+def train_model():
     print('Training model...')
     trader = LstmTrader(h=h, normalize=False)
     banks = [f[:-4] for f in os.listdir('../data/finance/') if f.endswith('.csv')]
@@ -77,13 +77,13 @@ def train_models():
     trader.save(model_name='Huorn askopen NOW' + tf)
 
 
-def mega_backtest(plot=False):
+def backtest(plot=False):
 
     print('_' * 100, '\n')
     print('Initializing backtest...')
     trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
     ov_df, ov_labels = load_data('../data/intrinio/', tradefreq, datafreq, start_from='2020-04-01')
-    profits = []
+    assets_profits, assets_returns = [], []
 
     for asset in enumerate(companies):
         if asset[1] in performers:
@@ -91,7 +91,7 @@ def mega_backtest(plot=False):
             print('Backtesting on {}...'.format(asset[1]))
 
             buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-            index_list, profit_list, benchmark = [], [], []
+            index_hist, balance_hist, returns_hist, bench_hist = [], [], [], []
             balance = bench_balance = initial_gamble
 
             df, labels = ov_df[ov_df['asset'] == asset[0]], ov_labels[ov_df['asset'] == asset[0]]
@@ -136,29 +136,32 @@ def mega_backtest(plot=False):
                         do_nothing += 1
 
                     # Step 3 bis: compute metrics and stuff
-                    balance = round(balance + pl, 2)
-                    profit_list.append(balance)
+                    balance, returns = round(balance + pl, 2), round((pl / amount) * 100, 2)
                     bench_balance = round(bench_balance + (close - order['open']) * quantity, 2)
-                    benchmark.append(bench_balance)
-                    index_list.append(ind[i])
+                    balance_hist.append(balance), returns_hist.append(returns)
+                    bench_hist.append(bench_balance)
+                    index_hist.append(ind[i])
 
             profit = round(balance - initial_gamble, 2)
             bench = round(bench_balance - initial_gamble, 2)
-            no_trade = round(100 * do_nothing / len(index_list), 2)
             buy_acc = round(100 * buy_correct / buy, 2) if buy != 0 else 'NA'
             sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
+            m_returns = round(sum(returns_hist) / len(returns_hist), 2)
 
-            profits.append(profit)
-            print('Profit: {}. Bench: {}. Correct buy: {}%. Correct sell: {}%. Holds: {}%.'.format(
-                  profit, bench, buy_acc, sell_acc, no_trade))
+            assets_profits.append(profit)
+            assets_returns.append(m_returns)
+            print(f'Profit: {profit}. Bench: {bench}. Mean daily return: {m_returns}%.')
+            print(f'Correct buy: {buy_acc}%. Correct sell: {sell_acc}%.')
             if plot:
-                nice_plot(index_list, [profit_list, benchmark], ['Algorithm', 'Benchmark'],
+                nice_plot(index_hist, [balance_hist, bench_hist], ['Algorithm', 'Benchmark'],
                           title='Profit evolution for ' + str(asset[1]))
 
     print('_' * 100, '\n')
-    n_pos = len([x for x in profits if x > 0])
-    m_prof = round(sum(profits) / len(profits), 2)
-    print('Average profit across assets: {}. Number of profitable assets: {}/{}.'.format(m_prof, n_pos, len(profits)))
+    n_pos = len([x for x in assets_profits if x > 0])
+    m_prof = round(sum(assets_profits) / len(assets_profits), 2)
+    m_ret = round(sum(assets_returns) / len(assets_returns), 2)
+    print(f'Average profit by assets: {m_prof}. Average daily return: {m_ret}%.')
+    print(f'Profitable assets: {n_pos}/{len(assets_profits)}.')
     print('_' * 100, '\n')
     # print([co for i, co in enumerate(companies) if profits[i] > initial_gamble/2])
 
@@ -261,11 +264,11 @@ def place_orders(order_book):
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # train_models()
-    # mega_backtest(plot=True)
+    backtest(plot=False)
     # update_data()
     # order_book = get_recommendations()
     # place_orders(order_book)
-    get_yesterday_perf()
+    # get_yesterday_perf()
 
     # emulator = Emulator(user_name, pwd)
     # prices = emulator.get_open_prices()
