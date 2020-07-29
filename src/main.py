@@ -38,9 +38,9 @@ target_col = 'close'
 # Removed UTX
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV']
-leverages = {'AAPL': 20, 'XOM': 10, 'KO': 20, 'INTC': 10, 'WMT': 10, 'MSFT': 20, 'IBM': 20, 'CVX': 20, 'JNJ': 10,
-             'PG': 20, 'PFE': 20, 'VZ': 10, 'BA': 20, 'MRK': 10, 'CSCO': 20, 'HD': 20, 'MCD': 20, 'MMM': 20,
-             'GE': 10, 'NKE': 20, 'CAT': 20, 'V': 20, 'JPM': 20, 'AXP': 20, 'GS': 20, 'UNH': 20, 'TRV': 20}
+leverages = {'AAPL': 5, 'XOM': 5, 'KO': 5, 'INTC': 5, 'WMT': 5, 'MSFT': 5, 'IBM': 5, 'CVX': 5, 'JNJ': 5,
+             'PG': 5, 'PFE': 5, 'VZ': 5, 'BA': 5, 'MRK': 5, 'CSCO': 5, 'HD': 5, 'MCD': 5, 'MMM': 5,
+             'GE': 5, 'NKE': 5, 'CAT': 5, 'V': 5, 'JPM': 5, 'AXP': 5, 'GS': 5, 'UNH': 5, 'TRV': 5}
 performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
 
 
@@ -88,10 +88,10 @@ def backtest(plot=False):
     for asset in enumerate(companies):
         if asset[1] in performers:
             print('_' * 100, '\n')
-            print('Backtesting on {}...'.format(asset[1]))
+            print(f'Backtesting on {asset[1]}...\n')
 
             buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-            index_hist, balance_hist, returns_hist, bench_hist = [], [], [], []
+            index_hist, balance_hist, returns_hist, pls_hist, bench_hist = [], [], [], [], []
             balance = bench_balance = initial_gamble
 
             df, labels = ov_df[ov_df['asset'] == asset[0]], ov_labels[ov_df['asset'] == asset[0]]
@@ -99,10 +99,10 @@ def backtest(plot=False):
             df = df.loc[ind]
 
             preds = trader.predict(X, P)
-            y_true = pd.Series(y.flatten())
-            y_pred = pd.Series(preds)
-            from sklearn.metrics import classification_report
-            print(classification_report(y_true, y_pred, digits=4))
+            # y_true = pd.Series(y.flatten())
+            # y_pred = pd.Series(preds)
+            # from sklearn.metrics import classification_report
+            # print(classification_report(y_true, y_pred, digits=4))
 
             for i in range(lag, len(df)):
 
@@ -136,30 +136,34 @@ def backtest(plot=False):
                         do_nothing += 1
 
                     # Step 3 bis: compute metrics and stuff
-                    balance, returns = round(balance + pl, 2), round((pl / amount) * 100, 2)
+                    balance, returns, pls = round(balance + pl, 2), round((pl / amount) * 100, 2), round(pl, 2)
                     bench_balance = round(bench_balance + (close - order['open']) * quantity, 2)
-                    balance_hist.append(balance), returns_hist.append(returns)
+                    balance_hist.append(balance), returns_hist.append(returns), pls_hist.append(pls)
                     bench_hist.append(bench_balance)
                     index_hist.append(ind[i])
 
+            pos_pls, neg_pls = [i for i in pls_hist if i > 0], [i for i in pls_hist if i < 0]
             profit = round(balance - initial_gamble, 2)
             bench = round(bench_balance - initial_gamble, 2)
             buy_acc = round(100 * buy_correct / buy, 2) if buy != 0 else 'NA'
             sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
+            pos_days = round(100 * sum([i > 0 for i in pls_hist]) / len(pls_hist), 2)
             m_returns = round(sum(returns_hist) / len(returns_hist), 2)
+            m_wins, m_loss = round(sum(pos_pls) / len(pos_pls), 2), round(sum(neg_pls) / len(neg_pls), 2)
 
-            assets_profits.append(profit)
-            assets_returns.append(m_returns)
-            print(f'Profit: {profit}. Bench: {bench}. Mean daily return: {m_returns}%.')
-            print(f'Correct buy: {buy_acc}%. Correct sell: {sell_acc}%.')
+            assets_profits.append(profit), assets_returns.append(m_returns)
+            print(f'Profit: {profit}. Benchmark: {bench}. Mean daily return: {m_returns}%.')
+            print(f'Correct moves: {pos_days}%. Correct buy: {buy_acc}%. Correct sell: {sell_acc}%.')
+            print(f'Av. wins/loss amounts: {m_wins}/{m_loss}. Ext. wins/loss amounts: {max(pos_pls)}/{min(neg_pls)}.')
             if plot:
                 nice_plot(index_hist, [balance_hist, bench_hist], ['Algorithm', 'Benchmark'],
-                          title='Profit evolution for ' + str(asset[1]))
+                          title=f'Profit evolution for {asset[1]}')
 
     print('_' * 100, '\n')
     n_pos = len([x for x in assets_profits if x > 0])
     m_prof = round(sum(assets_profits) / len(assets_profits), 2)
     m_ret = round(sum(assets_returns) / len(assets_returns), 2)
+    print('Returns:', assets_returns)
     print(f'Average profit by assets: {m_prof}. Average daily return: {m_ret}%.')
     print(f'Profitable assets: {n_pos}/{len(assets_profits)}.')
     print('_' * 100, '\n')
@@ -263,7 +267,7 @@ def place_orders(order_book):
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    # train_models()
+    train_model()
     backtest(plot=False)
     # update_data()
     # order_book = get_recommendations()

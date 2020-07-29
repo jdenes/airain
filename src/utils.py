@@ -1,5 +1,6 @@
 import os
 import requests
+import warnings
 import numpy as np
 import pandas as pd
 import joblib as jl
@@ -12,6 +13,8 @@ from datetime import datetime, timedelta
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics import max_error, mean_absolute_error, mean_squared_error, r2_score, classification_report
 from sklearn.decomposition import PCA
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
         '#e866f4', '#f668c2']
@@ -106,10 +109,11 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
         time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year
-        df['month'] = time_index.month - 1
-        df['quarter'] = df['month'] // 3
-        df['day'] = time_index.day - 1
-        df['wday'] = time_index.weekday - 1
+        df['month'] = time_index.month
+        df['quarter'] = time_index.quarter
+        df['day'] = time_index.day
+        df['week'] = time_index.week
+        df['wday'] = time_index.weekday
         # df['hour'] = time_index.hour
         # df['minute'] = time_index.minute
 
@@ -134,12 +138,12 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())  # .transform('std')
 
-        for period in ['year', 'month', 'day', 'wday']:  # 'hour', 'minute'
+        for period in ['year', 'quarter', 'month', 'day', 'wday']:  # 'hour', 'minute'
             for col in ['labels', 'volume', askcol, bidcol]:
-                df[period + '_mean_' + col] = df.groupby(period)[col].transform(
-                    lambda x: x.iloc[:i].mean())  # .transform('mean')
-                df[period + '_std_' + col] = df.groupby(period)[col].transform(
-                    lambda x: x.iloc[:i].std())  # .transform('std')
+                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
+                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
+                # df[period + '_min_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].min())
+                # df[period + '_max_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].max())
 
         # essayer Kalman Filter
         res = pd.concat([res, df], axis=0)
