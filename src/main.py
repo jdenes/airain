@@ -267,11 +267,11 @@ def place_orders(order_book):
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    train_model()
-    backtest(plot=False)
+    # train_model()
+    # backtest(plot=False)
     # update_data()
-    # order_book = get_recommendations()
-    # place_orders(order_book)
+    order_book = get_recommendations()
+    place_orders(order_book)
     # get_yesterday_perf()
 
     # emulator = Emulator(user_name, pwd)
