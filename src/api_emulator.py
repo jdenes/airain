@@ -49,5 +49,19 @@ class Emulator:
             res[asset] = price
         return res
 
+    def get_close_prices(self):
+        res = {'date': datetime.today().strftime('%Y-%m-%d')}
+        self.driver.find_element_by_xpath("//span[@class='button-arrow svg-icon-holder']").click()
+        self.driver.find_element_by_xpath("//div[text()='Reports']").click()
+        self.driver.find_element_by_xpath("//div[@class='item item-account-menu-reports-result']").click()
+        time.sleep(2)
+        button = self.driver.find_element_by_xpath("//span[@class='button']")
+        rows = self.driver.find_elements_by_xpath("//tbody[@class='table-body']/tr")
+        for row in rows:
+            asset = row.find_element_by_xpath("./td[@class='clickable-id']").get_attribute("data-code")
+            price = row.find_elements_by_xpath("./td")[5].text
+            res[asset] = price
+        return res
+
     def quit(self):
         self.driver.quit()

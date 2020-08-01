@@ -16,6 +16,7 @@ from sklearn.metrics import classification_report
 from tensorflow.keras.utils import to_categorical
 from datetime import datetime as dt
 
+
 ####################################################################################
 
 
@@ -31,8 +32,9 @@ class Trader(object):
 
         self.h = h
         self.forecast = forecast
-        self.seed = seed
         self.normalize = normalize
+        self.seed = seed
+        np.random.seed(self.seed)
 
         self.model = None
         self.x_max, self.x_min = None, None
@@ -46,7 +48,7 @@ class Trader(object):
         self.X_test = None
         self.P_test = None
         self.y_test = None
-        
+
         self.t1, self.t2 = '2020-04-01', '2020-06-01'
 
         if load_from is not None:
@@ -103,15 +105,15 @@ class Trader(object):
         print(classification_report(y_test, y_pred, digits=4))
         # print(tf.math.confusion_matrix(self.y_test, y_pred))
         # print(compute_metrics(y_test, y_pred))
-        
+
         fig, ax = plt.subplots(1, 2, figsize=(14, 14))
-        lgb.plot_importance(self.model, ax=ax[0], max_num_features=25, precision=0,
+        lgb.plot_importance(self.model[0], ax=ax[0], max_num_features=25, precision=0,
                             importance_type='split', title='In number of splits')
-        lgb.plot_importance(self.model, ax=ax[1], max_num_features=25, precision=0,
+        lgb.plot_importance(self.model[0], ax=ax[1], max_num_features=25, precision=0,
                             importance_type='gain', title='In total splits gain')
         fig.tight_layout()
         plt.show()
-        
+
         if plot:
             i = y_test != 0
             plt.plot((y_pred[i] - y_test[i]), '.')
@@ -124,7 +126,7 @@ class Trader(object):
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
         # y_pred = self.model.predict((X, P))
-        y_pred = self.model.predict(P)
+        y_pred = np.array([mod.predict(P) for mod in self.model]).mean(axis=0)
         # y_pred = 1. / (1. + np.exp(-y_pred))
         y_pred = y_pred.round(0).astype(int)
         # y_pred = y_pred.reshape((len(y_pred), 1))
@@ -149,7 +151,7 @@ class Trader(object):
         Given a dataset of any accepted format, simulates and returns portfolio evolution.
         """
 
-        policy, ind = self.compute_policy(df, labels, price, tradefreq+lag, fees)
+        policy, ind = self.compute_policy(df, labels, price, tradefreq + lag, fees)
         price = price[ind].to_numpy()
 
         count, amount = 0, 0
@@ -167,13 +169,13 @@ class Trader(object):
                 if value < last_value:
                     count += 1
                     amount += last_value - value
-                policy_with_lag = policy[i-lag]
-                if i > tradefreq + lag and policy_with_lag != policy[i-tradefreq-lag]:
+                policy_with_lag = policy[i - lag]
+                if i > tradefreq + lag and policy_with_lag != policy[i - tradefreq - lag]:
                     value *= 1 - fees
                 next_portfolio = (policy_with_lag[0] * value, policy_with_lag[1] * value / price[i])
                 ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
 
-        print("Total bad moves share:", count/len(price), "for amount lost:", amount)
+        print("Total bad moves share:", count / len(price), "for amount lost:", amount)
         return pd.DataFrame(ppp)
 
     def predict_last(self, df, prices, labels):
@@ -266,6 +268,7 @@ class LstmTrader(Trader):
         self.X_val = None
         self.P_val = None
         self.y_val = None
+        self.n_estimators = 21
 
     def transform_data(self, df, labels, get_index=False, keep_last=True):
         """
@@ -312,7 +315,7 @@ class LstmTrader(Trader):
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
-        
+
         X, P, y = self.transform_data(df_train, labels_train)
         if self.X_train is None:
             self.X_train, self.P_train, self.y_train = X, P, y
@@ -356,12 +359,11 @@ class LstmTrader(Trader):
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
-        
+
         print('_' * 100, '\n')
         print('Training on {} examples, with {} features...'.format(self.P_train.shape[0], self.P_train.shape[1]))
         y_mean = (self.y_train > 0).mean()
         print('Baseline for change accuracy is: {}'.format(max(y_mean, 1 - y_mean)))
-        # print('Equality of consecutive labels: {}'.format((self.y_train[1:] == self.y_train[:-1]).mean()))
         print('_' * 100, '\n')
 
         # train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
@@ -385,42 +387,14 @@ class LstmTrader(Trader):
             'verbose': -1,
             'early_stopping_rounds': 500,
         }
-        
-        train_data = lgb.Dataset(self.P_train, label=self.y_train)
-        valid_data = lgb.Dataset(self.P_val, label=self.y_val)
-        self.model = lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=100, )
 
-        # labels, count = np.unique(self.y_train, return_counts=True)
-        # class_weight = {}
-        # for i, l in enumerate(labels):
-        #     class_weight[int(l)] = (1 / count[i]) * len(self.y_train) / len(labels)
+        self.model = []
+        for i in range(self.n_estimators):
+            idx = (np.random.permutation(len(self.P_train))[:int(1*len(self.P_train))])
+            train_data = lgb.Dataset(self.P_train.reindex(idx), label=self.y_train[idx])
+            valid_data = lgb.Dataset(self.P_val, label=self.y_val)
+            self.model.append(lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, ))
 
-        # input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
-        # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-
-        # lstm_layer = tf.keras.layers.LSTM(164, name='lstm')(input_layer)
-        # attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
-        # drop1_layer = tf.keras.layers.Dropout(0.1, name='dropout_1')(lstm_layer)
-
-        # concat_layer = tf.keras.layers.concatenate([lstm_layer, price_layer], name='concat')
-        # dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-        # drop2_layer = tf.keras.layers.Dropout(0.1, name='dropout_2')(dense_layer)
-        # output_layer = tf.keras.layers.Dense(2, name='output')(drop2_layer)
-        # self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
-        # print(self.model.summary())
-
-        # self.model.compile(optimizer='adam', loss='mae')
-        # self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        # checkpoint = tf.keras.callbacks.ModelCheckpoint('../models/checkpoint.hdf5', monitor='val_loss',
-        # save_best_only=True)
-        # self.model.fit(train_data,
-        #                epochs=self.epochs,
-        #                steps_per_epoch=self.steps,
-        #                validation_steps=self.valsteps,
-        #                validation_data=val_data,
-        #                callbacks=[checkpoint]
-        #                )
-        
         print('_' * 100, '\n')
 
     def save(self, model_name):
@@ -430,7 +404,9 @@ class LstmTrader(Trader):
         super().save(model_name)
         model_name = '../models/' + model_name
         if self.model is not None:
-            self.model.save_model(model_name + '/model.h5')
+            # self.model.save_model(model_name + '/model.h5')
+            for i, mod in enumerate(self.model):
+                mod.save_model(f'{model_name}/tree/model{i}.h5')
         np.save(model_name + '/P_train.npy', self.P_train)
         np.save(model_name + '/P_test.npy', self.P_test)
 
@@ -441,7 +417,9 @@ class LstmTrader(Trader):
         super().load(model_name=model_name, fast=fast)
         model_name = '../models/' + model_name
         # self.model = tf.keras.models.load_model(model_name + '/model.h5')
-        self.model = lgb.Booster(model_file=model_name + '/model.h5')
+        self.model = []
+        for i in range(self.n_estimators):
+            self.model.append(lgb.Booster(model_file=f'{model_name}/tree/model{i}.h5'))
 
         if not fast:
             self.P_train = np.load(model_name + '/P_train.npy')
@@ -472,3 +450,34 @@ class LstmTrader(Trader):
         return res
 
 ####################################################################################
+
+# labels, count = np.unique(self.y_train, return_counts=True)
+# class_weight = {}
+# for i, l in enumerate(labels):
+#     class_weight[int(l)] = (1 / count[i]) * len(self.y_train) / len(labels)
+
+# input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
+# price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
+
+# lstm_layer = tf.keras.layers.LSTM(164, name='lstm')(input_layer)
+# attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
+# drop1_layer = tf.keras.layers.Dropout(0.1, name='dropout_1')(lstm_layer)
+
+# concat_layer = tf.keras.layers.concatenate([lstm_layer, price_layer], name='concat')
+# dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
+# drop2_layer = tf.keras.layers.Dropout(0.1, name='dropout_2')(dense_layer)
+# output_layer = tf.keras.layers.Dense(2, name='output')(drop2_layer)
+# self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
+# print(self.model.summary())
+
+# self.model.compile(optimizer='adam', loss='mae')
+# self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+# checkpoint = tf.keras.callbacks.ModelCheckpoint('../models/checkpoint.hdf5', monitor='val_loss',
+# save_best_only=True)
+# self.model.fit(train_data,
+#                epochs=self.epochs,
+#                steps_per_epoch=self.steps,
+#                validation_steps=self.valsteps,
+#                validation_data=val_data,
+#                callbacks=[checkpoint]
+#                )
