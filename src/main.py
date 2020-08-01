@@ -99,25 +99,25 @@ def backtest(plot=False):
             df = df.loc[ind]
 
             preds = trader.predict(X, P)
-            # y_true = pd.Series(y.flatten())
+            y_true = pd.Series(y.flatten())
             # y_pred = pd.Series(preds)
             # from sklearn.metrics import classification_report
             # print(classification_report(y_true, y_pred, digits=4))
 
-            for i in range(lag, len(df)):
+            for i in range(1, len(df)):
 
-                j = ind[i]
+                j, k = ind[i], ind[i-1]
                 if dt.strptime(j, '%Y-%m-%d').minute % tradefreq == 0:
 
-                    open, close = df.loc[j]['open'], df.loc[j]['close'],
+                    open, close = df.loc[j]['open'], df.loc[j]['close']
                     pl, gpl = 0, 0
                     # quantity = int(balance * 3 / 100)
                     amount = initial_gamble
                     quantity = int(amount * leverages[asset[1]] / open)
 
                     # Step 1 (morning) : decide what to do today and open position
-                    pred = preds[i - lag]
-                    label = labels[ind[i - lag]]
+                    pred = preds[i-1]
+                    label = labels[ind[i-1]]
                     order = decide_order(asset[1], quantity, open, pred, j)
 
                     # Step 2 (evening): close position
@@ -125,12 +125,12 @@ def backtest(plot=False):
                         if order['is_buy']:
                             pl = round((close - order['open']) * order['quantity'], 2)
                             # gpl = gross_pl(pl, quantity, now_close)
-                            buy_correct += int(pl > 0)
+                            buy_correct += int(pl >= 0)
                             buy += 1
                         else:
                             pl = round((order['open'] - close) * order['quantity'], 2)
                             # gpl = gross_pl(pl, quantity, now_close)
-                            sell_correct += int(pl > 0)
+                            sell_correct += int(pl >= 0)
                             sell += 1
                     else:
                         do_nothing += 1
@@ -147,14 +147,15 @@ def backtest(plot=False):
             bench = round(bench_balance - initial_gamble, 2)
             buy_acc = round(100 * buy_correct / buy, 2) if buy != 0 else 'NA'
             sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
-            pos_days = round(100 * sum([i > 0 for i in pls_hist]) / len(pls_hist), 2)
+            pos_days = round(100 * sum([i >= 0 for i in pls_hist]) / len(pls_hist), 2)
             m_returns = round(sum(returns_hist) / len(returns_hist), 2)
-            m_wins, m_loss = round(sum(pos_pls) / len(pos_pls), 2), round(sum(neg_pls) / len(neg_pls), 2)
+            m_wins = round(sum(pos_pls) / len(pos_pls), 2) if len(pos_pls) != 0 else 'NA'
+            m_loss = round(sum(neg_pls) / len(neg_pls), 2) if len(neg_pls) != 0 else 'NA'
 
             assets_profits.append(profit), assets_returns.append(m_returns)
             print(f'Profit: {profit}. Benchmark: {bench}. Mean daily return: {m_returns}%.')
             print(f'Correct moves: {pos_days}%. Correct buy: {buy_acc}%. Correct sell: {sell_acc}%.')
-            print(f'Av. wins/loss amounts: {m_wins}/{m_loss}. Ext. wins/loss amounts: {max(pos_pls)}/{min(neg_pls)}.')
+            print(f'Av. wins/loss amounts: {m_wins}/{m_loss}. Ext. wins/loss amounts: {max(pls_hist)}/{min(pls_hist)}.')
             if plot:
                 nice_plot(index_hist, [balance_hist, bench_hist], ['Algorithm', 'Benchmark'],
                           title=f'Profit evolution for {asset[1]}')

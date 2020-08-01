@@ -113,6 +113,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['quarter'] = time_index.quarter
         df['day'] = time_index.day
         df['week'] = time_index.week
+        df['mweek'] = time_index.map(week_of_month)
         df['wday'] = time_index.weekday
         # df['hour'] = time_index.hour
         # df['minute'] = time_index.minute
@@ -138,7 +139,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())  # .transform('std')
 
-        for period in ['year', 'quarter', 'month', 'day', 'wday']:  # 'hour', 'minute'
+        for period in ['year', 'quarter', 'week', 'month', 'day', 'wday']:  # 'hour', 'minute'
             for col in ['labels', 'volume', askcol, bidcol]:
                 df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
@@ -151,7 +152,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     # Computing overall aggregate features
     res = res.rename_axis('date').sort_values(['date', 'asset'])
     i = res.index.get_loc(t1).stop
-    for period in ['year', 'day', 'wday']:
+    for period in ['year', 'month', 'day', 'wday']:
         for col in ['labels', 'volume']:
             res['ov_{}_mean_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
             res['ov_{}_std_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
@@ -453,6 +454,14 @@ def merge_finance_csv(folder='../data/finance', filename='../data/finance/global
     # df = df.set_index('Date')
     # df.index = pd.to_datetime(df.index, unit='s')
     res.to_csv(filename, encoding='utf-8')
+
+
+def week_of_month(dt):
+    dt = pd.to_datetime(dt)
+    first_day = dt.replace(day=1)
+    dom = dt.day
+    adjusted_dom = dom + first_day.weekday()
+    return int(np.ceil(adjusted_dom/7))
 
 
 def append_data(path, new_row):

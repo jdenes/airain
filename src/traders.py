@@ -268,7 +268,7 @@ class LstmTrader(Trader):
         self.X_val = None
         self.P_val = None
         self.y_val = None
-        self.n_estimators = 21
+        self.n_estimators = 1
 
     def transform_data(self, df, labels, get_index=False, keep_last=True):
         """
@@ -374,18 +374,18 @@ class LstmTrader(Trader):
         lgb_params = {
             'objective': 'binary',
             'metric': 'binary_logloss',
-            'boosting_type': 'gbdt',
-            'subsample': 0.5,
+            'boosting_type': 'goss',    # gbdt
+            'subsample': 1.0,           # 0.5
             'subsample_freq': 1,
-            'learning_rate': 0.03,
-            'num_leaves': 2 ** 11 - 1,
+            'learning_rate': 0.01,      # 0.03
+            'num_leaves': 10,
             'min_data_in_leaf': 2 ** 12 - 1,
             'feature_fraction': 0.5,
-            'max_bin': 100,
-            'num_iterations': 200000,
-            'boost_from_average': False,
+            'max_bin': 255,
+            'num_iterations': 2500,
+            'boost_from_average': True,
             'verbose': -1,
-            'early_stopping_rounds': 500,
+            'early_stopping_rounds': 100,
         }
 
         self.model = []
@@ -393,7 +393,9 @@ class LstmTrader(Trader):
             idx = (np.random.permutation(len(self.P_train))[:int(1*len(self.P_train))])
             train_data = lgb.Dataset(self.P_train.reindex(idx), label=self.y_train[idx])
             valid_data = lgb.Dataset(self.P_val, label=self.y_val)
-            self.model.append(lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, ))
+            model = lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )
+            self.model.append(model)
+            # print(model.dump_model()["tree_info"])
 
         print('_' * 100, '\n')
 
