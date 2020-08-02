@@ -378,14 +378,16 @@ class LstmTrader(Trader):
             'subsample': 1.0,           # 0.5
             'subsample_freq': 1,
             'learning_rate': 0.01,      # 0.03
-            'num_leaves': 10,
+            'top_rate': 0.7,
+            'other_rate': 0.1,
+            'num_leaves': 2 ** 12 - 1,
             'min_data_in_leaf': 2 ** 12 - 1,
             'feature_fraction': 0.5,
             'max_bin': 255,
-            'num_iterations': 2500,
+            'num_iterations': 10000,
             'boost_from_average': True,
             'verbose': -1,
-            'early_stopping_rounds': 100,
+            'early_stopping_rounds': 300,
         }
 
         self.model = []
