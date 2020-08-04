@@ -1,38 +1,21 @@
-import os
 import time
 import logging
 import fxcmpy
 import configparser
 
 import pandas as pd
-from datetime import timedelta
 from datetime import datetime as dt
-from tqdm import tqdm
 
 from traders import LstmTrader
 from api_emulator import Emulator
 from utils import fetch_fxcm_data, fetch_intrinio_news, fetch_intrinio_prices, append_data
-from utils import load_data, nice_plot, change_accuracy, normalize_data
+from utils import load_data, nice_plot
 
+# Configuring setup constants
 # noinspection PyArgumentList
 logging.basicConfig(handlers=[logging.FileHandler("../logs/LOG.log"), logging.StreamHandler()],
                     level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s')
 logger = logging.getLogger()
-
-unit = 'H'  # 'm' ou 'd'
-datafreq = 1
-tradefreq = 1
-f, tf = str(datafreq), str(tradefreq)
-lag = 0
-h = 30
-initial_gamble = 2000
-fees = 0.0
-tolerance = 0e-5  # 2
-epochs = 50
-
-curr = 'EUR/USD'
-c = 'eurusd'
-
 config = configparser.ConfigParser()
 config.read('../resources/intrinio.cfg')
 api_key = config['INTRINIO']['access_token']
@@ -40,7 +23,16 @@ config.read('../resources/trading212.cfg')
 user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
-target_col = 'close'
+# Setting constant values
+UNIT = 'H'  # 'm' ou 'd'
+DATAFREQ = 1
+TRADEFREQ = 1
+H = 30
+INITIAL_GAMBLE = 2000
+EPOCHS = 50
+TARGET_COL = 'close'
+CURR = 'EUR/USD'
+LOWER_CURR = 'eurusd'
 
 # Removed UTX
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
@@ -64,32 +56,32 @@ def fetch_data():
     print('Fetching data...')
     con = fxcmpy.fxcmpy(config_file='../resources/fxcm.cfg', server='demo')
     start, end = '2002-01-01 00:00:00', '2020-01-01 00:00:00'
-    fetch_fxcm_data(filename='../data/dataset_' + c + '_train_' + unit + f + '.csv',
-                    curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
+    fetch_fxcm_data(filename=f'../data/dataset_{LOWER_CURR}_train_{UNIT}{DATAFREQ}.csv',
+                    curr=CURR, unit=UNIT, start=start, end=end, freq=DATAFREQ, con=con)
     start, end = '2020-01-01 00:00:00', '2020-06-01 00:00:00'
-    fetch_fxcm_data(filename='../data/dataset_' + c + '_test_' + unit + f + '.csv',
-                    curr=curr, unit=unit, start=start, end=end, freq=datafreq, con=con)
+    fetch_fxcm_data(filename=f'../data/dataset_{LOWER_CURR}_test_{UNIT}{DATAFREQ}.csv',
+                    curr=CURR, unit=UNIT, start=start, end=end, freq=DATAFREQ, con=con)
 
 
 def train_model():
     print('Training model...')
-    trader = LstmTrader(h=h, normalize=False)
-    banks = [f[:-4] for f in os.listdir('../data/finance/') if f.endswith('.csv')]
-    banks = companies
+    trader = LstmTrader(h=H, normalize=False)
+    # banks = [f[:-4] for f in os.listdir('../data/finance/') if f.endswith('.csv')]
+    # banks = companies
 
-    df, labels = load_data('../data/intrinio/', tradefreq, datafreq)
+    df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     trader.ingest_traindata(df, labels)
 
-    trader.train(epochs=epochs)
+    trader.train(epochs=EPOCHS)
     trader.test(plot=False)
-    trader.save(model_name='Huorn askopen NOW' + tf)
+    trader.save(model_name=f'Huorn askopen NOW{TRADEFREQ}')
 
 
 def backtest(plot=False):
     print('_' * 100, '\n')
     print('Initializing backtest...')
-    trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    ov_df, ov_labels = load_data('../data/intrinio/', tradefreq, datafreq, start_from='2020-04-01')
+    trader = LstmTrader(load_from=f'Huorn askopen NOW{TRADEFREQ}')
+    ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from='2020-04-01')
     assets_profits, assets_returns = [], []
 
     for asset in enumerate(companies):
@@ -99,7 +91,7 @@ def backtest(plot=False):
 
             buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
             index_hist, balance_hist, returns_hist, pls_hist, bench_hist = [], [], [], [], []
-            balance = bench_balance = initial_gamble
+            balance = bench_balance = INITIAL_GAMBLE
 
             df, labels = ov_df[ov_df['asset'] == asset[0]], ov_labels[ov_df['asset'] == asset[0]]
             X, P, y, ind = trader.transform_data(df, labels, get_index=True)
@@ -114,12 +106,12 @@ def backtest(plot=False):
             for i in range(1, len(df)):
 
                 j, k = ind[i], ind[i - 1]
-                if dt.strptime(j, '%Y-%m-%d').minute % tradefreq == 0:
+                if dt.strptime(j, '%Y-%m-%d').minute % TRADEFREQ == 0:
 
                     open, close = df.loc[j]['open'], df.loc[j]['close']
                     pl, gpl = 0, 0
                     # quantity = int(balance * 3 / 100)
-                    amount = initial_gamble
+                    amount = INITIAL_GAMBLE
                     quantity = int(amount * leverages[asset[1]] / open)
 
                     # Step 1 (morning) : decide what to do today and open position
@@ -150,8 +142,8 @@ def backtest(plot=False):
                     index_hist.append(ind[i])
 
             pos_pls, neg_pls = [i for i in pls_hist if i > 0], [i for i in pls_hist if i < 0]
-            profit = round(balance - initial_gamble, 2)
-            bench = round(bench_balance - initial_gamble, 2)
+            profit = round(balance - INITIAL_GAMBLE, 2)
+            bench = round(bench_balance - INITIAL_GAMBLE, 2)
             buy_acc = round(100 * buy_correct / buy, 2) if buy != 0 else 'NA'
             sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
             pos_days = round(100 * sum([i >= 0 for i in pls_hist]) / len(pls_hist), 2)
@@ -196,7 +188,7 @@ def get_yesterday_perf():
     print('_' * 100, '\n')
     print("Correctness of yesterday's predictions")
 
-    df, _ = load_data('../data/intrinio/', tradefreq, datafreq)
+    df, _ = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
     prices = pd.read_csv('../outputs/open_prices.csv', encoding='utf-8', index_col=0)
 
@@ -204,7 +196,7 @@ def get_yesterday_perf():
     df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])].loc[date].reset_index(drop=True)
     reco = reco.iloc[-2].reset_index(drop=True)
     prices = prices[col_names].loc[date].reset_index(drop=True)
-    quantity = (initial_gamble * pd.Series([leverages[co] for co in col_names]) / df['open']).astype(int)
+    quantity = (INITIAL_GAMBLE * (pd.Series([leverages[co] for co in col_names]) / df['open'])).astype(int)
     accuracy = (reco == (df['close'] > df['open']))
     profits = (2 * reco - 1) * (df['close'] - df['open']) * quantity
 
@@ -226,21 +218,21 @@ def update_data():
         path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company, update=True)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company, update=True)
-    load_data(folder, tradefreq, datafreq, update_embed=True)
+    load_data(folder, TRADEFREQ, DATAFREQ, update_embed=True)
 
 
 def get_recommendations():
     print('_' * 100, '\n')
     now = time.time()
-    trader = LstmTrader(load_from='Huorn askopen NOW' + tf)
-    df, labels = load_data('../data/intrinio/', tradefreq, datafreq)
+    trader = LstmTrader(load_from=f'Huorn askopen NOW{TRADEFREQ}')
+    df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
     df = df.loc[yesterday].reset_index(drop=True)
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
     reco, order_book = {'date': yesterday}, []
     lev = pd.Series([leverages[co] for co in companies])
-    quantity = (initial_gamble * lev / df['close']).astype(int)
+    quantity = (INITIAL_GAMBLE * (lev / df['close'])).astype(int)
     print('On {}, predictions for next day are:'.format(yesterday))
     print('_' * 100, '\n')
     print('Asset | Quantity | Reco')
@@ -298,7 +290,7 @@ def safe_try(function, arg=None, max_attempts=1000):
 
 def heartbeat():
     now = dt.now()
-    print(f'{now}: launching heartbeat')
+    logger.info(f'{now}: launching heartbeat')
     while True:
         now = dt.now()
         if now.minute % 10 == 0 and now.second == 0:
