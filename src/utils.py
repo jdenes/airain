@@ -332,7 +332,7 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
         url = base_url + '&next_page={}'.format(str(next_page))
     if update:
         df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
-        df = df.drop_duplicates()
+        df = df.drop_duplicates(keep='last')
         df.to_csv(filename, encoding='utf-8')
 
 
@@ -441,6 +441,10 @@ def nice_plot(ind, curves_list, names_list, title):
     plt.grid(alpha=0.3)
     # plt.savefig(path, bbox_inches='tight',format="png", dpi=300, transparent=True)
     plt.show()
+
+
+def gross_pl(pl, K, price):
+    return round((K / 10) * pl * (1 / price), 2)
 
 
 def merge_finance_csv(folder='../data/finance', filename='../data/finance/global.csv'):

@@ -2,6 +2,7 @@
   <dictionary name="julie">
     <words>
       <w>airain</w>
+      <w>asctime</w>
       <w>askbid</w>
       <w>askclose</w>
       <w>askopen</w>
@@ -23,6 +24,7 @@
       <w>indx</w>
       <w>intrinio</w>
       <w>joblib</w>
+      <w>levelname</w>
       <w>lstm</w>
       <w>pclose</w>
       <w>preds</w>

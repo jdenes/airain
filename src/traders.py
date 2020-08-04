@@ -361,9 +361,9 @@ class LstmTrader(Trader):
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 
         print('_' * 100, '\n')
-        print('Training on {} examples, with {} features...'.format(self.P_train.shape[0], self.P_train.shape[1]))
+        print(f'Training on {self.P_train.shape[0]} examples, with {self.P_train.shape[1]} features...')
         y_mean = (self.y_train > 0).mean()
-        print('Baseline for change accuracy is: {}'.format(max(y_mean, 1 - y_mean)))
+        print(f'Baseline for change accuracy is {round(max(y_mean, 1 - y_mean), 4)}.')
         print('_' * 100, '\n')
 
         # train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
@@ -382,7 +382,7 @@ class LstmTrader(Trader):
             'other_rate': 0.1,
             'num_leaves': 2 ** 12 - 1,
             'min_data_in_leaf': 2 ** 12 - 1,
-            'feature_fraction': 0.5,
+            'feature_fraction': 0.4,    # between 0.4 and 0.6
             'max_bin': 255,
             'num_iterations': 10000,
             'boost_from_average': True,
