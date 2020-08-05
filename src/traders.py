@@ -1,21 +1,15 @@
 import os
 import json
+import logging
 import numpy as np
 import pandas as pd
-import joblib as jl
-import tensorflow as tf
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 
-from sklearn import svm
-from sklearn.neural_network import MLPRegressor
-from sklearn.ensemble import RandomForestRegressor
-
-from utils import compute_metrics, evaluate, normalize_data, unnormalize_data
+from utils import normalize_data, unnormalize_data
 from sklearn.metrics import classification_report
-from tensorflow.keras.utils import to_categorical
-from datetime import datetime as dt
 
+logger = logging.getLogger(__name__)
 
 ####################################################################################
 
@@ -133,59 +127,6 @@ class Trader(object):
         # if self.normalize:
         #     y_pred = unnormalize_data(y_pred, self.y_max, self.y_min)
         return y_pred
-
-    def compute_policy(self, df, labels, prices, shift, fees):
-        """
-        Given parameters, decides what to do at next steps based on predictive model.
-        """
-        X, _, ind = self.transform_data(df, labels, get_index=True)
-        current_price = prices[ind].to_numpy()
-        y_pred = self.predict(X, prices)
-        print(compute_metrics(current_price[shift:], y_pred[:-shift]))
-        going_up = np.array(y_pred * (1 - fees) > current_price)
-        policy = [(0, 1) if p else (1, 0) for p in going_up]
-        return policy, ind
-
-    def backtest(self, df, labels, price, tradefreq=1, lag=0, initial_gamble=1000, fees=0.00):
-        """
-        Given a dataset of any accepted format, simulates and returns portfolio evolution.
-        """
-
-        policy, ind = self.compute_policy(df, labels, price, tradefreq + lag, fees)
-        price = price[ind].to_numpy()
-
-        count, amount = 0, 0
-        next_portfolio = (initial_gamble, 0)
-        ppp = []
-        value = initial_gamble
-
-        for i in range(len(price) - 1):
-
-            if dt.strptime(ind[i], '%Y-%m-%d %H:%M:%S').minute % tradefreq == 0:
-
-                last_portfolio = next_portfolio
-                last_value = value
-                value = evaluate(last_portfolio, price[i])
-                if value < last_value:
-                    count += 1
-                    amount += last_value - value
-                policy_with_lag = policy[i - lag]
-                if i > tradefreq + lag and policy_with_lag != policy[i - tradefreq - lag]:
-                    value *= 1 - fees
-                next_portfolio = (policy_with_lag[0] * value, policy_with_lag[1] * value / price[i])
-                ppp.append({'index': ind[i], 'portfolio': next_portfolio, 'value': value})
-
-        print("Total bad moves share:", count / len(price), "for amount lost:", amount)
-        return pd.DataFrame(ppp)
-
-    def predict_last(self, df, prices, labels):
-        """
-        Predicts next value and consequently next optimal portfolio.
-        """
-        X, P, _ = self.transform_data(df, labels, get_index=True, keep_last=True)
-        y_pred = self.predict(X, P)
-
-        return y_pred[-1]
 
     def save(self, model_name):
         """
@@ -428,60 +369,3 @@ class LstmTrader(Trader):
         if not fast:
             self.P_train = np.load(model_name + '/P_train.npy')
             self.P_test = np.load(model_name + '/P_test.npy')
-
-    def tensor_transform(self, tensor):
-        return tf.cast(tf.reshape(tensor, [-1]), dtype=tf.float32)
-
-    def change_accuracy(self, y_true, y_pred):
-        y_true = self.tensor_transform(y_true)
-        y_pred = self.tensor_transform(y_pred)
-        x = tf.cast(((y_true * y_pred) > 0), dtype=tf.float32)
-        res = tf.math.reduce_mean(x)
-        return res
-
-    def change_mean(self, y_true, y_pred):
-        pred_shift = tf.math.greater(y_pred[1:], y_true[:-1])
-        true_shift = tf.math.greater(y_true[1:], y_true[:-1])
-        same = tf.cast(true_shift, dtype=tf.float32)
-        res = tf.math.reduce_mean(same)
-        return res
-
-    def sigma(self, y_true, y_pred):
-        y_true = self.tensor_transform(y_true)
-        y_pred = self.tensor_transform(y_pred)
-        x = y_true * y_pred
-        res = tf.math.reduce_mean(x) / tf.math.reduce_std(x)
-        return res
-
-####################################################################################
-
-# labels, count = np.unique(self.y_train, return_counts=True)
-# class_weight = {}
-# for i, l in enumerate(labels):
-#     class_weight[int(l)] = (1 / count[i]) * len(self.y_train) / len(labels)
-
-# input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
-# price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-
-# lstm_layer = tf.keras.layers.LSTM(164, name='lstm')(input_layer)
-# attention_layer = tf.keras.layers.Attention(name='attention_layer')([bilstm_layer, bilstm_layer])
-# drop1_layer = tf.keras.layers.Dropout(0.1, name='dropout_1')(lstm_layer)
-
-# concat_layer = tf.keras.layers.concatenate([lstm_layer, price_layer], name='concat')
-# dense_layer = tf.keras.layers.Dense(20, name='combine')(concat_layer)
-# drop2_layer = tf.keras.layers.Dropout(0.1, name='dropout_2')(dense_layer)
-# output_layer = tf.keras.layers.Dense(2, name='output')(drop2_layer)
-# self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
-# print(self.model.summary())
-
-# self.model.compile(optimizer='adam', loss='mae')
-# self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-# checkpoint = tf.keras.callbacks.ModelCheckpoint('../models/checkpoint.hdf5', monitor='val_loss',
-# save_best_only=True)
-# self.model.fit(train_data,
-#                epochs=self.epochs,
-#                steps_per_epoch=self.steps,
-#                validation_steps=self.valsteps,
-#                validation_data=val_data,
-#                callbacks=[checkpoint]
-#                )

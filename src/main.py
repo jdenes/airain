@@ -1,21 +1,21 @@
 import time
 import logging
-import fxcmpy
 import configparser
-
 import pandas as pd
 from datetime import datetime as dt
 
 from traders import LstmTrader
 from api_emulator import Emulator
-from utils import fetch_fxcm_data, fetch_intrinio_news, fetch_intrinio_prices, append_data
+from utils import fetch_intrinio_news, fetch_intrinio_prices, append_data
 from utils import load_data, nice_plot
 
 # Configuring setup constants
 # noinspection PyArgumentList
 logging.basicConfig(handlers=[logging.FileHandler("../logs/LOG.log"), logging.StreamHandler()],
-                    level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s')
-logger = logging.getLogger()
+                    format='%(asctime)s: %(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 config = configparser.ConfigParser()
 config.read('../resources/intrinio.cfg')
 api_key = config['INTRINIO']['access_token']
@@ -50,17 +50,6 @@ def fetch_intrinio_data():
         path = '../data/intrinio/{}'.format(company.lower())
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
-
-
-def fetch_data():
-    print('Fetching data...')
-    con = fxcmpy.fxcmpy(config_file='../resources/fxcm.cfg', server='demo')
-    start, end = '2002-01-01 00:00:00', '2020-01-01 00:00:00'
-    fetch_fxcm_data(filename=f'../data/dataset_{LOWER_CURR}_train_{UNIT}{DATAFREQ}.csv',
-                    curr=CURR, unit=UNIT, start=start, end=end, freq=DATAFREQ, con=con)
-    start, end = '2020-01-01 00:00:00', '2020-06-01 00:00:00'
-    fetch_fxcm_data(filename=f'../data/dataset_{LOWER_CURR}_test_{UNIT}{DATAFREQ}.csv',
-                    curr=CURR, unit=UNIT, start=start, end=end, freq=DATAFREQ, con=con)
 
 
 def train_model():
@@ -214,7 +203,6 @@ def get_yesterday_perf():
 def update_data():
     folder = '../data/intrinio/'
     for company in companies:
-        print('Fetching most recent {} data...'.format(company))
         path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company, update=True)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company, update=True)
@@ -258,7 +246,6 @@ def place_orders(order_book):
     prices = pd.DataFrame([prices]).set_index('date', drop=True)
     path = '../outputs/open_prices.csv'
     append_data(path, prices)
-    # time.sleep(60)
     emulator.quit()
 
 
@@ -298,16 +285,16 @@ def heartbeat():
         if now.hour == 14 and now.minute == 30 and now.second == 0:
             logger.info(f'{now}: updating data')
             safe_try(update_data)
-            logger.info(f'{now}: updating successful')
+            logger.info(f'{now}: updating was successful')
         if now.hour == 15 and now.minute == 29 and now.second == 30:
             logger.info(f'{now}: placing orders')
             order_book = safe_try(get_recommendations)
             safe_try(place_orders, order_book)
-            logger.info(f'{now}: placing successful')
+            logger.info(f'{now}: placing was successful')
         if now.hour == 21 and now.minute == 50 and now.second == 0:
             logger.info(f'{now}: closing all orders')
             safe_try(close_orders)
-            logger.info(f'{now}: closing successful')
+            logger.info(f'{now}: closing was successful')
         time.sleep(1)
 
 

@@ -1,8 +1,11 @@
 import time
+import logging
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
+
+logger = logging.getLogger(__name__)
 
 
 class Emulator:
@@ -35,7 +38,7 @@ class Emulator:
             self.driver.find_element_by_xpath("//span[@class='account-panel-close-all svg-icon-holder']").click()
             self.driver.find_element_by_xpath("//div[@class='close-all-positions-button button blue-button']").click()
         except NoSuchElementException:
-            print("Found no position to close.")
+            logger.info("API emulator found no position to close")
         time.sleep(1)
         return self
 
