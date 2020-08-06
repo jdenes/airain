@@ -333,7 +333,7 @@ class LstmTrader(Trader):
 
         self.model = []
         for i in range(self.n_estimators):
-            idx = (np.random.permutation(len(self.P_train))[:int(1*len(self.P_train))])
+            idx = (np.random.permutation(len(self.P_train)))
             train_data = lgb.Dataset(self.P_train.reindex(idx), label=self.y_train[idx])
             valid_data = lgb.Dataset(self.P_val, label=self.y_val)
             model = lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )

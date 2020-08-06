@@ -1,7 +1,7 @@
 import time
 import logging
-from datetime import datetime
 from selenium import webdriver
+from datetime import datetime, timedelta
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import NoSuchElementException
 
@@ -39,7 +39,7 @@ class Emulator:
             self.driver.find_element_by_xpath("//div[@class='close-all-positions-button button blue-button']").click()
         except NoSuchElementException:
             logger.info("API emulator found no position to close")
-        time.sleep(1)
+        time.sleep(3)
         return self
 
     def get_open_prices(self):
@@ -53,17 +53,28 @@ class Emulator:
         return res
 
     def get_close_prices(self):
-        res = {'date': datetime.today().strftime('%Y-%m-%d')}
+        res = []
+        time_format = '%d.%m.%Y %H:%M:%S'
         self.driver.find_element_by_xpath("//span[@class='button-arrow svg-icon-holder']").click()
         self.driver.find_element_by_xpath("//div[text()='Reports']").click()
         self.driver.find_element_by_xpath("//div[@class='item item-account-menu-reports-result']").click()
-        time.sleep(2)
-        button = self.driver.find_element_by_xpath("//span[@class='button']")
-        rows = self.driver.find_elements_by_xpath("//tbody[@class='table-body']/tr")
-        for row in rows:
-            asset = row.find_element_by_xpath("./td[@class='clickable-id']").get_attribute("data-code")
-            price = row.find_elements_by_xpath("./td")[5].text
-            res[asset] = price
+        time.sleep(5)
+        dates_list = [datetime.today()]
+        while min(dates_list) >= datetime.today() - timedelta(days=3):
+            rows = self.driver.find_elements_by_xpath("//tbody[@class='table-body']/tr")
+            dates_list = [datetime.strptime(r.find_elements_by_xpath("./td")[8].text, time_format) for r in rows]
+            for row in rows:
+                cells = row.find_elements_by_xpath("./td")
+                asset = row.find_element_by_xpath("./td[@class='clickable-id']").get_attribute("data-code")
+                quantity = int(cells[2].text.replace(' ', ''))
+                is_buy = 1 if cells[3].text == 'Buy' else 0
+                result = float(cells[6].text)
+                open_price = float(cells[4].text)
+                close_price = float(cells[5].text)
+                date = datetime.strptime(cells[8].text, time_format).strftime('%Y-%m-%d')
+                res.append({'date': date, 'asset': asset, 'is_buy': is_buy, 'quantity': quantity,
+                            'result': result, 'open': open_price, 'close': close_price})
+            self.driver.find_element_by_xpath("//span[@data-dojo-attach-point='nextButton']").click()
         return res
 
     def quit(self):

@@ -9,6 +9,7 @@ import joblib as jl
 import matplotlib.pyplot as plt
 import matplotlib.dates as dates
 from matplotlib import font_manager
+from datetime import datetime, timedelta
 
 from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
@@ -274,6 +275,9 @@ def unnormalize_data(data, data_max, data_min):
 
 
 def nice_plot(ind, curves_list, names_list, title):
+    """
+    Provides nice plot for profit curves.
+    """
     font_manager._rebuild()
     plt.rcParams['font.family'] = 'Lato'
     plt.rcParams['font.sans-serif'] = 'Lato'
@@ -314,11 +318,32 @@ def week_of_month(dt):
     return int(np.ceil(adjusted_dom/7))
 
 
-def append_data(path, new_row):
+def next_day(date):
+    if date.day() <= 3 or date.day() == 6:
+        return date + timedelta(days=1)
+    elif date.day() == 4:
+        return date + timedelta(days=3)
+    elif date.day() == 5:
+        return date + timedelta(days=2)
+
+
+def previous_day(date):
+    if 1 <= date.day() <= 5:
+        return date - timedelta(days=1)
+    elif date.day() == 0:
+        return date - timedelta(days=3)
+    elif date.day() == 2:
+        return date - timedelta(days=2)
+
+
+def write_data(path, new_row, same_ids=False):
     if os.path.exists(path):
         df = pd.read_csv(path, encoding='utf-8', index_col=0)
         df = pd.concat([df, new_row], axis=0)
-        df = df.loc[~df.index.duplicated(keep='last')]
+        if same_ids:
+            df = df.drop_duplicates(keep='last')
+        else:
+            df = df.loc[~df.index.duplicated(keep='last')]
         df.to_csv(path, encoding='utf-8')
     else:
         new_row.to_csv(path, encoding='utf-8')

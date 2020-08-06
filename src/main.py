@@ -6,7 +6,7 @@ from datetime import datetime as dt
 
 from traders import LstmTrader
 from api_emulator import Emulator
-from utils import fetch_intrinio_news, fetch_intrinio_prices, append_data
+from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data
 from utils import load_data, nice_plot
 
 # Configuring setup constants
@@ -179,7 +179,7 @@ def get_yesterday_perf():
 
     df, _ = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
-    prices = pd.read_csv('../outputs/open_prices.csv', encoding='utf-8', index_col=0)
+    prices = pd.read_csv('../outputs/trade_data.csv', encoding='utf-8', index_col=0)
 
     date, col_names = reco.iloc[-1].name, reco.columns
     df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])].loc[date].reset_index(drop=True)
@@ -232,7 +232,7 @@ def get_recommendations():
             print('{:5s} | {:8d} | {:4d}'.format(companies[i], quantity[i], pred))
     path = '../outputs/recommendations.csv'
     reco = pd.DataFrame([reco]).set_index('date', drop=True)
-    append_data(path, reco)
+    write_data(path, reco)
     print('Inference took {} seconds.'.format(round(time.time() - now)))
     return order_book
 
@@ -245,7 +245,7 @@ def place_orders(order_book):
     prices = emulator.get_open_prices()
     prices = pd.DataFrame([prices]).set_index('date', drop=True)
     path = '../outputs/open_prices.csv'
-    append_data(path, prices)
+    write_data(path, prices)
     emulator.quit()
 
 
@@ -276,25 +276,24 @@ def safe_try(function, arg=None, max_attempts=1000):
 
 
 def heartbeat():
-    now = dt.now()
-    logger.info(f'{now}: launching heartbeat')
+    logger.info('launching heartbeat')
     while True:
         now = dt.now()
         if now.minute % 10 == 0 and now.second == 0:
-            logger.info(f'{now}: still running')
+            logger.info('still running')
         if now.hour == 14 and now.minute == 30 and now.second == 0:
-            logger.info(f'{now}: updating data')
+            logger.info('updating data')
             safe_try(update_data)
-            logger.info(f'{now}: updating was successful')
+            logger.info('updating was successful')
         if now.hour == 15 and now.minute == 29 and now.second == 30:
-            logger.info(f'{now}: placing orders')
+            logger.info('placing orders')
             order_book = safe_try(get_recommendations)
             safe_try(place_orders, order_book)
-            logger.info(f'{now}: placing was successful')
+            logger.info('placing was successful')
         if now.hour == 21 and now.minute == 50 and now.second == 0:
-            logger.info(f'{now}: closing all orders')
+            logger.info('closing all orders')
             safe_try(close_orders)
-            logger.info(f'{now}: closing was successful')
+            logger.info('closing was successful')
         time.sleep(1)
 
 
@@ -306,9 +305,12 @@ if __name__ == "__main__":
     # order_book = get_recommendations()
     # place_orders(order_book)
     # get_yesterday_perf()
-    heartbeat()
+    # heartbeat()
 
-    # emulator = Emulator(user_name, pwd)
-    # prices = emulator.get_open_prices()
-    # prices = emulator.get_close_prices()
-    # emulator.quit()
+    emulator = Emulator(user_name, pwd)
+    prices = emulator.get_close_prices()
+    prices = pd.DataFrame(prices).set_index('date', drop=True)
+    print(prices)
+    path = '../outputs/trade_data.csv'
+    write_data(path, prices, same_ids=True)
+    emulator.quit()
