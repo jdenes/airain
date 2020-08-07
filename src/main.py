@@ -7,7 +7,7 @@ from datetime import datetime as dt
 from traders import LstmTrader
 from api_emulator import Emulator
 from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data
-from utils import load_data, nice_plot
+from utils import load_data, nice_plot, next_day, previous_day
 
 # Configuring setup constants
 # noinspection PyArgumentList
@@ -181,23 +181,32 @@ def get_yesterday_perf():
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
     prices = pd.read_csv('../outputs/trade_data.csv', encoding='utf-8', index_col=0)
 
-    date, col_names = reco.iloc[-1].name, reco.columns
-    df = df[df['asset'].isin([i for i, co in enumerate(companies) if co in col_names])].loc[date].reset_index(drop=True)
-    reco = reco.iloc[-2].reset_index(drop=True)
-    prices = prices[col_names].loc[date].reset_index(drop=True)
-    quantity = (INITIAL_GAMBLE * (pd.Series([leverages[co] for co in col_names]) / df['open'])).astype(int)
-    accuracy = (reco == (df['close'] > df['open']))
-    profits = (2 * reco - 1) * (df['close'] - df['open']) * quantity
+    date, traded_assets = reco.iloc[-1].name, reco.columns
+    exp_accuracy, exp_profits, true_accuracy, true_profits = [], [], [], []
+    df, prices, reco = df.loc[date], prices.loc[date], reco.iloc[-2]
 
-    print("Computed with data from {}, traded on {}.".format(reco.name, date))
+    print(f"Computed with data from {reco.name}, traded on {date}.")
     print('_' * 100, '\n')
-    print('Asset | Quantity | Reco | Profit/Loss | Exp Open | Act Open | Exp Close')
-    print('-' * 71)
-    for i, x in enumerate(profits):
-        print('{:5s} | {:8d} | {:4d} | {:11.2f} | {:8.2f} | {:8.2f} | {:9.2f}'.format(
-            col_names[i], quantity[i], reco[i], x, df['open'][i], prices[i], df['close'][i]))
+    print('Asset | Quantity | Reco | Order | Exp P/L | True P/L | Exp Open | True Open | Exp Close | True Close')
+    print('-' * 100)
+    for i, asset in enumerate(companies):
+        if asset in traded_assets:
+            df_row, prices_row = df[df['asset'] == i], prices[prices['asset'] == asset]
+            exp_open, exp_close = df_row['open'].values[0], df_row['close'].values[0]
+            true_open, true_close = prices_row['open'].values[0], prices_row['close'].values[0]
+            true_pl, order = prices_row['result'].values[0], prices_row['is_buy'].values[0]
+            asset_reco = reco[asset]
+            quantity = int(INITIAL_GAMBLE * leverages[asset] / exp_open)
+            exp_pl = (2 * asset_reco - 1) * (exp_close - exp_open) * quantity
+            exp_accuracy.append(asset_reco == (exp_close > exp_open)), exp_profits.append(exp_pl)
+            true_accuracy.append(asset_reco == (true_close > true_open)), true_profits.append(true_pl)
+            print('{:5s} | {:8d} | {:4d} | {:5d} | {:7.2f} | {:8.2f} | {:8.2f} | {:9.2f} | {:9.2f} | {:10.2f}'.format(
+                   asset, quantity, asset_reco, order, exp_pl, true_pl, exp_open, true_open, exp_close, true_close))
     print('_' * 100, '\n')
-    print('Accuracy was {:.2f}%. Total P/L was {:.2f}.'.format(100 * accuracy.mean(), profits.sum()))
+    print('Expected accuracy was {:.2f}%. True accuracy was {:.2f}%'.format(100 * pd.Series(exp_accuracy).mean(),
+                                                                            100 * pd.Series(true_accuracy).mean()))
+    print('Expected P/L was {:.2f}. True P/L was {:.2f}.'.format(pd.Series(exp_profits).sum(),
+                                                                 pd.Series(true_profits).sum()))
 
 
 def update_data():
@@ -304,13 +313,13 @@ if __name__ == "__main__":
     # update_data()
     # order_book = get_recommendations()
     # place_orders(order_book)
-    # get_yesterday_perf()
+    get_yesterday_perf()
     # heartbeat()
 
-    emulator = Emulator(user_name, pwd)
-    prices = emulator.get_close_prices()
-    prices = pd.DataFrame(prices).set_index('date', drop=True)
-    print(prices)
-    path = '../outputs/trade_data.csv'
-    write_data(path, prices, same_ids=True)
-    emulator.quit()
+    # emulator = Emulator(user_name, pwd)
+    # prices = emulator.get_close_prices()
+    # prices = pd.DataFrame(prices).set_index('date', drop=True)
+    # print(prices)
+    # path = '../outputs/trade_data.csv'
+    # write_data(path, prices, same_ids=True)
+    # emulator.quit()
