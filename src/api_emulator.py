@@ -52,7 +52,7 @@ class Emulator:
             res[asset] = price
         return res
 
-    def get_close_prices(self):
+    def get_close_prices(self, horizon=3):
         res = []
         time_format = '%d.%m.%Y %H:%M:%S'
         self.driver.find_element_by_xpath("//span[@class='button-arrow svg-icon-holder']").click()
@@ -60,7 +60,7 @@ class Emulator:
         self.driver.find_element_by_xpath("//div[@class='item item-account-menu-reports-result']").click()
         time.sleep(5)
         dates_list = [datetime.today()]
-        while min(dates_list) >= datetime.today() - timedelta(days=3):
+        while min(dates_list) >= datetime.today() - timedelta(days=horizon):
             rows = self.driver.find_elements_by_xpath("//tbody[@class='table-body']/tr")
             dates_list = [datetime.strptime(r.find_elements_by_xpath("./td")[8].text, time_format) for r in rows]
             for row in rows:

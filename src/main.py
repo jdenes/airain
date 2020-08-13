@@ -70,7 +70,7 @@ def backtest(plot=False):
     print('_' * 100, '\n')
     print('Initializing backtest...')
     trader = LstmTrader(load_from=f'Huorn askopen NOW{TRADEFREQ}')
-    ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from='2020-04-01')
+    ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
     assets_profits, assets_returns = [], []
 
     for asset in enumerate(companies):
@@ -309,9 +309,9 @@ def heartbeat():
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # train_model()
-    # backtest(plot=False)
-    # update_data()
-    # order_book = get_recommendations()
+    # backtest(plot=True)
+    update_data()
+    order_book = get_recommendations()
     # place_orders(order_book)
     get_yesterday_perf()
     # heartbeat()
