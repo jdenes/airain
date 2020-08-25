@@ -3,8 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/checkpoint.hdf5" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,6 +36,17 @@
       </list>
     </option>
   </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -42,11 +54,11 @@
   <component name="ProjectId" id="1XU6tjh8WEXmcyPs1Rqhdj0BdVh" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showExcludedFiles" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
     <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -55,7 +67,7 @@
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RunManager" selected="Python.main">
     <configuration name="app" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
@@ -107,6 +119,7 @@
       <item itemvalue="Python.app" />
     </list>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="project-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
     <configuration />
   </component>
@@ -219,7 +232,12 @@
       <workItem from="1597082200048" duration="649000" />
       <workItem from="1597135037331" duration="1219000" />
       <workItem from="1597232955933" duration="752000" />
-      <workItem from="1597352060862" duration="16000" />
+      <workItem from="1597352060862" duration="61000" />
+      <workItem from="1598284205458" duration="3507000" />
+      <workItem from="1598290171124" duration="521000" />
+      <workItem from="1598290836467" duration="957000" />
+      <workItem from="1598293545435" duration="704000" />
+      <workItem from="1598294853766" duration="6015000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -253,20 +271,19 @@
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="1" />
+    <option name="version" value="3" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Improved code indus for MlTraders" />
@@ -281,6 +298,10 @@
     </state>
     <state x="233" y="20" key="#Inspections/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595332258210" />
     <state x="233" y="20" key="#Inspections/0.0.1280.720@0.0.1280.720" timestamp="1596556388474" />
+    <state x="233" y="20" key="#Notifications" timestamp="1598286197729">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="233" y="20" key="#Notifications/0.0.1280.720@0.0.1280.720" timestamp="1598286197729" />
     <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1596112235515">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -290,30 +311,30 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="265" y="0" key="CommitChangelistDialog2/0.0.1280.720@0.0.1280.720" timestamp="1594223515983" />
-    <state x="420" y="116" key="FileChooserDialogImpl" timestamp="1596112450969">
+    <state x="420" y="116" key="FileChooserDialogImpl" timestamp="1598293739604">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state x="420" y="116" key="FileChooserDialogImpl/0.0.1280.720@0.0.1280.720" timestamp="1596112450969" />
-    <state width="1237" height="200" key="GridCell.Tab.0.bottom" timestamp="1597137183747">
+    <state x="420" y="116" key="FileChooserDialogImpl/0.0.1280.720@0.0.1280.720" timestamp="1598293739604" />
+    <state width="1237" height="176" key="GridCell.Tab.0.bottom" timestamp="1598354756345">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="170" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1596202841202" />
-    <state width="1237" height="200" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1597137183747" />
-    <state width="1237" height="200" key="GridCell.Tab.0.center" timestamp="1597137183747">
+    <state width="1237" height="176" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1598354756345" />
+    <state width="1237" height="176" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1598345449619" />
+    <state width="1237" height="176" key="GridCell.Tab.0.center" timestamp="1598354756345">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="170" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1596202841202" />
-    <state width="1237" height="200" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1597137183747" />
-    <state width="1237" height="200" key="GridCell.Tab.0.left" timestamp="1597137183747">
+    <state width="1237" height="176" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1598354756345" />
+    <state width="1237" height="176" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1598345449619" />
+    <state width="1237" height="176" key="GridCell.Tab.0.left" timestamp="1598354756345">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="170" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1596202841202" />
-    <state width="1237" height="200" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1597137183747" />
-    <state width="1237" height="200" key="GridCell.Tab.0.right" timestamp="1597137183747">
+    <state width="1237" height="176" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1598354756345" />
+    <state width="1237" height="176" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1598345449619" />
+    <state width="1237" height="176" key="GridCell.Tab.0.right" timestamp="1598354756345">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state width="1237" height="170" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1596202841202" />
-    <state width="1237" height="200" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1597137183747" />
+    <state width="1237" height="176" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1598354756345" />
+    <state width="1237" height="176" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1598345449619" />
     <state width="1237" height="220" key="GridCell.Tab.1.bottom" timestamp="1596386277268">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -330,18 +351,18 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="220" key="GridCell.Tab.1.right/0.0.1280.720@0.0.1280.720" timestamp="1596386277268" />
-    <state x="142" y="4" key="SettingsEditor" timestamp="1596808235102">
+    <state x="142" y="4" key="SettingsEditor" timestamp="1598345657383">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state x="142" y="4" key="SettingsEditor/0.0.1280.720@0.0.1280.720" timestamp="1596808235102" />
+    <state x="142" y="4" key="SettingsEditor/0.0.1280.720@0.0.1280.720" timestamp="1598345657383" />
     <state width="498" height="446" key="SwitcherDM" timestamp="1593162975546">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="498" height="446" key="SwitcherDM/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1593162975546" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1597233050831" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
-    <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1595769727693" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1598354743890" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
   </component>
 </project>

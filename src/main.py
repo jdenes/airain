@@ -24,7 +24,8 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-UNIT = 'H'  # 'm' ou 'd'
+VERSION = 1
+UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
 H = 30
@@ -63,13 +64,13 @@ def train_model():
 
     trader.train(epochs=EPOCHS)
     trader.test(plot=False)
-    trader.save(model_name=f'Huorn askopen NOW{TRADEFREQ}')
+    trader.save(model_name=f'Huorn_v{VERSION}')
 
 
 def backtest(plot=False):
     print('_' * 100, '\n')
     print('Initializing backtest...')
-    trader = LstmTrader(load_from=f'Huorn askopen NOW{TRADEFREQ}')
+    trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
     assets_profits, assets_returns = [], []
 
@@ -221,7 +222,7 @@ def update_data():
 def get_recommendations():
     print('_' * 100, '\n')
     now = time.time()
-    trader = LstmTrader(load_from=f'Huorn askopen NOW{TRADEFREQ}')
+    trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
     df = df.loc[yesterday].reset_index(drop=True)
@@ -261,7 +262,7 @@ def place_orders(order_book):
 def close_orders():
     emulator = Emulator(user_name, pwd)
     emulator.close_all_trades()
-    prices = emulator.get_close_prices()
+    emulator.get_close_prices()
     emulator.quit()
 
 
@@ -279,7 +280,7 @@ def safe_try(function, arg=None, max_attempts=1000):
             continue
         break
     if attempts == max_attempts:
-        logger.error(f"Too many attempts to safely execute function {function.__name__}")
+        logger.error(f"too many attempts to safely execute function {function.__name__}")
         raise Exception("Too many attempts to safely execute")
     return res
 
@@ -308,12 +309,12 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    # train_model()
-    # backtest(plot=True)
-    update_data()
-    order_book = get_recommendations()
+    train_model()
+    backtest(plot=False)
+    # update_data()
+    # order_book = get_recommendations()
     # place_orders(order_book)
-    get_yesterday_perf()
+    # get_yesterday_perf()
     # heartbeat()
 
     # emulator = Emulator(user_name, pwd)

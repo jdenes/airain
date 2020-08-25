@@ -136,6 +136,7 @@ class Trader(object):
         model_name = '../models/' + model_name
         if not os.path.exists(model_name):
             os.makedirs(model_name)
+            os.makedirs(model_name + '/tree/')
 
         to_rm = ['model', 'x_max', 'x_min', 'p_min', 'p_max', 'X_train', 'P_train', 'y_train',
                  'X_test', 'P_test', 'y_test', 'X_val', 'P_val', 'y_val']
