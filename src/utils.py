@@ -9,7 +9,7 @@ import joblib as jl
 import matplotlib.pyplot as plt
 import matplotlib.dates as dates
 from matplotlib import font_manager
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
