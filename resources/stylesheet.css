@@ -316,3 +316,24 @@ button:hover {
 div .tab-container--vert .tab:last-of-type {
   border-bottom: var(--classic-border) !important;
 }
+
+table {
+  font-family: inherit!important;
+  --hover: var(--gray-14)!important;
+  --border: transparent!important;
+}
+
+th {
+  background-color: inherit!important;
+  border-color: transparent!important;
+}
+
+td {
+  background-color: inherit!important;
+  border-color: transparent!important;
+}
+
+.dash-header {
+  background-color: var(--gray-11)!important;
+  border-color: var(--gray-11)!important;
+}

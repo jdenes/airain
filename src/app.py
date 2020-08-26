@@ -1,5 +1,6 @@
 import os
 import dash
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
@@ -18,6 +19,11 @@ def generate_table(dataframe, max_rows=10):
             ]) for i in range(min(len(dataframe), max_rows))
         ])
     ])
+
+
+#########
+# TAB 1 #
+#########
 
 
 app_body_tab_overview = html.Div(
@@ -50,6 +56,13 @@ app_body_tab_overview = html.Div(
             ]),
     ])
 
+#########
+# TAB 2 #
+#########
+
+prices = pd.read_csv('../data/intrinio/aapl_prices.csv', encoding='utf-8').tail(5)
+prices = prices[['date', 'open', 'high', 'low', 'close', 'volume']]
+
 app_body_tab_predict = [
     html.Div(
         style={'width': '32%', 'height': '96.5%', 'display': 'inline-flex', 'flexFlow': 'column',
@@ -57,7 +70,13 @@ app_body_tab_predict = [
         children=[
             html.Button("UPDATE DATA", className='app-body-update-button'),
             html.Div("✔  Data are up to date", className='app-body-status-section'),
-            html.Div("Showing the N last entry in PRICES to check date", className='app-body-prices-section'),
+            html.Div(className='app-body-prices-section',
+                     children=dash_table.DataTable(
+                         id='prices-table',
+                         columns=[{"name": i, "id": i} for i in prices.columns],
+                         data=prices.round(2).to_dict('records'),
+                         style_table={'overflowX': 'none'},
+                     )),
             html.Div("Showing the N last entry in NEWS to check date", className='app-body-news-section'),
         ]
     ),
@@ -80,6 +99,11 @@ app_body_tab_predict = [
         ]
     ),
 ]
+
+#########
+# TAB 4 #
+#########
+
 
 app_body_tab_model = html.Div(
     className='app-body-container',

@@ -24,8 +24,8 @@ class Emulator:
         if order['is_buy'] is None:
             time.sleep(1)
             return self
-        dir = 'buy' if order['is_buy'] == 1 else 'sell'
-        xpath = f"//div[@data-code='{order['asset']}']//span[@class='buy-sell-price-container {dir}']"
+        direction = 'buy' if order['is_buy'] == 1 else 'sell'
+        xpath = f"//div[@data-code='{order['asset']}']//span[@class='buy-sell-price-container {direction}']"
         self.driver.find_element_by_xpath(xpath).click()
         self.driver.find_element_by_xpath("//div[@class='dropdown-arrow svg-icon-holder']").click()
         ActionChains(self.driver).send_keys(order['quantity']).perform()
@@ -52,7 +52,7 @@ class Emulator:
             res[asset] = price
         return res
 
-    def get_close_prices(self, horizon=3):
+    def get_trades_results(self, horizon=3):
         res = []
         time_format = '%d.%m.%Y %H:%M:%S'
         self.driver.find_element_by_xpath("//span[@class='button-arrow svg-icon-holder']").click()
@@ -74,7 +74,11 @@ class Emulator:
                 date = datetime.strptime(cells[8].text, time_format).strftime('%Y-%m-%d')
                 res.append({'date': date, 'asset': asset, 'is_buy': is_buy, 'quantity': quantity,
                             'result': result, 'open': open_price, 'close': close_price})
-            self.driver.find_element_by_xpath("//span[@data-dojo-attach-point='nextButton']").click()
+            try:
+                self.driver.find_element_by_xpath("//span[@class='button' and "
+                                                  "@data-dojo-attach-point='nextButton']").click()
+            except NoSuchElementException:
+                break
         return res
 
     def quit(self):

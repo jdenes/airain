@@ -7,7 +7,7 @@ from datetime import datetime as dt
 from traders import LstmTrader
 from api_emulator import Emulator
 from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data
-from utils import load_data, nice_plot, next_day, previous_day
+from utils import load_data, nice_plot
 
 # Configuring setup constants
 # noinspection PyArgumentList
@@ -88,8 +88,7 @@ def backtest(plot=False):
             df = df.loc[ind]
 
             preds = trader.predict(X, P)
-            y_true = pd.Series(y.flatten())
-            # y_pred = pd.Series(preds)
+            # y_true, y_pred = pd.Series(y.flatten()), pd.Series(preds)
             # from sklearn.metrics import classification_report
             # print(classification_report(y_true, y_pred, digits=4))
 
@@ -98,26 +97,25 @@ def backtest(plot=False):
                 j, k = ind[i], ind[i - 1]
                 if dt.strptime(j, '%Y-%m-%d').minute % TRADEFREQ == 0:
 
-                    open, close = df.loc[j]['open'], df.loc[j]['close']
+                    open_price, close_price = df.loc[j]['open'], df.loc[j]['close']
                     pl, gpl = 0, 0
                     # quantity = int(balance * 3 / 100)
                     amount = INITIAL_GAMBLE
-                    quantity = int(amount * leverages[asset[1]] / open)
+                    quantity = int(amount * leverages[asset[1]] / open_price)
 
                     # Step 1 (morning) : decide what to do today and open position
-                    pred = preds[i - 1]
-                    label = labels[ind[i - 1]]
-                    order = decide_order(asset[1], quantity, open, pred, j)
+                    pred, label = preds[i - 1], labels[ind[i - 1]]
+                    order = decide_order(asset[1], quantity, open_price, pred, j)
 
                     # Step 2 (evening): close position
                     if order['is_buy'] is not None:
                         if order['is_buy']:
-                            pl = round((close - order['open']) * order['quantity'], 2)
+                            pl = round((close_price - order['open']) * order['quantity'], 2)
                             # gpl = gross_pl(pl, quantity, now_close)
                             buy_correct += int(pl >= 0)
                             buy += 1
                         else:
-                            pl = round((order['open'] - close) * order['quantity'], 2)
+                            pl = round((order['open'] - close_price) * order['quantity'], 2)
                             # gpl = gross_pl(pl, quantity, now_close)
                             sell_correct += int(pl >= 0)
                             sell += 1
@@ -126,7 +124,7 @@ def backtest(plot=False):
 
                     # Step 3 bis: compute metrics and stuff
                     balance, returns, pls = round(balance + pl, 2), round((pl / amount) * 100, 2), round(pl, 2)
-                    bench_balance = round(bench_balance + (close - order['open']) * quantity, 2)
+                    bench_balance = round(bench_balance + (close_price - order['open']) * quantity, 2)
                     balance_hist.append(balance), returns_hist.append(returns), pls_hist.append(pls)
                     bench_hist.append(bench_balance)
                     index_hist.append(ind[i])
@@ -162,15 +160,15 @@ def backtest(plot=False):
     # print(perf)
 
 
-def decide_order(asset, quantity, open, pred, date):
+def decide_order(asset, quantity, open_price, pred, date):
     # if pred_bid > (1 - tolerance) * now_ask:
     if pred == 1:
-        order = {'asset': asset, 'is_buy': True, 'open': open, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': True, 'open': open_price, 'quantity': quantity, 'date': date}
     # elif pred_ask < now_bid / (1 - tolerance):
     elif pred == 0:
-        order = {'asset': asset, 'is_buy': False, 'open': open, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': False, 'open': open_price, 'quantity': quantity, 'date': date}
     else:
-        order = {'asset': asset, 'is_buy': None, 'open': open, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': None, 'open': open_price, 'quantity': quantity, 'date': date}
     return order
 
 
@@ -231,19 +229,14 @@ def get_recommendations():
     reco, order_book = {'date': yesterday}, []
     lev = pd.Series([leverages[co] for co in companies])
     quantity = (INITIAL_GAMBLE * (lev / df['close'])).astype(int)
-    print('On {}, predictions for next day are:'.format(yesterday))
-    print('_' * 100, '\n')
-    print('Asset | Quantity | Reco')
-    print('-' * 24)
     for i, pred in enumerate(preds):
         if companies[i] in performers:
             reco[companies[i]] = pred
             order_book.append({'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i])})
-            print('{:5s} | {:8d} | {:4d}'.format(companies[i], quantity[i], pred))
     path = '../outputs/recommendations.csv'
     reco = pd.DataFrame([reco]).set_index('date', drop=True)
     write_data(path, reco)
-    print('Inference took {} seconds.'.format(round(time.time() - now)))
+    logger.info(f'recommendations inference took {round(time.time() - now)} seconds')
     return order_book
 
 
@@ -262,7 +255,19 @@ def place_orders(order_book):
 def close_orders():
     emulator = Emulator(user_name, pwd)
     emulator.close_all_trades()
-    emulator.get_close_prices()
+    prices = emulator.get_trades_results()
+    prices = pd.DataFrame(prices).set_index('date', drop=True)
+    path = '../outputs/trade_data.csv'
+    write_data(path, prices, same_ids=True)
+    emulator.quit()
+
+
+def get_trades_results():
+    emulator = Emulator(user_name, pwd)
+    prices = emulator.get_trades_results()
+    prices = pd.DataFrame(prices).set_index('date', drop=True)
+    path = '../outputs/trade_data.csv'
+    write_data(path, prices, same_ids=True)
     emulator.quit()
 
 
@@ -274,9 +279,9 @@ def safe_try(function, arg=None, max_attempts=1000):
                 res = function()
             else:
                 res = function(arg)
-        except:
+        except Exception as ex:
             attempts += 1
-            logger.warning(f"execution of function {function.__name__} failed {attempts} times")
+            logger.warning(f"execution of function {function.__name__} failed {attempts} times. Exception met: {ex}")
             continue
         break
     if attempts == max_attempts:
@@ -309,18 +314,11 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    train_model()
-    backtest(plot=False)
+    # train_model()
+    # backtest(plot=False)
     # update_data()
-    # order_book = get_recommendations()
+    order_book = get_recommendations()
     # place_orders(order_book)
+    # get_trades_results()
     # get_yesterday_perf()
     # heartbeat()
-
-    # emulator = Emulator(user_name, pwd)
-    # prices = emulator.get_close_prices()
-    # prices = pd.DataFrame(prices).set_index('date', drop=True)
-    # print(prices)
-    # path = '../outputs/trade_data.csv'
-    # write_data(path, prices, same_ids=True)
-    # emulator.quit()
