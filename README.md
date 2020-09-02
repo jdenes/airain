@@ -9,12 +9,25 @@ On top of that, this AI is able to trade according to its prediction to maximize
 ![Python](https://img.shields.io/badge/python-v3.6+-green.svg)
 ![License](https://img.shields.io/badge/copyrights-reserved-red.svg)
 
+## Features
+
+Currently using Intrinio for data source and Trading 212 as broker.
+
+**Current features :**
+- data ingestion through Intrinio's API
+- model training
+- model backtesting
+- order placing in Trading 212 using Selenium
+- automated trader for data updating and opening/closing positions
+- graphical interface (under development)
+
+
 ## Example
 
 
 ## Installation
 
-Requires Python 3.6+.
+#### Requires Python 3.6+.
 
 Clone the repo : 
 ```bash
@@ -25,6 +38,13 @@ Then install requirements:
 ```bash
 pip install -r requirements.txt
 ```
+
+#### Other requirements
+
+- An Intrinio account (API key, free to get)
+- A Trading 212 account (credentials, free to get)
+
+See `.cfg` files in `/resources/` to understand how to fill those information.
 
 ## Usage
 
