@@ -9,7 +9,7 @@ import joblib as jl
 import matplotlib.pyplot as plt
 import matplotlib.dates as dates
 from matplotlib import font_manager
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sentence_transformers import SentenceTransformer
 from sklearn.decomposition import PCA
@@ -51,7 +51,7 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'GS': ['gs', 'goldman', 'sachs', 'bank'],
             'UNH': ['unh', 'united', 'health', 'insurance'],
             'TRV': ['trv', 'travel', 'insurance'],
-            'UTX': ['utx', 'united', 'tech'],
+            # 'UTX': ['utx', 'united', 'tech'],
             }
 
 
@@ -106,7 +106,17 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df = df.dropna()
         del embed
 
-        df['labels'] = ((df[askcol].shift(-tradefreq) - df[bidcol].shift(-tradefreq)) > 0).astype(int)
+        def compute_label(row):
+            if row[askcol] - row[bidcol] >= 0.0:
+                return 0
+            elif row[bidcol] - row[askcol] >= 0.0:
+                return 1
+            else:
+                return 0
+
+        shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
+        df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
+        # df['labels'] = pd.concat([shifted_bidcol, shifted_askcol], axis=1).apply(compute_label, axis=1)
 
         time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year
@@ -172,7 +182,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     return res[index], labels[index]
 
 
-def load_news(asset, keywords=None, last_day=None):
+def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     filename = '../data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
     df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
@@ -182,10 +192,13 @@ def load_news(asset, keywords=None, last_day=None):
     if keywords is not None:
         pattern = '(?i)' + '|'.join(keywords)
         df = df[df['title'].str.contains(pattern) | df['summary'].str.contains(pattern)]
+
+    if use_weekends:
+        df.index = [x if datetime.strptime(x, '%Y-%m-%d').weekday() < 5 else previous_day(x) for x in df.index]
+
     res = df[['title', 'summary']].groupby(df.index).apply(sum)
 
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-
     # tmp = mod.encode(res['title'], show_progress_bar=True)
     # embed_title = pd.DataFrame(tmp, index=res.index)
     # embed_title.columns = ['news_title_{}'.format(i) for i in embed_title]
@@ -319,21 +332,25 @@ def week_of_month(dt):
 
 
 def next_day(date):
-    if date.day() <= 3 or date.day() == 6:
-        return date + timedelta(days=1)
-    elif date.day() == 4:
-        return date + timedelta(days=3)
-    elif date.day() == 5:
-        return date + timedelta(days=2)
+    date = datetime.strptime(date, '%Y-%m-%d')
+    if date.weekday() == 4:
+        res = date + timedelta(days=3)
+    elif date.weekday() == 5:
+        res = date + timedelta(days=2)
+    else:
+        res = date + timedelta(days=1)
+    return res.strftime('%Y-%m-%d')
 
 
 def previous_day(date):
-    if 1 <= date.day() <= 5:
-        return date - timedelta(days=1)
-    elif date.day() == 0:
-        return date - timedelta(days=3)
-    elif date.day() == 2:
-        return date - timedelta(days=2)
+    date = datetime.strptime(date, '%Y-%m-%d')
+    if date.weekday() == 0:
+        res = date - timedelta(days=3)
+    elif date.weekday() == 6:
+        res = date - timedelta(days=2)
+    else:
+        res = date - timedelta(days=1)
+    return res.strftime('%Y-%m-%d')
 
 
 def write_data(path, new_row, same_ids=False):

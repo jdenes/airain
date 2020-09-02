@@ -5,10 +5,12 @@
       <w>asctime</w>
       <w>askbid</w>
       <w>askclose</w>
+      <w>askcol</w>
       <w>askopen</w>
       <w>backtest</w>
       <w>backtesting</w>
       <w>bidclose</w>
+      <w>bidcol</w>
       <w>bidopen</w>
       <w>cryptocurrency</w>
       <w>cuda</w>

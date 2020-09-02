@@ -24,7 +24,7 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 1
+VERSION = 2
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
@@ -47,8 +47,8 @@ performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS
 
 def fetch_intrinio_data():
     for company in companies:
-        print('Fetching {} data...'.format(company))
-        path = '../data/intrinio/{}'.format(company.lower())
+        print(f'Fetching {company} data...')
+        path = f'../data/intrinio/{company.lower()}'
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
 
@@ -72,7 +72,8 @@ def backtest(plot=False):
     print('Initializing backtest...')
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
-    assets_profits, assets_returns = [], []
+    assets_profits, assets_returns, assets_balance, assets_pls_hist = [], [], [], []
+    index_hist = None
 
     for asset in enumerate(companies):
         if asset[1] in performers:
@@ -140,6 +141,7 @@ def backtest(plot=False):
             m_loss = round(sum(neg_pls) / len(neg_pls), 2) if len(neg_pls) != 0 else 'NA'
 
             assets_profits.append(profit), assets_returns.append(m_returns)
+            assets_balance.append(balance_hist), assets_pls_hist.append(pls_hist)
             print(f'Profit: {profit}. Benchmark: {bench}. Mean daily return: {m_returns}%.')
             print(f'Correct moves: {pos_days}%. Correct buy: {buy_acc}%. Correct sell: {sell_acc}%.')
             print(f'Av. wins/loss amounts: {m_wins}/{m_loss}. Ext. wins/loss amounts: {max(pls_hist)}/{min(pls_hist)}.')
@@ -148,12 +150,20 @@ def backtest(plot=False):
                           title=f'Profit evolution for {asset[1]}')
 
     print('_' * 100, '\n')
+    if plot:
+        portfolio_balance_hist = [sum([pls[i] for pls in assets_balance]) for i in range(len(assets_pls_hist[0]))]
+        nice_plot(index_hist, [portfolio_balance_hist], ['Portfolio balance'], title=f'Portfolio balance evolution')
+
+    portfolio_pls_hist = [sum([pls[i] for pls in assets_pls_hist]) for i in range(len(assets_pls_hist[0]))]
+    portfolio_mean_pls = round(sum(portfolio_pls_hist) / len(portfolio_pls_hist), 2)
+
     n_pos = len([x for x in assets_profits if x > 0])
     m_prof = round(sum(assets_profits) / len(assets_profits), 2)
     m_ret = round(sum(assets_returns) / len(assets_returns), 2)
     print('Returns:', assets_returns)
     print(f'Average profit by assets: {m_prof}. Average daily return: {m_ret}%.')
     print(f'Profitable assets: {n_pos}/{len(assets_profits)}.')
+    print(f'Average daily profit of portfolio: {portfolio_mean_pls}.')
     print('_' * 100, '\n')
     # perf = [(companies[i], ret) for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
     # perf = [companies[i] for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
@@ -173,7 +183,6 @@ def decide_order(asset, quantity, open_price, pred, date):
 
 
 def get_yesterday_perf():
-    print('_' * 100, '\n')
     print("Correctness of yesterday's predictions")
 
     df, _ = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
@@ -218,7 +227,6 @@ def update_data():
 
 
 def get_recommendations():
-    print('_' * 100, '\n')
     now = time.time()
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
@@ -314,11 +322,10 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
+    # update_data()
     # train_model()
-    # backtest(plot=False)
-    update_data()
-    # order_book = get_recommendations()
-    # place_orders(order_book)
+    backtest(plot=False)
+    # get_recommendations()
     # get_trades_results()
     # get_yesterday_perf()
-    heartbeat()
+    # heartbeat()

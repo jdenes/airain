@@ -314,7 +314,8 @@ class LstmTrader(Trader):
         # val_data = val_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
 
         lgb_params = {
-            'objective': 'binary',
+            'objective': 'binary',      # multiclass
+            # 'num_class': 3,
             'metric': 'binary_logloss',
             'boosting_type': 'goss',    # gbdt
             'subsample': 1.0,           # 0.5
