@@ -126,6 +126,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['week'] = time_index.week
         df['mweek'] = time_index.map(week_of_month)
         df['wday'] = time_index.weekday
+        df['dayofyear'] = time_index.dayofyear
         # df['hour'] = time_index.hour
         # df['minute'] = time_index.minute
 
@@ -150,7 +151,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())  # .transform('std')
 
-        for period in ['year', 'quarter', 'week', 'month', 'day', 'wday']:  # 'hour', 'minute'
+        for period in ['year', 'quarter', 'week', 'month', 'day', 'wday', 'dayofyear']:  # 'hour', 'minute'
             for col in ['labels', 'volume', askcol, bidcol]:
                 df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].std())

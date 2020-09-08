@@ -18,7 +18,7 @@ class Emulator:
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
-        time.sleep(10)
+        time.sleep(20)
 
     def open_trade(self, order):
         if order['is_buy'] is None:

@@ -156,6 +156,7 @@ def backtest(plot=False):
 
     portfolio_pls_hist = [sum([pls[i] for pls in assets_pls_hist]) for i in range(len(assets_pls_hist[0]))]
     portfolio_mean_pls = round(sum(portfolio_pls_hist) / len(portfolio_pls_hist), 2)
+    portfolio_pos_days = round(100 * len([x for x in portfolio_pls_hist if x > 0]) / len(portfolio_pls_hist), 2)
 
     n_pos = len([x for x in assets_profits if x > 0])
     m_prof = round(sum(assets_profits) / len(assets_profits), 2)
@@ -163,7 +164,7 @@ def backtest(plot=False):
     print('Returns:', assets_returns)
     print(f'Average profit by assets: {m_prof}. Average daily return: {m_ret}%.')
     print(f'Profitable assets: {n_pos}/{len(assets_profits)}.')
-    print(f'Average daily profit of portfolio: {portfolio_mean_pls}.')
+    print(f'Average daily profit of portfolio: {portfolio_mean_pls}. Positive days: {portfolio_pos_days}%.')
     print('_' * 100, '\n')
     # perf = [(companies[i], ret) for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
     # perf = [companies[i] for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
@@ -324,8 +325,9 @@ if __name__ == "__main__":
     # fetch_intrinio_data()
     # update_data()
     # train_model()
-    backtest(plot=False)
-    # get_recommendations()
+    # backtest(plot=False)
+    order_book = get_recommendations()
+    place_orders(order_book)
     # get_trades_results()
     # get_yesterday_perf()
     # heartbeat()
