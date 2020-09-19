@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils.py" afterDir="false" />
     </list>
@@ -115,8 +114,8 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.main" />
       <item itemvalue="Python.app" />
+      <item itemvalue="Python.main" />
     </list>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="project-level" UseSingleDictionary="true" transferred="true" />
@@ -251,7 +250,14 @@
       <workItem from="1599229561772" duration="3200000" />
       <workItem from="1599289680954" duration="722000" />
       <workItem from="1599551786839" duration="5661000" />
-      <workItem from="1599580127087" duration="38000" />
+      <workItem from="1599580127087" duration="104000" />
+      <workItem from="1599670961475" duration="3965000" />
+      <workItem from="1600034752724" duration="891000" />
+      <workItem from="1600167905292" duration="2642000" />
+      <workItem from="1600327539648" duration="7704000" />
+      <workItem from="1600362116249" duration="3507000" />
+      <workItem from="1600420758337" duration="20202000" />
+      <workItem from="1600509335013" duration="9937000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -316,15 +322,19 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="233" y="20" key="#Notifications/0.0.1280.720@0.0.1280.720" timestamp="1598286197729" />
+    <state x="233" y="2" key="#Plugins" timestamp="1600362439585">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="233" y="2" key="#Plugins/0.0.1280.720@0.0.1280.720" timestamp="1600362439585" />
     <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1596112235515">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1595330407696" />
     <state x="19" y="21" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1280.720@0.0.1280.720" timestamp="1596112235515" />
-    <state x="321" y="97" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1598608461721">
+    <state x="321" y="97" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog" timestamp="1600361508054">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state x="321" y="97" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/0.0.1280.720@0.0.1280.720" timestamp="1598608461721" />
+    <state x="321" y="97" key="#com.intellij.openapi.updateSettings.impl.PluginUpdateInfoDialog/0.0.1280.720@0.0.1280.720" timestamp="1600361508054" />
     <state x="265" y="0" key="CommitChangelistDialog2" timestamp="1594223515983">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -333,26 +343,26 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="420" y="116" key="FileChooserDialogImpl/0.0.1280.720@0.0.1280.720" timestamp="1599573783735" />
-    <state width="1237" height="158" key="GridCell.Tab.0.bottom" timestamp="1599573786047">
+    <state width="1237" height="164" key="GridCell.Tab.0.bottom" timestamp="1600521982608">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="158" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1599573786047" />
-    <state width="1237" height="158" key="GridCell.Tab.0.center" timestamp="1599573786047">
+    <state width="1237" height="164" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1600521982608" />
+    <state width="1237" height="164" key="GridCell.Tab.0.center" timestamp="1600521982607">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="158" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1599573786047" />
-    <state width="1237" height="158" key="GridCell.Tab.0.left" timestamp="1599573786047">
+    <state width="1237" height="164" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1600521982607" />
+    <state width="1237" height="164" key="GridCell.Tab.0.left" timestamp="1600521982607">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="158" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1599573786047" />
-    <state width="1237" height="158" key="GridCell.Tab.0.right" timestamp="1599573786047">
+    <state width="1237" height="164" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1600521982607" />
+    <state width="1237" height="164" key="GridCell.Tab.0.right" timestamp="1600521982607">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="158" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1599573786047" />
+    <state width="1237" height="164" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1600521982607" />
     <state width="1237" height="220" key="GridCell.Tab.1.bottom" timestamp="1596386277268">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -381,6 +391,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1598438442125" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
     <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1599573405600" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1600521837447" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
   </component>
 </project>

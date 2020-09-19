@@ -60,7 +60,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     Given a data source, loads appropriate csv file.
     """
 
-    t1 = '2020-01-02'
+    t1 = '2020-04-01'
     res = pd.DataFrame()
 
     for number, asset in enumerate(keywords.keys()):
@@ -87,10 +87,8 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
             if update_embed:
                 last_embed = embed.index.max()
                 embed = load_news(asset, keywords[asset], last_day=last_embed)
-                embed.to_csv(path, encoding='utf-8', mode='a', header=False)
+                write_data(path, embed)
                 embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-                embed = embed.loc[~embed.index.duplicated(keep='last')]
-                embed.to_csv(path, encoding='utf-8')
 
         dim = 75
         path = '../data/pca_sbert_{}.joblib'.format(dim)
@@ -148,15 +146,15 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
 
         df['asset'] = number
-        df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].mean())  # .transform('mean')
-        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x.iloc[:i].std())  # .transform('std')
+        df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
+        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
 
         for period in ['year', 'quarter', 'week', 'month', 'day', 'wday', 'dayofyear']:  # 'hour', 'minute'
             for col in ['labels', 'volume', askcol, bidcol]:
-                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
-                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
-                # df[period + '_min_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].min())
-                # df[period + '_max_' + col] = df.groupby(period)[col].transform(lambda x: x.iloc[:i].max())
+                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
+                # df[period + '_min_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].min())
+                # df[period + '_max_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].max())
 
         # essayer Kalman Filter
         res = pd.concat([res, df], axis=0)
@@ -166,8 +164,8 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     i = res.index.get_loc(t1).stop
     for period in ['year', 'month', 'day', 'wday']:
         for col in ['labels', 'volume']:
-            res['ov_{}_mean_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].mean())
-            res['ov_{}_std_{}'.format(period, col)] = res.groupby(period)[col].transform(lambda x: x.iloc[:i].std())
+            res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+            res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
 
     if start_from is not None:
         res = res[start_from:]
@@ -362,6 +360,6 @@ def write_data(path, new_row, same_ids=False):
             df = df.drop_duplicates(keep='last')
         else:
             df = df.loc[~df.index.duplicated(keep='last')]
-        df.to_csv(path, encoding='utf-8')
+        df.sort_index().to_csv(path, encoding='utf-8')
     else:
         new_row.to_csv(path, encoding='utf-8')

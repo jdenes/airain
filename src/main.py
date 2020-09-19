@@ -24,7 +24,7 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 2
+VERSION = 3
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
@@ -209,13 +209,12 @@ def get_yesterday_perf():
             exp_pl = (2 * asset_reco - 1) * (exp_close - exp_open) * quantity
             exp_accuracy.append(asset_reco == (exp_close > exp_open)), exp_profits.append(exp_pl)
             true_accuracy.append(asset_reco == (true_close > true_open)), true_profits.append(true_pl)
-            print('{:5s} | {:8d} | {:4d} | {:5d} | {:7.2f} | {:8.2f} | {:8.2f} | {:9.2f} | {:9.2f} | {:10.2f}'.format(
-                   asset, quantity, asset_reco, order, exp_pl, true_pl, exp_open, true_open, exp_close, true_close))
+            print(f'{asset:5s} | {quantity:8d} | {asset_reco:4d} | {order:5d} | {exp_pl:7.2f} | {true_pl:8.2f} |'
+                  f'{exp_open:8.2f} | {true_open:9.2f} | {exp_close:9.2f} | {true_close:10.2f}')
     print('_' * 100, '\n')
-    print('Expected accuracy was {:.2f}%. True accuracy was {:.2f}%'.format(100 * pd.Series(exp_accuracy).mean(),
-                                                                            100 * pd.Series(true_accuracy).mean()))
-    print('Expected P/L was {:.2f}. True P/L was {:.2f}.'.format(pd.Series(exp_profits).sum(),
-                                                                 pd.Series(true_profits).sum()))
+    print(f'Expected accuracy was {100 * pd.Series(exp_accuracy).mean():.2f}%.'
+          f'True accuracy was {100 * pd.Series(true_accuracy).mean():.2f}%')
+    print(f'Expected P/L was {sum(exp_profits):.2f}. True P/L was {sum(true_profits):.2f}.')
 
 
 def update_data():
@@ -232,7 +231,9 @@ def get_recommendations():
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
+    yesterday = '2020-09-17'
     df = df.loc[yesterday].reset_index(drop=True)
+    # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
     preds = trader.predict(X, P)
     reco, order_book = {'date': yesterday}, []
@@ -324,10 +325,11 @@ def heartbeat():
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # update_data()
-    # train_model()
-    # backtest(plot=False)
-    order_book = get_recommendations()
-    place_orders(order_book)
+    train_model()
+    backtest(plot=False)
+    # order_book = get_recommendations()
+    # print(order_book)
+    # place_orders(order_book)
     # get_trades_results()
     # get_yesterday_perf()
     # heartbeat()
