@@ -6,7 +6,8 @@ from datetime import datetime as dt
 
 from traders import LstmTrader
 from api_emulator import Emulator
-from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data
+from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data, precompute_embeddings
+from utils import benchmark_metrics, benchmark_portfolio_metric
 from utils import load_data, nice_plot
 
 # Configuring setup constants
@@ -72,7 +73,7 @@ def backtest(plot=False):
     print('Initializing backtest...')
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
-    assets_profits, assets_returns, assets_balance, assets_pls_hist = [], [], [], []
+    assets_balance, benchmarks_balance = [], []
     index_hist = None
 
     for asset in enumerate(companies):
@@ -80,8 +81,7 @@ def backtest(plot=False):
             print('_' * 100, '\n')
             print(f'Backtesting on {asset[1]}...\n')
 
-            buy, sell, buy_correct, sell_correct, do_nothing = 0, 0, 0, 0, 0
-            index_hist, balance_hist, returns_hist, pls_hist, bench_hist = [], [], [], [], []
+            index_hist, balance_hist, bench_hist, orders_hist = [], [], [], []
             balance = bench_balance = INITIAL_GAMBLE
 
             df, labels = ov_df[ov_df['asset'] == asset[0]], ov_labels[ov_df['asset'] == asset[0]]
@@ -113,59 +113,51 @@ def backtest(plot=False):
                         if order['is_buy']:
                             pl = round((close_price - order['open']) * order['quantity'], 2)
                             # gpl = gross_pl(pl, quantity, now_close)
-                            buy_correct += int(pl >= 0)
-                            buy += 1
                         else:
                             pl = round((order['open'] - close_price) * order['quantity'], 2)
                             # gpl = gross_pl(pl, quantity, now_close)
-                            sell_correct += int(pl >= 0)
-                            sell += 1
-                    else:
-                        do_nothing += 1
 
-                    # Step 3 bis: compute metrics and stuff
-                    balance, returns, pls = round(balance + pl, 2), round((pl / amount) * 100, 2), round(pl, 2)
+                    # Step 3 bis: save trade results
+                    balance = round(balance + pl, 2)
                     bench_balance = round(bench_balance + (close_price - order['open']) * quantity, 2)
-                    balance_hist.append(balance), returns_hist.append(returns), pls_hist.append(pls)
+                    orders_hist.append(order['is_buy'])
+                    balance_hist.append(balance)
                     bench_hist.append(bench_balance)
                     index_hist.append(ind[i])
 
-            pos_pls, neg_pls = [i for i in pls_hist if i > 0], [i for i in pls_hist if i < 0]
-            profit = round(balance - INITIAL_GAMBLE, 2)
+            metrics = benchmark_metrics(INITIAL_GAMBLE, balance_hist, orders_hist)
             bench = round(bench_balance - INITIAL_GAMBLE, 2)
-            buy_acc = round(100 * buy_correct / buy, 2) if buy != 0 else 'NA'
-            sell_acc = round(100 * sell_correct / sell, 2) if sell != 0 else 'NA'
-            pos_days = round(100 * sum([i >= 0 for i in pls_hist]) / len(pls_hist), 2)
-            m_returns = round(sum(returns_hist) / len(returns_hist), 2)
-            m_wins = round(sum(pos_pls) / len(pos_pls), 2) if len(pos_pls) != 0 else 'NA'
-            m_loss = round(sum(neg_pls) / len(neg_pls), 2) if len(neg_pls) != 0 else 'NA'
+            profit = metrics['profit']
+            pos_days = metrics['positive_days']
+            m_returns = metrics['mean_returns']
+            buy_acc, sell_acc = metrics['buy_accuracy'], metrics['sell_accuracy']
+            m_wins, m_loss = metrics['mean_wins'], metrics['mean_loss']
+            max_win, max_loss = metrics['max_win'], metrics['max_loss']
 
-            assets_profits.append(profit), assets_returns.append(m_returns)
-            assets_balance.append(balance_hist), assets_pls_hist.append(pls_hist)
+            assets_balance.append(balance_hist), benchmarks_balance.append(bench_hist)
             print(f'Profit: {profit}. Benchmark: {bench}. Mean daily return: {m_returns}%.')
             print(f'Correct moves: {pos_days}%. Correct buy: {buy_acc}%. Correct sell: {sell_acc}%.')
-            print(f'Av. wins/loss amounts: {m_wins}/{m_loss}. Ext. wins/loss amounts: {max(pls_hist)}/{min(pls_hist)}.')
+            print(f'Av. wins/loss amounts: {m_wins}/{m_loss}. Ext. wins/loss amounts: {max_win}/{max_loss}.')
             if plot:
                 nice_plot(index_hist, [balance_hist, bench_hist], ['Algorithm', 'Benchmark'],
                           title=f'Profit evolution for {asset[1]}')
 
     print('_' * 100, '\n')
     if plot:
-        portfolio_balance_hist = [sum([pls[i] for pls in assets_balance]) for i in range(len(assets_pls_hist[0]))]
-        nice_plot(index_hist, [portfolio_balance_hist], ['Portfolio balance'], title=f'Portfolio balance evolution')
+        portfolio_balance_hist = [sum([b[i] for b in assets_balance]) for i in range(len(assets_balance[0]))]
+        benchmarks_balance_hist = [sum([b[i] for b in benchmarks_balance]) for i in range(len(benchmarks_balance[0]))]
+        nice_plot(index_hist, [portfolio_balance_hist, benchmarks_balance_hist],
+                  ['Portfolio balance', 'Benchmark balance'], title=f'Portfolio balance evolution')
 
-    portfolio_pls_hist = [sum([pls[i] for pls in assets_pls_hist]) for i in range(len(assets_pls_hist[0]))]
-    portfolio_mean_pls = round(sum(portfolio_pls_hist) / len(portfolio_pls_hist), 2)
-    portfolio_pos_days = round(100 * len([x for x in portfolio_pls_hist if x > 0]) / len(portfolio_pls_hist), 2)
-
-    n_pos = len([x for x in assets_profits if x > 0])
-    m_prof = round(sum(assets_profits) / len(assets_profits), 2)
-    m_ret = round(sum(assets_returns) / len(assets_returns), 2)
-    print('Returns:', assets_returns)
-    print(f'Average profit by assets: {m_prof}. Average daily return: {m_ret}%.')
-    print(f'Profitable assets: {n_pos}/{len(assets_profits)}.')
-    print(f'Average daily profit of portfolio: {portfolio_mean_pls}. Positive days: {portfolio_pos_days}%.')
+    metrics = benchmark_portfolio_metric(INITIAL_GAMBLE, assets_balance)
+    print('Returns:', metrics["assets_returns"])
+    print(f'Average profit by assets: {metrics["assets_mean_profits"]}.'
+          f'Average daily return: {metrics["assets_mean_returns"]}%.')
+    print(f'Profitable assets: {metrics["count_profitable_assets"]}/{len(assets_balance)}.')
+    print(f'Average daily profit of portfolio: {metrics["portfolio_mean_profits"]}.'
+          f'Positive days: {metrics["portfolio_positive_days"]}%.')
     print('_' * 100, '\n')
+
     # perf = [(companies[i], ret) for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
     # perf = [companies[i] for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
     # print(perf)
@@ -183,7 +175,7 @@ def decide_order(asset, quantity, open_price, pred, date):
     return order
 
 
-def get_yesterday_perf():
+def yesterday_perf():
     print("Correctness of yesterday's predictions")
 
     df, _ = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
@@ -223,7 +215,7 @@ def update_data():
         path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company, update=True)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company, update=True)
-    load_data(folder, TRADEFREQ, DATAFREQ, update_embed=True)
+    precompute_embeddings(folder)
 
 
 def get_recommendations():
@@ -231,7 +223,7 @@ def get_recommendations():
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
-    yesterday = '2020-09-17'
+    # yesterday = '2020-09-17'
     df = df.loc[yesterday].reset_index(drop=True)
     # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
@@ -281,7 +273,7 @@ def get_trades_results():
     emulator.quit()
 
 
-def safe_try(function, arg=None, max_attempts=1000):
+def safe_try(function, arg=None, max_attempts=999):
     res, attempts = None, 0
     while attempts < max_attempts:
         try:
@@ -291,11 +283,12 @@ def safe_try(function, arg=None, max_attempts=1000):
                 res = function(arg)
         except Exception as ex:
             attempts += 1
-            logger.warning(f"execution of function {function.__name__} failed {attempts} times. Exception met: {ex}")
+            logger.warning(f"execution of function {function.__name__.strip()} failed {attempts} times."
+                           f"Exception met: {ex}")
             continue
         break
     if attempts == max_attempts:
-        logger.error(f"too many attempts to safely execute function {function.__name__}")
+        logger.error(f"too many attempts to safely execute function {function.__name__.strip()}")
         raise Exception("Too many attempts to safely execute")
     return res
 
@@ -325,11 +318,11 @@ def heartbeat():
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # update_data()
-    train_model()
+    # train_model()
     backtest(plot=False)
-    # order_book = get_recommendations()
-    # print(order_book)
-    # place_orders(order_book)
+    # o = get_recommendations()
+    # place_orders(o)
     # get_trades_results()
-    # get_yesterday_perf()
+    # yesterday_perf()
     # heartbeat()
+

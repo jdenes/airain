@@ -17,14 +17,14 @@ from sklearn.decomposition import PCA
 logger = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-cmap = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
+CMAP = ['#f77189', '#e68332', '#bb9832', '#97a431', '#50b131', '#34af84', '#36ada4', '#38aabf', '#3ba3ec', '#a48cf4',
         '#e866f4', '#f668c2']
 
-encode = {'Buy': 2, 'Outperform': 2, 'Overweight': 2, 'Sector Outperform': 2,
+ENCODE = {'Buy': 2, 'Outperform': 2, 'Overweight': 2, 'Sector Outperform': 2,
           'Market Perform': 1, 'Sector Perform': 1, 'Neutral': 1, 'Hold': 1, 'Equal-Weight': 1,
           'Underperform': 0, 'Sell': 0}
 
-keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
+KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'XOM': ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],
             'KO': ['ko', 'coca', 'cola', 'pepsi', 'soda'],
             'INTC': ['intc', 'intel', 'chip', 'cpu', 'computer'],
@@ -57,13 +57,21 @@ keywords = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
 
 def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=False):
     """
-    Given a data source, loads appropriate csv file.
+    Loads, data-engineers and concatenates each assets' data into a large machine-usable dataframe.
+
+    :param str folder: a folder where to find the dataset.
+    :param int tradefreq: at which tick frequency you will trade.
+    :param int datafreq: at which frequency you want each tick, in minutes.
+    :param None|str start_from: a starting date for truncation, in format '%Y-%m-%d'. If None, no truncation is made.
+    :param bool update_embed: whether new news have been obtained and embeddings should be re-computed.
+    :return: a rich dataframe.
+    :rtype: pd.DataFrame
     """
 
     t1 = '2020-04-01'
     res = pd.DataFrame()
 
-    for number, asset in enumerate(keywords.keys()):
+    for number, asset in enumerate(KEYWORDS.keys()):
 
         file = folder + asset.lower() + '_prices.csv'
         # filename = '../data/jena_climate_2009_2016.csv'
@@ -80,13 +88,13 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
         path = folder + '{}_news_embed.csv'.format(asset.lower())
         if not os.path.exists(path):
-            embed = load_news(asset, keywords[asset])
+            embed = load_news(asset, KEYWORDS[asset])
             embed.to_csv(path, encoding='utf-8')
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
             if update_embed:
                 last_embed = embed.index.max()
-                embed = load_news(asset, keywords[asset], last_day=last_embed)
+                embed = load_news(asset, KEYWORDS[asset], last_day=last_embed)
                 write_data(path, embed)
                 embed = pd.read_csv(path, encoding='utf-8', index_col=0)
 
@@ -104,19 +112,11 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df = df.dropna()
         del embed
 
-        def compute_label(row):
-            if row[askcol] - row[bidcol] >= 0.0:
-                return 0
-            elif row[bidcol] - row[askcol] >= 0.0:
-                return 1
-            else:
-                return 0
-
         shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
         df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
         # df['labels'] = pd.concat([shifted_bidcol, shifted_askcol], axis=1).apply(compute_label, axis=1)
 
-        time_index = pd.to_datetime(df.index, format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
+        time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year
         df['month'] = time_index.month
         df['quarter'] = time_index.quarter
@@ -128,7 +128,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         # df['hour'] = time_index.hour
         # df['minute'] = time_index.minute
 
-        i = df.index.get_loc(t1)
+        # i = df.index.get_loc(t1)
 
         for col in ['open', 'close']:
             df[col + '_delta_1'] = df[col].diff(1)
@@ -140,7 +140,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
             df[lag_col + '_bid'] = df[bidcol].shift(lag)
             df[lag_col + '_labels'] = df['labels'].shift(lag)
             for win in [7, 14, 30, 60]:
-                col = 'sma_{}_{}'.format(str(lag), str(win))
+                col = f'sma_{str(lag)}_{str(win)}'
                 df[col + '_ask'] = df[lag_col + '_ask'].transform(lambda x: x.rolling(win).mean())
                 df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x: x.rolling(win).mean())
                 df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
@@ -149,19 +149,20 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
 
-        for period in ['year', 'quarter', 'week', 'month', 'day', 'wday', 'dayofyear']:  # 'hour', 'minute'
+        for period in ['year', 'quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day'
             for col in ['labels', 'volume', askcol, bidcol]:
                 df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
-                # df[period + '_min_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].min())
-                # df[period + '_max_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].max())
+                # if col != 'labels':
+                #     df[f'{period}_adj_{col}'] = df[f'{period}_mean_{col}'] / df[f'{period}_std_{col}']
+                #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
         # essayer Kalman Filter
         res = pd.concat([res, df], axis=0)
 
     # Computing overall aggregate features
     res = res.rename_axis('date').sort_values(['date', 'asset'])
-    i = res.index.get_loc(t1).stop
+
     for period in ['year', 'month', 'day', 'wday']:
         for col in ['labels', 'volume']:
             res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
@@ -182,6 +183,17 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
 
 def load_news(asset, keywords=None, use_weekends=True, last_day=None):
+    """
+    Loads a Sentence-BERT embedded, daily-aggregated version of a company's news.
+
+    :param str asset: company's symbol (e.g. AAPL, MSFT)
+    :param list[str] keywords: a list of keywords on which to filter the news to ensure relevance.
+    :param bool use_weekends: whether news published during weekends should be used.
+    :param None|str last_day: the last date before truncation, in format '%Y-%m-%d'. If None, no truncation is made.
+    :return: A dataframe with each row corresponding to an embedded, daily-aggregated company's news.
+    :rtype: pd.DataFrame
+    """
+
     filename = '../data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
     df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
@@ -211,9 +223,37 @@ def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     return embed_sum.sort_index()
 
 
+def precompute_embeddings(folder):
+    """
+    Pre-computes and saves Sentence-BERT embeddings of news.
+
+    :param str folder: the folder where to find the news to embed.
+    :rtype: None
+    """
+
+    for number, asset in enumerate(KEYWORDS.keys()):
+        path = folder + '{}_news_embed.csv'.format(asset.lower())
+        if not os.path.exists(path):
+            embed = load_news(asset, KEYWORDS[asset])
+            embed.to_csv(path, encoding='utf-8')
+        else:
+            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+            last_embed = embed.index.max()
+            embed = load_news(asset, KEYWORDS[asset], last_day=last_embed)
+            write_data(path, embed)
+
+
 def train_sbert_pca(dim=100):
+    """
+    Trains and saves a PCA to reduce Sentence-BERT embeddings size.
+
+    :param int dim: size of the reduced embedding.
+    :return: a trained PCA model.
+    :rtype: sklearn.decomposition.PCA
+    """
+
     df = pd.DataFrame()
-    for asset in keywords.keys():
+    for asset in KEYWORDS.keys():
         path = '../data/intrinio/{}_news_embed.csv'.format(asset.lower())
         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
         df = pd.concat([df, embed], axis=0, ignore_index=True)
@@ -224,6 +264,16 @@ def train_sbert_pca(dim=100):
 
 
 def fetch_intrinio_news(filename, api_key, company, update=False):
+    """
+    Fetches and saves Intrinio API to get assets' historical news.
+
+    :param str filename: name of the file where to store the obtained data.
+    :param str api_key: Intrinio personal API key.
+    :param str company: company's symbol (e.g. AAPL, MSFT)
+    :param bool update: whether you only want to update the data (gets only last 100 entries) or get all the history.
+    :rtype: None
+    """
+
     base_url = 'https://api-v2.intrinio.com/companies/{}/news?page_size=100&api_key={}'.format(company, api_key)
     url, next_page, data = base_url, 0, None
     while next_page is not None:
@@ -250,6 +300,16 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
 
 
 def fetch_intrinio_prices(filename, api_key, company, update=False):
+    """
+    Fetches and saves Intrinio API to get assets' historical prices.
+
+    :param str filename: name of the file where to store the obtained data.
+    :param str api_key: Intrinio personal API key.
+    :param str company: company's symbol (e.g. AAPL, MSFT)
+    :param bool update: whether you only want to update the data (gets only last 100 entries) or get all the history.
+    :rtype: None
+    """
+
     base_url = 'https://api-v2.intrinio.com/securities/{}/prices?page_size=100&api_key={}'.format(company, api_key)
     url, next_page, data = base_url, 0, None
     while next_page is not None:
@@ -275,28 +335,48 @@ def fetch_intrinio_prices(filename, api_key, company, update=False):
 def normalize_data(data, data_max, data_min):
     """
     Normalizes data using min-max normalization.
+
+    :param int|float|pd.Series data: data array or scalar to un-normalize.
+    :param int|float data_max: max value to use in min-max normalization.
+    :param int|float data_min: data_max: min value to use in min-max normalization.
+    :return: un-normalized data.
+    :rtype: int|float|pd.Series
     """
+
     return 2 * (data - data_min) / (data_max - data_min) - 1
 
 
 def unnormalize_data(data, data_max, data_min):
     """
     Un-normalizes data using min-max normalization.
+
+    :param int|float|pd.Series data: data array or scalar to un-normalize.
+    :param int|float data_max: max value used in min-max normalization.
+    :param int|float data_min: data_max: min value used in min-max normalization.
+    :return: un-normalized data.
+    :rtype: int|float|pd.Series
     """
+
     return (data + 1) * (data_max - data_min) / 2 + data_min
 
 
 def nice_plot(ind, curves_list, names_list, title):
     """
-    Provides nice plot for profit curves.
+    Provides nice plot for profit backtest curves.
+
+    :param list[str] ind: list of date for each backtest step, in format '%Y-%m-%d'.
+    :param list[list[float]] curves_list: a list of lists to plot.
+    :param list[str] names_list: list of names for each curve.
+    :param str title: name of the plot.
+    :rtype: None
     """
+
     font_manager._rebuild()
     plt.rcParams['font.family'] = 'Lato'
     plt.rcParams['font.sans-serif'] = 'Lato'
     plt.rcParams['font.weight'] = 500
     from datetime import datetime
     ind = [datetime.strptime(x, '%Y-%m-%d') for x in ind]
-    formatter = dates.DateFormatter('%d/%m/%Y')
     fig, ax = plt.subplots(figsize=(13, 7))
     for i, x in enumerate(curves_list):
         # c_list = ['gray']
@@ -308,8 +388,9 @@ def nice_plot(ind, curves_list, names_list, title):
         #     # ax.fill_between([ind[j], ind[j+1]], [start, stop], alpha=0.2, color=color)
         # for j in range(len(x)):
         #     ax.plot(ind[j], x[j], '.', color=c_list[j])
-        pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=cmap[i], ax=ax, label=names_list[i], style='.-')
+        pd.Series(index=ind, data=list(x)).plot(linewidth=2, color=CMAP[i], ax=ax, label=names_list[i], style='.-')
     ax.tick_params(labelsize=12)
+    # formatter = dates.DateFormatter('%d/%m/%Y')
     # ax.xaxis.set_major_formatter(formatter)
     ax.spines['right'].set_edgecolor('lightgray')
     ax.spines['top'].set_edgecolor('lightgray')
@@ -323,6 +404,14 @@ def nice_plot(ind, curves_list, names_list, title):
 
 
 def week_of_month(dt):
+    """
+    Get which week of a month a day belongs to.
+
+    :param datetime dt: the day you want to know which week of month it belongs to.
+    :return: week of the month number.
+    :rtype: int
+    """
+
     dt = pd.to_datetime(dt)
     first_day = dt.replace(day=1)
     dom = dt.day
@@ -331,6 +420,14 @@ def week_of_month(dt):
 
 
 def next_day(date):
+    """
+    Returns next banking day.
+
+    :param str date: the day you want to know which is the next banking day, in format '%Y-%m-%d'.
+    :return: previous banking day in format '%Y-%m-%d'.
+    :rtype: str
+    """
+
     date = datetime.strptime(date, '%Y-%m-%d')
     if date.weekday() == 4:
         res = date + timedelta(days=3)
@@ -342,6 +439,14 @@ def next_day(date):
 
 
 def previous_day(date):
+    """
+    Returns previous banking day.
+
+    :param str date: the day you want to know which is the previous banking day, in format '%Y-%m-%d'.
+    :return: previous banking day in format '%Y-%m-%d'.
+    :rtype: str
+    """
+
     date = datetime.strptime(date, '%Y-%m-%d')
     if date.weekday() == 0:
         res = date - timedelta(days=3)
@@ -353,6 +458,15 @@ def previous_day(date):
 
 
 def write_data(path, new_row, same_ids=False):
+    """
+    Writes data as .csv by creating a file or adding to an existing one if relevant.
+
+    :param str path: path of the file where to write the data.
+    :param pd.DataFrame new_row: dataframe to write.
+    :param bool same_ids: whether the data contains duplicated indexes.
+    :rtype: None
+    """
+
     if os.path.exists(path):
         df = pd.read_csv(path, encoding='utf-8', index_col=0)
         df = pd.concat([df, new_row], axis=0)
@@ -363,3 +477,92 @@ def write_data(path, new_row, same_ids=False):
         df.sort_index().to_csv(path, encoding='utf-8')
     else:
         new_row.to_csv(path, encoding='utf-8')
+
+
+def benchmark_metrics(initial_gamble, balance_hist, orders_hist):
+    """
+    Computes financial metrics for a single asset.
+
+    :param int initial_gamble: initial amount invested in each asset.
+    :param list[int|float] balance_hist: list of asset's balance history.
+    :param list[int] orders_hist: list of binary orders at each time step.
+    :return: dictionary with various metrics.
+    :rtype: dict
+    """
+
+    # Final profit
+    profit = round(balance_hist[-1] - initial_gamble, 2)
+
+    # Profits and returns
+    full_bal_hist = [initial_gamble] + balance_hist
+    profits_hist = [round(full_bal_hist[i] - full_bal_hist[i-1], 2) for i in range(1, len(full_bal_hist))]
+    returns_hist = [round(100 * profit / initial_gamble, 2) for profit in profits_hist]
+
+    # Basic counts: nb of sell and buy days, and correctness
+    buy_count, sell_count, correct_buy, correct_sell = 0, 0, 0, 0
+    for i in range(len(balance_hist)):
+        is_positive = int(profits_hist[i] >= 0)
+        if orders_hist[i] == 1:
+            buy_count += 1
+            correct_buy += is_positive
+        elif orders_hist[i] == 0:
+            sell_count += 1
+            correct_sell += is_positive
+    buy_acc = round(100 * correct_buy / buy_count, 2) if buy_count != 0 else 'NA'
+    sell_acc = round(100 * correct_sell / sell_count, 2) if sell_count != 0 else 'NA'
+
+    # Overall daily scores
+    pos_pls, neg_pls = [i for i in profits_hist if i >= 0], [i for i in profits_hist if i < 0]
+    pos_days = round(100 * sum([i >= 0 for i in profits_hist]) / len(profits_hist), 2)
+    mean_returns = round(sum(returns_hist) / len(returns_hist), 2)
+    mean_win = round(sum(pos_pls) / len(pos_pls), 2) if len(pos_pls) != 0 else 'NA'
+    mean_loss = round(sum(neg_pls) / len(neg_pls), 2) if len(neg_pls) != 0 else 'NA'
+    max_win, max_loss = max(profits_hist), min(profits_hist)
+
+    return {'profit': profit,
+            'profits_history': profits_hist,
+            'positive_days': pos_days,
+            'mean_returns': mean_returns,
+            'buy_count': buy_count,
+            'sell_count': sell_count,
+            'buy_accuracy': buy_acc,
+            'sell_accuracy': sell_acc,
+            'mean_wins': mean_win,
+            'mean_loss': mean_loss,
+            'max_loss': max_loss,
+            'max_win': max_win
+            }
+
+
+def benchmark_portfolio_metric(initial_gamble, assets_balance_hist):
+    """
+    Computes financial metrics for a portfolio.
+
+    :param int initial_gamble: initial amount invested in each asset.
+    :param list[list[int|float]] assets_balance_hist: list of each asset's balance history.
+    :return: dictionary with various metrics.
+    :rtype: dict
+    """
+
+    assets_profits_hist, assets_returns = [], []
+    for balance_hist in assets_balance_hist:
+        full_bal_hist = [initial_gamble] + balance_hist
+        profits_hist = [round(full_bal_hist[i] - full_bal_hist[i - 1], 2) for i in range(1, len(full_bal_hist))]
+        returns_hist = [round(100 * profit / initial_gamble, 2) for profit in profits_hist]
+        mean_returns = round(sum(returns_hist) / len(returns_hist), 2)
+        assets_profits_hist.append(profits_hist), assets_returns.append(mean_returns)
+    portfolio_pls_hist = [sum([pls[i] for pls in assets_profits_hist]) for i in range(len(assets_profits_hist[0]))]
+    portfolio_mean_profits = round(sum(portfolio_pls_hist) / len(portfolio_pls_hist), 2)
+    portfolio_positive_days = round(100 * len([x for x in portfolio_pls_hist if x > 0]) / len(portfolio_pls_hist), 2)
+    assets_profits = [balance[-1] - initial_gamble for balance in assets_balance_hist]
+    count_profitable_assets = len([x for x in assets_profits if x > 0])
+    assets_mean_profits = round(sum(assets_profits) / len(assets_profits), 2)
+    assets_mean_returns = round(sum(assets_returns) / len(assets_returns), 3)
+
+    return {'assets_returns': assets_returns,
+            'assets_mean_profits': assets_mean_profits,
+            'assets_mean_returns': assets_mean_returns,
+            'portfolio_mean_profits': portfolio_mean_profits,
+            'portfolio_positive_days': portfolio_positive_days,
+            'count_profitable_assets': count_profitable_assets,
+            }

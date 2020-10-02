@@ -317,7 +317,7 @@ class LstmTrader(Trader):
             'objective': 'binary',      # multiclass
             # 'num_class': 3,
             'metric': 'binary_logloss',
-            'boosting_type': 'goss',    # gbdt
+            'boosting_type': 'dart',    # gbdt, goss
             'subsample': 1.0,           # 0.5
             'subsample_freq': 1,
             'learning_rate': 0.01,      # 0.03
@@ -327,16 +327,17 @@ class LstmTrader(Trader):
             'min_data_in_leaf': 2 ** 12 - 1,
             'feature_fraction': 0.4,    # between 0.4 and 0.6
             'max_bin': 255,
-            'num_iterations': 10000,
+            'num_iterations': 7000,
             'boost_from_average': True,
             'verbose': -1,
             'early_stopping_rounds': 300,
         }
 
         self.model = []
+        cat_feat = ['asset']
         for i in range(self.n_estimators):
             idx = (np.random.permutation(len(self.P_train)))
-            train_data = lgb.Dataset(self.P_train.reindex(idx), label=self.y_train[idx])
+            train_data = lgb.Dataset(self.P_train.reindex(idx), label=self.y_train[idx], categorical_feature=cat_feat)
             valid_data = lgb.Dataset(self.P_val, label=self.y_val)
             model = lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )
             self.model.append(model)

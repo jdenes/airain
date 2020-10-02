@@ -20,6 +20,7 @@
       <w>datatype</w>
       <w>eurgbp</w>
       <w>eurusd</w>
+      <w>ffill</w>
       <w>foldername</w>
       <w>fxcm</w>
       <w>huorn</w>
@@ -40,6 +41,7 @@
       <w>usdc</w>
       <w>valsize</w>
       <w>valsteps</w>
+      <w>wday</w>
       <w>xgboost</w>
     </words>
   </dictionary>
