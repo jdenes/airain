@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import requests
 import warnings
@@ -7,7 +8,7 @@ import pandas as pd
 import joblib as jl
 
 import matplotlib.pyplot as plt
-import matplotlib.dates as dates
+# import matplotlib.dates as dates
 from matplotlib import font_manager
 from datetime import datetime, timedelta
 
@@ -157,6 +158,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 #     df[f'{period}_adj_{col}'] = df[f'{period}_mean_{col}'] / df[f'{period}_std_{col}']
                 #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
+        # print(asset, list(df.tail(1).values))
         # essayer Kalman Filter
         res = pd.concat([res, df], axis=0)
 
@@ -197,6 +199,7 @@ def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     filename = '../data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
     df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
+    df['summary'] = df['summary'].apply(clean_string)
 
     if last_day is not None:
         df = df[last_day:]
@@ -286,6 +289,7 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
         df = pd.DataFrame(data['news'])
         df = df[df['summary'].str.len() > 180]
         df['date'] = df['publication_date'].str[:10]
+        df['summary'] = df['summary'].apply(clean_string)
         df = df.set_index('date', drop=True)
         if next_page == 0 and not update:
             df.to_csv(filename, encoding='utf-8')
@@ -330,6 +334,20 @@ def fetch_intrinio_prices(filename, api_key, company, update=False):
         df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.to_csv(filename, encoding='utf-8')
+
+
+def clean_string(string):
+    """
+    Removes HTML tags, multiple spaces and line breaks from string.
+
+    :param str string: string to clean.
+    :return: cleaned string.
+    :rtype: str
+    """
+    string = string.replace('\n', ' ').strip()
+    string = re.sub(' +', ' ', string)
+    string = re.sub('<[^<]+?>', '', string)
+    return string
 
 
 def normalize_data(data, data_max, data_min):

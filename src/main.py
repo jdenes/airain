@@ -151,10 +151,10 @@ def backtest(plot=False):
 
     metrics = benchmark_portfolio_metric(INITIAL_GAMBLE, assets_balance)
     print('Returns:', metrics["assets_returns"])
-    print(f'Average profit by assets: {metrics["assets_mean_profits"]}.'
+    print(f'Average profit by assets: {metrics["assets_mean_profits"]}. '
           f'Average daily return: {metrics["assets_mean_returns"]}%.')
     print(f'Profitable assets: {metrics["count_profitable_assets"]}/{len(assets_balance)}.')
-    print(f'Average daily profit of portfolio: {metrics["portfolio_mean_profits"]}.'
+    print(f'Average daily profit of portfolio: {metrics["portfolio_mean_profits"]}. '
           f'Positive days: {metrics["portfolio_positive_days"]}%.')
     print('_' * 100, '\n')
 
@@ -317,9 +317,9 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    # update_data()
+    update_data()
     # train_model()
-    backtest(plot=False)
+    backtest(plot=True)
     # o = get_recommendations()
     # place_orders(o)
     # get_trades_results()
