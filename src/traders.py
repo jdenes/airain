@@ -336,8 +336,8 @@ class LstmTrader(Trader):
         self.model = []
         cat_feat = ['asset']
         for i in range(self.n_estimators):
-            idx = (np.random.permutation(len(self.P_train)))
-            train_data = lgb.Dataset(self.P_train.reindex(idx), label=self.y_train[idx], categorical_feature=cat_feat)
+            # idx = (np.random.permutation(len(self.P_train)))
+            train_data = lgb.Dataset(self.P_train, label=self.y_train, categorical_feature=cat_feat)
             valid_data = lgb.Dataset(self.P_val, label=self.y_val)
             model = lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )
             self.model.append(model)

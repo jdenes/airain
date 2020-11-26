@@ -3,11 +3,13 @@ import re
 import logging
 import requests
 import warnings
+import flair
 import numpy as np
 import pandas as pd
 import joblib as jl
 
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 # import matplotlib.dates as dates
 from matplotlib import font_manager
 from datetime import datetime, timedelta
@@ -87,6 +89,18 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         # askcol, bidcol = 'T (degC)', 'p (mbar)'
         askcol, bidcol = 'close', 'open'
 
+        # path = folder + '{}_news_sentiment.csv'.format(asset.lower())
+        # if not os.path.exists(path):
+        #     sentiment = sentiment_analysis(asset, KEYWORDS[asset])
+        #     sentiment.to_csv(path, encoding='utf-8')
+        # else:
+        #     sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
+        #     if update_embed:
+        #         last_embed = sentiment.index.max()
+        #         sentiment = sentiment_analysis(asset, KEYWORDS[asset], last_day=last_embed)
+        #         write_data(path, sentiment)
+        #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
+
         path = folder + '{}_news_embed.csv'.format(asset.lower())
         if not os.path.exists(path):
             embed = load_news(asset, KEYWORDS[asset])
@@ -109,6 +123,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         embed.columns = ['news_sum_{}'.format(i) for i in embed]
 
         df = pd.concat([df, embed], axis=1).sort_index()
+        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
         df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
         df = df.dropna()
         del embed
@@ -158,8 +173,13 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 #     df[f'{period}_adj_{col}'] = df[f'{period}_mean_{col}'] / df[f'{period}_std_{col}']
                 #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
-        # print(asset, list(df.tail(1).values))
-        # essayer Kalman Filter
+        # Hodrick-Prescott filter
+        # for count, i in enumerate(df.index):
+        #     if count > 5:
+        #         for col in ['volume', askcol, bidcol]:
+        #             cycle, trend = sm.tsa.filters.hpfilter(df[df.index <= i][col], 1600)
+        #             df.loc[i, col + '_cycle'], df.loc[i, col + '_trend'] = cycle[-1], trend[-1]
+
         res = pd.concat([res, df], axis=0)
 
     # Computing overall aggregate features
@@ -196,34 +216,76 @@ def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     :rtype: pd.DataFrame
     """
 
+    news = preprocess_news(asset, keywords, use_weekends, last_day)
+    mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
+    tmp = mod.encode(news['summary'], show_progress_bar=(last_day is None))
+    embed_sum = pd.DataFrame(tmp, index=news.index)
+    embed_sum.columns = ['news_sum_{}'.format(i) for i in embed_sum]
+    # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()
+    return embed_sum.sort_index()
+
+
+def sentiment_analysis(asset, keywords=None, use_weekends=True, last_day=None):
+    """
+    Loads a sentiment-analyzed, daily-aggregated version of a company's news.
+
+    :param str asset: company's symbol (e.g. AAPL, MSFT)
+    :param list[str] keywords: a list of keywords on which to filter the news to ensure relevance.
+    :param bool use_weekends: whether news published during weekends should be used.
+    :param None|str last_day: the last date before truncation, in format '%Y-%m-%d'. If None, no truncation is made.
+    :return: A dataframe with each row corresponding to a pos/neg sentiment analysis, daily-aggregated company's news.
+    :rtype: pd.DataFrame
+    """
+
+    from tqdm import tqdm
+    news = preprocess_news(asset, keywords, use_weekends, last_day)
+    summary_sentiment, title_sentiment = [], []
+    flair_sentiment = flair.models.TextClassifier.load('en-sentiment')
+
+    for text in tqdm(news['title'], total=len(news)):
+        text = flair.data.Sentence(text)
+        flair_sentiment.predict(text)
+        direction = 1 if text.labels[0].value == 'POSITIVE' else -1
+        title_sentiment.append(direction * text.labels[0].score)
+
+    for text in tqdm(news['summary'], total=len(news)):
+        text = flair.data.Sentence(text)
+        flair_sentiment.predict(text)
+        direction = 1 if text.labels[0].value == 'POSITIVE' else -1
+        summary_sentiment.append(direction * text.labels[0].score)
+
+    title_sentiment = pd.DataFrame(title_sentiment, index=news.index)
+    summary_sentiment = pd.DataFrame(summary_sentiment, index=news.index)
+    sentiment = pd.concat([title_sentiment, summary_sentiment], axis=1).sort_index()
+    sentiment.columns = ['sentiment_title', 'sentiment_summary']
+    return sentiment
+
+
+def preprocess_news(asset, keywords=None, use_weekends=True, last_day=None):
+    """
+    Preprocesses company's news (daily-aggregated) to be used in other functions.
+
+    :param str asset: company's symbol (e.g. AAPL, MSFT)
+    :param list[str] keywords: a list of keywords on which to filter the news to ensure relevance.
+    :param bool use_weekends: whether news published during weekends should be used.
+    :param None|str last_day: the last date before truncation, in format '%Y-%m-%d'. If None, no truncation is made.
+    :return: A dataframe with each row corresponding the daily-aggregated company's news.
+    :rtype: pd.DataFrame
+    """
+
     filename = '../data/intrinio/' + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
     df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
     df['summary'] = df['summary'].apply(clean_string)
-
     if last_day is not None:
         df = df[last_day:]
     if keywords is not None:
         pattern = '(?i)' + '|'.join(keywords)
         df = df[df['title'].str.contains(pattern) | df['summary'].str.contains(pattern)]
-
     if use_weekends:
         df.index = [x if datetime.strptime(x, '%Y-%m-%d').weekday() < 5 else previous_day(x) for x in df.index]
-
-    res = df[['title', 'summary']].groupby(df.index).apply(sum)
-
-    mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-    # tmp = mod.encode(res['title'], show_progress_bar=True)
-    # embed_title = pd.DataFrame(tmp, index=res.index)
-    # embed_title.columns = ['news_title_{}'.format(i) for i in embed_title]
-
-    tmp = mod.encode(res['summary'], show_progress_bar=(last_day is None))
-    embed_sum = pd.DataFrame(tmp, index=res.index)
-    embed_sum.columns = ['news_sum_{}'.format(i) for i in embed_sum]
-
-    # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()
-
-    return embed_sum.sort_index()
+    news = df[['title', 'summary']].groupby(df.index).apply(sum)
+    return news
 
 
 def precompute_embeddings(folder):

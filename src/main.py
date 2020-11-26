@@ -64,7 +64,7 @@ def train_model():
     trader.ingest_traindata(df, labels)
 
     trader.train(epochs=EPOCHS)
-    trader.test(plot=False)
+    trader.test(plot=True)
     trader.save(model_name=f'Huorn_v{VERSION}')
 
 
@@ -318,7 +318,7 @@ def heartbeat():
 if __name__ == "__main__":
     # fetch_intrinio_data()
     update_data()
-    # train_model()
+    train_model()
     backtest(plot=True)
     # o = get_recommendations()
     # place_orders(o)
