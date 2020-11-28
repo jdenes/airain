@@ -1,11 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Added sentiment analysis addon, not convincing">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -287,7 +304,11 @@
       <workItem from="1605117225322" duration="800000" />
       <workItem from="1605169546764" duration="3973000" />
       <workItem from="1605798049934" duration="8590000" />
-      <workItem from="1606399280735" duration="1209000" />
+      <workItem from="1606399280735" duration="1619000" />
+      <workItem from="1606474285142" duration="195000" />
+      <workItem from="1606492632293" duration="44000" />
+      <workItem from="1606492728048" duration="8575000" />
+      <workItem from="1606566542497" duration="12564000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -317,7 +338,14 @@
       <option name="project" value="LOCAL" />
       <updated>1594223516933</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Added sentiment analysis addon, not convincing">
+      <created>1606400955723</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1606400955723</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -340,7 +368,8 @@
     <MESSAGE value="Improved data fetching + test with EUR-GBP" />
     <MESSAGE value="Added random simulation" />
     <MESSAGE value="Better recommendation interface" />
-    <option name="LAST_COMMIT_MESSAGE" value="Better recommendation interface" />
+    <MESSAGE value="Added sentiment analysis addon, not convincing" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added sentiment analysis addon, not convincing" />
   </component>
   <component name="WindowStateProjectService">
     <state x="233" y="20" key="#Notifications" timestamp="1598286197729">
@@ -359,26 +388,26 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="420" y="116" key="FileChooserDialogImpl/0.0.1280.720@0.0.1280.720" timestamp="1599573783735" />
-    <state width="1237" height="189" key="GridCell.Tab.0.bottom" timestamp="1606399879654">
+    <state width="1237" height="189" key="GridCell.Tab.0.bottom" timestamp="1606593791776">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1606399879654" />
-    <state width="1237" height="189" key="GridCell.Tab.0.center" timestamp="1606399879654">
+    <state width="1237" height="189" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1606593791776" />
+    <state width="1237" height="189" key="GridCell.Tab.0.center" timestamp="1606593791776">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1606399879654" />
-    <state width="1237" height="189" key="GridCell.Tab.0.left" timestamp="1606399879654">
+    <state width="1237" height="189" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1606593791776" />
+    <state width="1237" height="189" key="GridCell.Tab.0.left" timestamp="1606593791776">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1606399879654" />
-    <state width="1237" height="189" key="GridCell.Tab.0.right" timestamp="1606399879654">
+    <state width="1237" height="189" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1606593791776" />
+    <state width="1237" height="189" key="GridCell.Tab.0.right" timestamp="1606593791776">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1606399879654" />
+    <state width="1237" height="189" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1606593791776" />
     <state width="1237" height="220" key="GridCell.Tab.1.bottom" timestamp="1602515859735">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -399,6 +428,10 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="142" y="4" key="SettingsEditor/0.0.1280.720@0.0.1280.720" timestamp="1598345657383" />
+    <state x="233" y="94" key="Vcs.Push.Dialog.v2" timestamp="1606400962830">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="233" y="94" key="Vcs.Push.Dialog.v2/0.0.1280.720@0.0.1280.720" timestamp="1606400962830" />
     <state x="0" y="0" width="587" height="720" key="find.popup" timestamp="1600962523456">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -407,6 +440,6 @@
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1598438442125" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
     <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1606399879513" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1606593791776" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
   </component>
 </project>

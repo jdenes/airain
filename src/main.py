@@ -68,11 +68,14 @@ def train_model():
     trader.save(model_name=f'Huorn_v{VERSION}')
 
 
-def backtest(plot=False):
+def backtest(plot=False, precomputed_tuple=None):
     print('_' * 100, '\n')
     print('Initializing backtest...')
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
-    ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+    if precomputed_tuple is None:
+        ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+    else:
+        ov_df, ov_labels = precomputed_tuple
     assets_balance, benchmarks_balance = [], []
     index_hist = None
 
@@ -161,6 +164,7 @@ def backtest(plot=False):
     # perf = [(companies[i], ret) for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
     # perf = [companies[i] for i, ret in enumerate(assets_returns) if ret in sorted(assets_returns)[::-1][:11]]
     # print(perf)
+    return metrics
 
 
 def decide_order(asset, quantity, open_price, pred, date):
@@ -293,6 +297,32 @@ def safe_try(function, arg=None, max_attempts=999):
     return res
 
 
+def grid_search():
+
+    df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
+    trader = LstmTrader(h=H, normalize=False)
+    trader.ingest_traindata(df, labels)
+    precomputed_tuple = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+
+    res = []
+    for param in [0.1, 0.2, 0.5, 0.9]:
+        trader.lgb_params['learning_rate'] = param
+        trader.train()
+        trader.test(plot=False)
+        trader.save(model_name=f'Huorn_v{VERSION}')
+        metrics = backtest(plot=False, precomputed_tuple=precomputed_tuple)
+        stats = {'num_iterations': param,
+                 'mean_ret': metrics['assets_mean_returns'],
+                 'pos_days': metrics['portfolio_positive_days'],
+                 'prof_assets': metrics['count_profitable_assets']}
+        print(f"-- Num iterations {param} --\t mean returns: {stats['mean_ret']}%\t"
+              f"positive days: {stats['pos_days']}%\t profitable assets: {stats['prof_assets']}%\t")
+        res.append(stats)
+
+    print('\n\n\n\n', res)
+    print('\n\n\n\n', pd.DataFrame(res))
+
+
 def heartbeat():
     logger.info('launching heartbeat')
     while True:
@@ -317,9 +347,10 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    update_data()
-    train_model()
+    # update_data()
+    # train_model()
     backtest(plot=True)
+    # grid_search()
     # o = get_recommendations()
     # place_orders(o)
     # get_trades_results()

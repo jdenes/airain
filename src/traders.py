@@ -100,15 +100,16 @@ class Trader(object):
         # print(tf.math.confusion_matrix(self.y_test, y_pred))
         # print(compute_metrics(y_test, y_pred))
 
-        fig, ax = plt.subplots(1, 2, figsize=(14, 14))
-        lgb.plot_importance(self.model[0], ax=ax[0], max_num_features=25, precision=0,
-                            importance_type='split', title='In number of splits')
-        lgb.plot_importance(self.model[0], ax=ax[1], max_num_features=25, precision=0,
-                            importance_type='gain', title='In total splits gain')
-        fig.tight_layout()
-        plt.show()
-
         if plot:
+
+            fig, ax = plt.subplots(1, 2, figsize=(14, 14))
+            lgb.plot_importance(self.model[0], ax=ax[0], max_num_features=25, precision=0,
+                                importance_type='split', title='In number of splits')
+            lgb.plot_importance(self.model[0], ax=ax[1], max_num_features=25, precision=0,
+                                importance_type='gain', title='In total splits gain')
+            fig.tight_layout()
+            plt.show()
+
             i = y_test != 0
             plt.plot((y_pred[i] - y_test[i]), '.')
             plt.show()
@@ -212,6 +213,26 @@ class LstmTrader(Trader):
         self.y_val = None
         self.n_estimators = 1
 
+        self.lgb_params = {
+            'objective': 'binary',      # multiclass
+            # 'num_class': 3,
+            'metric': 'binary_logloss',
+            'boosting_type': 'gbdt',            # dart, goss
+            'subsample': 1.0,                   # 0.5
+            'subsample_freq': 1,
+            'learning_rate': 0.01,              # 0.03
+            'top_rate': 0.7,
+            'other_rate': 0.1,
+            'num_leaves': 2 ** 12 - 1,
+            'min_data_in_leaf': 2 ** 12 - 1,
+            'feature_fraction': 0.7,            # between 0.4 and 0.6
+            'max_bin': 11,                      # 255
+            'num_iterations': 1140,             # 7000,
+            'boost_from_average': True,
+            'verbose': -1,
+            # 'early_stopping_rounds': 300,
+        }
+
     def transform_data(self, df, labels, get_index=False, keep_last=True):
         """
         Given data and labels, transforms it into suitable format and return them.
@@ -224,7 +245,7 @@ class LstmTrader(Trader):
             df = normalize_data(df, self.x_max, self.x_min)
             # labels = normalize_data(labels, self.y_max, self.y_min)
 
-        colnames = df.columns
+        columns = df.columns
         df, labels = df.to_numpy(), labels.to_numpy()
         X, P, y, ind = [], [], [], []
 
@@ -238,7 +259,7 @@ class LstmTrader(Trader):
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
         # y = y.reshape((len(y), 1))
         # y = to_categorical(y)
-        P = pd.DataFrame(P, columns=colnames)
+        P = pd.DataFrame(P, columns=columns)
 
         if get_index:
             return X, P, y, ind
@@ -308,30 +329,12 @@ class LstmTrader(Trader):
         print(f'Baseline for change accuracy is {round(max(y_mean, 1 - y_mean), 4)}.')
         print('_' * 100, '\n')
 
-        # train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
+        # train_data = tf.data.Dataset.from_tensor_slices(
+        #                           ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
         # train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
-        # val_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
+        # val_data = tf.data.Dataset.from_tensor_slices(
+        #                           ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
         # val_data = val_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
-
-        lgb_params = {
-            'objective': 'binary',      # multiclass
-            # 'num_class': 3,
-            'metric': 'binary_logloss',
-            'boosting_type': 'dart',    # gbdt, goss
-            'subsample': 1.0,           # 0.5
-            'subsample_freq': 1,
-            'learning_rate': 0.01,      # 0.03
-            'top_rate': 0.7,
-            'other_rate': 0.1,
-            'num_leaves': 2 ** 12 - 1,
-            'min_data_in_leaf': 2 ** 12 - 1,
-            'feature_fraction': 0.4,    # between 0.4 and 0.6
-            'max_bin': 255,
-            'num_iterations': 7000,
-            'boost_from_average': True,
-            'verbose': -1,
-            'early_stopping_rounds': 300,
-        }
 
         self.model = []
         cat_feat = ['asset']
@@ -339,7 +342,7 @@ class LstmTrader(Trader):
             # idx = (np.random.permutation(len(self.P_train)))
             train_data = lgb.Dataset(self.P_train, label=self.y_train, categorical_feature=cat_feat)
             valid_data = lgb.Dataset(self.P_val, label=self.y_val)
-            model = lgb.train(lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )
+            model = lgb.train(self.lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )
             self.model.append(model)
             # print(model.dump_model()["tree_info"])
 
