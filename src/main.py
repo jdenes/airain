@@ -4,7 +4,7 @@ import configparser
 import pandas as pd
 from datetime import datetime as dt
 
-from traders import LstmTrader
+from traders import LstmTrader, LightgbmTrader
 from api_emulator import Emulator
 from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data, precompute_embeddings
 from utils import benchmark_metrics, benchmark_portfolio_metric
@@ -31,7 +31,7 @@ DATAFREQ = 1
 TRADEFREQ = 1
 H = 30
 INITIAL_GAMBLE = 2000
-EPOCHS = 50
+EPOCHS = 1
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
 LOWER_CURR = 'eurusd'
@@ -56,7 +56,7 @@ def fetch_intrinio_data():
 
 def train_model():
     print('Training model...')
-    trader = LstmTrader(h=H, normalize=False)
+    trader = LightgbmTrader(h=H, normalize=False)
     # banks = [f[:-4] for f in os.listdir('../data/finance/') if f.endswith('.csv')]
     # banks = companies
 
@@ -71,7 +71,7 @@ def train_model():
 def backtest(plot=False, precomputed_tuple=None):
     print('_' * 100, '\n')
     print('Initializing backtest...')
-    trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
+    trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
     if precomputed_tuple is None:
         ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
     else:
@@ -348,8 +348,8 @@ def heartbeat():
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # update_data()
-    # train_model()
-    backtest(plot=True)
+    train_model()
+    backtest(plot=False)
     # grid_search()
     # o = get_recommendations()
     # place_orders(o)
