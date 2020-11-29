@@ -346,7 +346,6 @@ class LstmTrader(Trader):
         self.steps = None
         self.valsteps = None
         self.gpu = None
-        self.n_estimators = 1
 
     def transform_data(self, df, labels, get_index=False, keep_last=True):
         """
@@ -372,8 +371,6 @@ class LstmTrader(Trader):
             ind.append(index[i])
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
-        # y = y.reshape((len(y), 1))
-        # y = to_categorical(y)
         P = pd.DataFrame(P, columns=columns)
 
         if get_index:
@@ -381,7 +378,7 @@ class LstmTrader(Trader):
         else:
             return X, P, y
 
-    def train(self, batch_size=80, buffer_size=10000, epochs=50, steps=1000, valsteps=100, gpu=True):
+    def train(self, batch_size=80, buffer_size=10000, epochs=50, steps=1000, valsteps=1000, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
@@ -399,28 +396,29 @@ class LstmTrader(Trader):
         super().train()
 
         train_data = tf.data.Dataset.from_tensor_slices(
-            ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
+                        ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size).repeat()
-        val_data = tf.data.Dataset.from_tensor_slices(
-            ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
-        val_data = val_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
+        valid_data = tf.data.Dataset.from_tensor_slices(
+                        ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
+        valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size).repeat()
+        initializer = tf.keras.initializers.GlorotNormal()
 
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-2:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-1], name='input_P')
-        lstm_layer = tf.keras.layers.LSTM(164, name='lstm')(input_layer)
-        output_layer = tf.keras.layers.Dense(2, name='output')(lstm_layer)
+        lstm_layer = tf.keras.layers.LSTM(64, kernel_initializer=initializer, name='lstm')(input_layer)
+        output_layer = tf.keras.layers.Dense(2, kernel_initializer=initializer, name='output')(lstm_layer)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
-        print(self.model.summary())
+        self.model.summary()
 
-        self.model.compile(optimizer='adam', loss='mae')
         self.model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-        checkpoint = tf.keras.callbacks.ModelCheckpoint('../models/checkpoint.hdf5', monitor='val_loss',
+        checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath='../models/checkpoint.hdf5',
+                                                        monitor='val_accuracy',
                                                         save_best_only=True)
         self.model.fit(train_data,
                        epochs=self.epochs,
                        steps_per_epoch=self.steps,
                        validation_steps=self.valsteps,
-                       validation_data=val_data,
+                       validation_data=valid_data,
                        callbacks=[checkpoint]
                        )
 

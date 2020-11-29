@@ -31,7 +31,7 @@ DATAFREQ = 1
 TRADEFREQ = 1
 H = 30
 INITIAL_GAMBLE = 2000
-EPOCHS = 1
+EPOCHS = 30
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
 LOWER_CURR = 'eurusd'
@@ -300,7 +300,7 @@ def safe_try(function, arg=None, max_attempts=999):
 def grid_search():
 
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
-    trader = LstmTrader(h=H, normalize=False)
+    trader = LstmTrader(h=H, normalize=True)
     trader.ingest_traindata(df, labels)
     precomputed_tuple = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
 
