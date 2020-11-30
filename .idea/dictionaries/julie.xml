@@ -9,6 +9,7 @@
       <w>askopen</w>
       <w>backtest</w>
       <w>backtesting</w>
+      <w>backtests</w>
       <w>bidclose</w>
       <w>bidcol</w>
       <w>bidopen</w>
@@ -26,6 +27,7 @@
       <w>fxcm</w>
       <w>huorn</w>
       <w>indx</w>
+      <w>intraperiod</w>
       <w>intrinio</w>
       <w>joblib</w>
       <w>levelname</w>

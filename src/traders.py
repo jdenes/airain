@@ -8,7 +8,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 
-from utils import normalize_data, unnormalize_data
+from utils.basics import normalize_data, unnormalize_data
 from sklearn.metrics import classification_report
 
 logger = logging.getLogger(__name__)

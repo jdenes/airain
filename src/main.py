@@ -1,21 +1,19 @@
 import time
-import logging
 import configparser
 import pandas as pd
 from datetime import datetime as dt
 
 from traders import LstmTrader, LightgbmTrader
 from api_emulator import Emulator
-from utils import fetch_intrinio_news, fetch_intrinio_prices, write_data, precompute_embeddings
-from utils import benchmark_metrics, benchmark_portfolio_metric
-from utils import load_data, nice_plot
+from utils.plots import nice_plot
+from utils.basics import write_data
+from utils.logging import get_logger
+from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
+from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices
 
-# Configuring setup constants
-# noinspection PyArgumentList
-logging.basicConfig(handlers=[logging.FileHandler("../logs/LOG.log"), logging.StreamHandler()],
-                    format='%(asctime)s: %(levelname)s: %(message)s')
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from data_preparation import load_data, precompute_embeddings
+
+logger = get_logger()
 
 config = configparser.ConfigParser()
 config.read('../resources/intrinio.cfg')
@@ -25,7 +23,7 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 3
+VERSION = 4
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
@@ -47,6 +45,11 @@ performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS
 
 
 def fetch_intrinio_data():
+    """
+    Fetches news and prices data for all companies.
+
+    :rtype: None
+    """
     for company in companies:
         print(f'Fetching {company} data...')
         path = f'../data/intrinio/{company.lower()}'
@@ -54,28 +57,39 @@ def fetch_intrinio_data():
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
 
 
-def train_model():
+def train_model(plot=True):
+    """
+    Trains a model.
+
+    :param bool plot: whether to plot model summary, if appropriate.
+    :rtype: None
+    """
     print('Training model...')
     trader = LightgbmTrader(h=H, normalize=False)
-    # banks = [f[:-4] for f in os.listdir('../data/finance/') if f.endswith('.csv')]
-    # banks = companies
-
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
     trader.ingest_traindata(df, labels)
-
     trader.train(epochs=EPOCHS)
-    trader.test(plot=True)
+    trader.test(plot=plot)
     trader.save(model_name=f'Huorn_v{VERSION}')
 
 
-def backtest(plot=False, precomputed_tuple=None):
+def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
+    """
+    Backtests a previously trained model.
+
+    :param bool plot: whether to plot profit curves during backtest.
+    :param pd.DataFrame precomputed_df: precomputed dataframe.
+    :param pd.DataFrame precomputed_labels: precomputed labels.
+    :returns: a few portfolio metrics.
+    :rtype: dict
+    """
     print('_' * 100, '\n')
     print('Initializing backtest...')
     trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
-    if precomputed_tuple is None:
+    if precomputed_df is None or precomputed_labels is None:
         ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
     else:
-        ov_df, ov_labels = precomputed_tuple
+        ov_df, ov_labels = precomputed_df, precomputed_labels
     assets_balance, benchmarks_balance = [], []
     index_hist = None
 
@@ -278,6 +292,15 @@ def get_trades_results():
 
 
 def safe_try(function, arg=None, max_attempts=999):
+    """
+    A safe environment to execute functions likely to fail (e.g. webdriver, scrapping...).
+
+    :param function: function to safely execute.
+    :param arg: one argument to feed the function (only one supported for now)
+    :param max_attempts: maximum attempts for executing the function.
+    :return: result of the function passed as argument.
+    :rtype: Any
+    """
     res, attempts = None, 0
     while attempts < max_attempts:
         try:
@@ -298,11 +321,16 @@ def safe_try(function, arg=None, max_attempts=999):
 
 
 def grid_search():
+    """
+    Performs grid search to optimize a single parameter.
+    :rtype: None
+    """
 
     df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
-    trader = LstmTrader(h=H, normalize=True)
+    trader = LightgbmTrader(h=H, normalize=True)
     trader.ingest_traindata(df, labels)
-    precomputed_tuple = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+    test_df, test_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+    del df, labels
 
     res = []
     for param in [0.1, 0.2, 0.5, 0.9]:
@@ -310,7 +338,7 @@ def grid_search():
         trader.train()
         trader.test(plot=False)
         trader.save(model_name=f'Huorn_v{VERSION}')
-        metrics = backtest(plot=False, precomputed_tuple=precomputed_tuple)
+        metrics = backtest(plot=False, precomputed_df=test_df, precomputed_labels=test_labels)
         stats = {'num_iterations': param,
                  'mean_ret': metrics['assets_mean_returns'],
                  'pos_days': metrics['portfolio_positive_days'],
@@ -318,12 +346,15 @@ def grid_search():
         print(f"-- Num iterations {param} --\t mean returns: {stats['mean_ret']}%\t"
               f"positive days: {stats['pos_days']}%\t profitable assets: {stats['prof_assets']}%\t")
         res.append(stats)
-
-    print('\n\n\n\n', res)
     print('\n\n\n\n', pd.DataFrame(res))
 
 
 def heartbeat():
+    """
+    Live trading program, running forever.
+    :rtype: None
+    """
+
     logger.info('launching heartbeat')
     while True:
         now = dt.now()
@@ -346,6 +377,7 @@ def heartbeat():
 
 
 if __name__ == "__main__":
+
     # fetch_intrinio_data()
     # update_data()
     train_model()
@@ -356,4 +388,3 @@ if __name__ == "__main__":
     # get_trades_results()
     # yesterday_perf()
     # heartbeat()
-
