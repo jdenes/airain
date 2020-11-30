@@ -15,7 +15,7 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
     :rtype: None
     """
 
-    base_url = 'https://api-v2.intrinio.com/companies/{}/news?page_size=100&api_key={}'.format(company, api_key)
+    base_url = f'https://api-v2.intrinio.com/companies/{company}/news?page_size=100&api_key={api_key}'
     url, next_page, data = base_url, 0, None
     while next_page is not None:
         while True:
@@ -34,7 +34,7 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
         else:
             df.to_csv(filename, encoding='utf-8', mode='a', header=False)
         next_page = data['next_page'] if not update else None
-        url = base_url + '&next_page={}'.format(str(next_page))
+        url = base_url + f'&next_page={next_page}'
     if update:
         df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
         df = df.drop_duplicates(keep='last')
@@ -52,7 +52,7 @@ def fetch_intrinio_prices(filename, api_key, company, update=False):
     :rtype: None
     """
 
-    base_url = 'https://api-v2.intrinio.com/securities/{}/prices?page_size=100&api_key={}'.format(company, api_key)
+    base_url = f'https://api-v2.intrinio.com/securities/{company}/prices?page_size=100&api_key={api_key}'
     url, next_page, data = base_url, 0, None
     while next_page is not None:
         while True:
@@ -67,7 +67,7 @@ def fetch_intrinio_prices(filename, api_key, company, update=False):
         else:
             df.to_csv(filename, encoding='utf-8', mode='a', header=False)
         next_page = data['next_page'] if not update else None
-        url = base_url + '&next_page={}'.format(str(next_page))
+        url = base_url + f'&next_page={next_page}'
     if update:
         df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()

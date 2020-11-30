@@ -21,6 +21,8 @@
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Split utils into subfiles + changed daily news aggregation">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,20 +31,6 @@
   </component>
   <component name="CoverageDataManager">
     <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1581072296417" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-  </component>
-  <component name="DatabaseView">
-    <option name="SHOW_INTERMEDIATE" value="true" />
-    <option name="GROUP_DATA_SOURCES" value="true" />
-    <option name="GROUP_SCHEMA" value="true" />
-    <option name="GROUP_CONTENTS" value="false" />
-    <option name="SORT_POSITIONED" value="false" />
-    <option name="SHOW_EMPTY_GROUPS" value="false" />
-    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
-    <option name="HIDDEN_KINDS">
-      <set />
-    </option>
-    <expand />
-    <select />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -308,7 +296,7 @@
       <workItem from="1606492728048" duration="8575000" />
       <workItem from="1606566542497" duration="13922000" />
       <workItem from="1606600294431" duration="23305000" />
-      <workItem from="1606727369164" duration="16457000" />
+      <workItem from="1606727369164" duration="18687000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -373,7 +361,14 @@
       <option name="project" value="LOCAL" />
       <updated>1606756115628</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Split utils into subfiles + changed daily news aggregation">
+      <created>1606756419090</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1606756419090</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -420,26 +415,26 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="420" y="116" key="FileChooserDialogImpl/0.0.1280.720@0.0.1280.720" timestamp="1599573783735" />
-    <state width="1237" height="189" key="GridCell.Tab.0.bottom" timestamp="1606756121080">
+    <state width="1237" height="189" key="GridCell.Tab.0.bottom" timestamp="1606758185630">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.bottom/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1606756121080" />
-    <state width="1237" height="189" key="GridCell.Tab.0.center" timestamp="1606756121080">
+    <state width="1237" height="189" key="GridCell.Tab.0.bottom/0.0.1280.720@0.0.1280.720" timestamp="1606758185630" />
+    <state width="1237" height="189" key="GridCell.Tab.0.center" timestamp="1606758185630">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.center/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1606756121080" />
-    <state width="1237" height="189" key="GridCell.Tab.0.left" timestamp="1606756121080">
+    <state width="1237" height="189" key="GridCell.Tab.0.center/0.0.1280.720@0.0.1280.720" timestamp="1606758185630" />
+    <state width="1237" height="189" key="GridCell.Tab.0.left" timestamp="1606758185630">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.left/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1606756121080" />
-    <state width="1237" height="189" key="GridCell.Tab.0.right" timestamp="1606756121080">
+    <state width="1237" height="189" key="GridCell.Tab.0.left/0.0.1280.720@0.0.1280.720" timestamp="1606758185630" />
+    <state width="1237" height="189" key="GridCell.Tab.0.right" timestamp="1606758185630">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state width="1237" height="158" key="GridCell.Tab.0.right/0.0.1280.720/-1920.0.1920.1080@0.0.1280.720" timestamp="1599233722168" />
-    <state width="1237" height="189" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1606756121080" />
+    <state width="1237" height="189" key="GridCell.Tab.0.right/0.0.1280.720@0.0.1280.720" timestamp="1606758185630" />
     <state width="1237" height="220" key="GridCell.Tab.1.bottom" timestamp="1602515859735">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
@@ -460,18 +455,22 @@
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="142" y="4" key="SettingsEditor/0.0.1280.720@0.0.1280.720" timestamp="1598345657383" />
-    <state x="233" y="94" key="Vcs.Push.Dialog.v2" timestamp="1606756118784">
+    <state x="233" y="94" key="Vcs.Push.Dialog.v2" timestamp="1606756420562">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
-    <state x="233" y="94" key="Vcs.Push.Dialog.v2/0.0.1280.720@0.0.1280.720" timestamp="1606756118784" />
+    <state x="233" y="94" key="Vcs.Push.Dialog.v2/0.0.1280.720@0.0.1280.720" timestamp="1606756420562" />
     <state x="0" y="0" width="587" height="720" key="find.popup" timestamp="1600962523456">
       <screen x="0" y="0" width="1280" height="720" />
     </state>
     <state x="0" y="0" width="587" height="720" key="find.popup/0.0.1280.720@0.0.1280.720" timestamp="1600962523456" />
+    <state x="303" y="41" width="672" height="678" key="search.everywhere.popup" timestamp="1606758587265">
+      <screen x="0" y="0" width="1280" height="720" />
+    </state>
+    <state x="303" y="41" width="672" height="678" key="search.everywhere.popup/0.0.1280.720@0.0.1280.720" timestamp="1606758587265" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1598438442125" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
     <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1606755893533" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1606758185630" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
   </component>
 </project>

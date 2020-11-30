@@ -60,6 +60,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     """
 
     res = pd.DataFrame()
+    truc = []
 
     for number, asset in enumerate(KEYWORDS.keys()):
 
@@ -204,7 +205,7 @@ def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
     tmp = mod.encode(news['summary'], show_progress_bar=(last_day is None))
     embed_sum = pd.DataFrame(tmp, index=news.index)
-    embed_sum.columns = ['news_sum_{}'.format(i) for i in embed_sum]
+    embed_sum.columns = [f'news_sum_{i}' for i in embed_sum]
     # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()
     return embed_sum.groupby(embed_sum.index).mean()
 
@@ -279,7 +280,7 @@ def precompute_embeddings(folder):
     """
 
     for number, asset in enumerate(KEYWORDS.keys()):
-        path = folder + '{}_news_embed.csv'.format(asset.lower())
+        path = folder + f'{asset.lower()}_news_embed.csv'
         if not os.path.exists(path):
             embed = load_news(asset, KEYWORDS[asset])
             embed.to_csv(path, encoding='utf-8')
@@ -301,11 +302,11 @@ def train_sbert_pca(dim=100):
 
     df = pd.DataFrame()
     for asset in KEYWORDS.keys():
-        path = '../data/intrinio/{}_news_embed.csv'.format(asset.lower())
+        path = f'../data/intrinio/{asset.lower()}_news_embed.csv'
         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
         embed = embed[embed.index < T1]
         df = pd.concat([df, embed], axis=0, ignore_index=True)
     pca = PCA(n_components=dim)
     pca.fit(df)
-    joblib.dump(pca, '../data/pca_sbert_{}.joblib'.format(dim))
+    joblib.dump(pca, f'../data/pca_sbert_{dim}.joblib')
     return pca
