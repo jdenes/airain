@@ -44,6 +44,8 @@ KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'TRV': ['trv', 'travel', 'insurance'],
             # 'UTX': ['utx', 'united', 'tech'],
             }
+dow = ['AXP', 'AMGN', 'AAPL', 'BA', 'CAT', 'CSCO', 'CVX', 'GS', 'HD', 'HON', 'IBM', 'INTC', 'JNJ', 'KO', 'JPM', 'MCD',
+       'MMM', 'MRK', 'MSFT', 'NLE', 'PG', 'TRV', 'UNH', 'CRM', 'VZ', 'V', 'WBA', 'WMT', 'DIS', 'DOW']
 
 
 def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=False):
@@ -60,23 +62,31 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     """
 
     res = pd.DataFrame()
-    truc = []
 
     for number, asset in enumerate(KEYWORDS.keys()):
 
         file = folder + asset.lower() + '_prices.csv'
         # filename = '../data/jena_climate_2009_2016.csv'
 
+        """ Testing YF """
+        # import yfinance as yf
+        # ticker = yf.Ticker(asset)
+        # df = ticker.history(period="max")
+        # df.columns = [col.lower() for col in df]
+        # df.drop(['dividends', 'stock splits'], axis=1, inplace=True)
+        # df.index = df.index.strftime('%Y-%m-%d')
+        """"""
+
         df = pd.read_csv(file, encoding='utf-8', index_col=0)
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
-        df.drop(['intraperiod', 'frequency'], axis=1, inplace=True)
-        df.drop([col for col in df if 'adj' in col], axis=1, inplace=True)
+        df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
 
         # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
         # askcol, bidcol = 'T (degC)', 'p (mbar)'
         askcol, bidcol = 'close', 'open'
 
+        """ Sentiment """
         # path = folder + '{}_news_sentiment.csv'.format(asset.lower())
         # if not os.path.exists(path):
         #     sentiment = sentiment_analysis(asset, KEYWORDS[asset])
@@ -89,15 +99,16 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         #         write_data(path, sentiment)
         #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
 
+        """ Embeddings """
         path = folder + '{}_news_embed.csv'.format(asset.lower())
         if not os.path.exists(path):
-            embed = load_news(asset, KEYWORDS[asset])
+            embed = load_news(asset, folder, KEYWORDS[asset])
             embed.to_csv(path, encoding='utf-8')
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
             if update_embed:
                 last_embed = embed.index.max()
-                embed = load_news(asset, KEYWORDS[asset], last_day=last_embed)
+                embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
                 write_data(path, embed)
                 embed = pd.read_csv(path, encoding='utf-8', index_col=0)
 
@@ -113,9 +124,9 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df = pd.concat([df, embed], axis=1).sort_index()
         # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
         df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
-        df = df.dropna()
         del embed
 
+        df = df.dropna()
         shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
         df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
 
@@ -189,11 +200,12 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     return res[index], labels[index]
 
 
-def load_news(asset, keywords=None, use_weekends=True, last_day=None):
+def load_news(asset, folder, keywords=None, use_weekends=False, last_day=None):
     """
     Loads a Sentence-BERT embedded, daily-aggregated version of a company's news.
 
     :param str asset: company's symbol (e.g. AAPL, MSFT)
+    :param str folder: folder where data are stored.
     :param list[str] keywords: a list of keywords on which to filter the news to ensure relevance.
     :param bool use_weekends: whether news published during weekends should be used.
     :param None|str last_day: the last date before truncation, in format '%Y-%m-%d'. If None, no truncation is made.
@@ -201,7 +213,7 @@ def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     :rtype: pd.DataFrame
     """
 
-    news = preprocess_news(asset=asset, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
+    news = preprocess_news(asset=asset, folder=folder, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
     tmp = mod.encode(news['summary'], show_progress_bar=(last_day is None))
     embed_sum = pd.DataFrame(tmp, index=news.index)
@@ -210,7 +222,7 @@ def load_news(asset, keywords=None, use_weekends=True, last_day=None):
     return embed_sum.groupby(embed_sum.index).mean()
 
 
-def sentiment_analysis(asset, keywords=None, use_weekends=True, last_day=None):
+def sentiment_analysis(asset, keywords=None, use_weekends=False, last_day=None):
     """
     Loads a sentiment-analyzed, daily-aggregated version of a company's news.
 
@@ -240,11 +252,12 @@ def sentiment_analysis(asset, keywords=None, use_weekends=True, last_day=None):
     return sentiment.groupby(sentiment.index).mean()
 
 
-def preprocess_news(asset, keywords=None, aggregate=False, use_weekends=True, last_day=None):
+def preprocess_news(asset, folder, keywords=None, aggregate=False, use_weekends=False, last_day=None):
     """
     Preprocesses company's news (daily-aggregated) to be used in other functions.
 
     :param str asset: company's symbol (e.g. AAPL, MSFT)
+    :param str folder: folder where data are stored.
     :param list[str] keywords: a list of keywords on which to filter the news to ensure relevance.
     :param bool aggregate: whether to daily-aggregate pieces of news.
     :param bool use_weekends: whether news published during weekends should be used.
@@ -253,9 +266,10 @@ def preprocess_news(asset, keywords=None, aggregate=False, use_weekends=True, la
     :rtype: pd.DataFrame
     """
 
-    filename = '../data/intrinio/' + asset.lower() + '_news.csv'
+    filename = folder + asset.lower() + '_news.csv'
     df = pd.read_csv(filename, encoding='utf-8', index_col=0).sort_index()
-    df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
+    df = df[df['title'].notnull() & df['summary'].notnull()]
+    # df.drop(['id', 'url', 'publication_date'], axis=1, inplace=True)
     df['summary'] = df['summary'].apply(clean_string)
     if last_day is not None:
         df = df[last_day:]
@@ -282,12 +296,12 @@ def precompute_embeddings(folder):
     for number, asset in enumerate(KEYWORDS.keys()):
         path = folder + f'{asset.lower()}_news_embed.csv'
         if not os.path.exists(path):
-            embed = load_news(asset, KEYWORDS[asset])
+            embed = load_news(asset, folder, KEYWORDS[asset])
             embed.to_csv(path, encoding='utf-8')
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
             last_embed = embed.index.max()
-            embed = load_news(asset, KEYWORDS[asset], last_day=last_embed)
+            embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
             write_data(path, embed)
 
 

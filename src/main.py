@@ -9,7 +9,7 @@ from utils.plots import nice_plot
 from utils.basics import write_data
 from utils.logging import get_logger
 from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
-from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices
+from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices, fetch_yahoo_news, fetch_yahoo_prices
 
 from data_preparation import load_data, precompute_embeddings
 
@@ -23,7 +23,7 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 4
+VERSION = 5
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
@@ -50,11 +50,27 @@ def fetch_intrinio_data():
 
     :rtype: None
     """
+    folder = '../data/intrinio/'
     for company in companies:
         print(f'Fetching {company} data...')
-        path = f'../data/intrinio/{company.lower()}'
+        path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
+
+
+def fetch_yahoo_data():
+    """
+    Fetches or updates news and prices data for all companies.
+
+    :rtype: None
+    """
+    folder = '../data/yahoo/'
+    for company in companies:
+        print(f'Fetching {company} data...')
+        path = folder + company.lower()
+        fetch_yahoo_news(filename=path + '_news.csv', company=company)
+        fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
+    precompute_embeddings(folder)
 
 
 def train_model(plot=True):
@@ -65,8 +81,9 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
+    folder = '../data/intrinio/'
     trader = LightgbmTrader(h=H, normalize=False)
-    df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
+    df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     trader.ingest_traindata(df, labels)
     trader.train(epochs=EPOCHS)
     trader.test(plot=plot)
@@ -85,13 +102,15 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
     """
     print('_' * 100, '\n')
     print('Initializing backtest...')
+    folder = '../data/intrinio/'
     trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
     if precomputed_df is None or precomputed_labels is None:
-        ov_df, ov_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+        ov_df, ov_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
     else:
         ov_df, ov_labels = precomputed_df, precomputed_labels
     assets_balance, benchmarks_balance = [], []
     index_hist = None
+    print(ov_df)
 
     for asset in enumerate(companies):
         if asset[1] in performers:
@@ -196,7 +215,8 @@ def decide_order(asset, quantity, open_price, pred, date):
 def yesterday_perf():
     print("Correctness of yesterday's predictions")
 
-    df, _ = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
+    folder = '../data/intrinio/'
+    df, _ = load_data(folder, TRADEFREQ, DATAFREQ)
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
     prices = pd.read_csv('../outputs/trade_data.csv', encoding='utf-8', index_col=0)
 
@@ -238,8 +258,9 @@ def update_data():
 
 def get_recommendations():
     now = time.time()
+    folder = '../data/intrinio/'
     trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
-    df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
+    df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
     # yesterday = '2020-09-17'
     df = df.loc[yesterday].reset_index(drop=True)
@@ -326,10 +347,11 @@ def grid_search():
     :rtype: None
     """
 
-    df, labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ)
+    folder = '../data/intrinio/'
+    df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     trader = LightgbmTrader(h=H, normalize=True)
     trader.ingest_traindata(df, labels)
-    test_df, test_labels = load_data('../data/intrinio/', TRADEFREQ, DATAFREQ, start_from=trader.t2)
+    test_df, test_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
     del df, labels
 
     res = []
@@ -377,11 +399,11 @@ def heartbeat():
 
 
 if __name__ == "__main__":
-
     # fetch_intrinio_data()
+    # fetch_yahoo_data()
     # update_data()
-    train_model()
-    backtest(plot=False)
+    # train_model()
+    backtest(plot=True)
     # grid_search()
     # o = get_recommendations()
     # place_orders(o)

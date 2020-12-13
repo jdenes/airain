@@ -33,9 +33,9 @@ def clean_string(string):
     :return: cleaned string.
     :rtype: str
     """
-    string = string.replace('\n', ' ').strip()
-    string = re.sub(' +', ' ', string)
-    string = re.sub('<[^<]+?>', '', string)
+    string = string.replace(r'\n', ' ').strip()
+    string = re.sub(r'\s+', ' ', string)
+    string = re.sub(r'<[^<]+?>', '', string)
     return string
 
 

@@ -50,7 +50,7 @@ class Trader(object):
         self.P_val = None
         self.y_val = None
 
-        self.t1, self.t2 = '2020-04-01', '2020-06-01'
+        self.t0, self.t1, self.t2 = '1990-01-01', '2020-04-01', '2020-06-01'
 
         if load_from is not None:
             self.load(model_name=load_from)
@@ -72,7 +72,7 @@ class Trader(object):
         self.testsize = testsize
         self.valsize = valsize
 
-        df_train, labels_train = df.loc[:self.t1], labels.loc[:self.t1]
+        df_train, labels_train = df.loc[self.t0:self.t1], labels.loc[self.t0:self.t1]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
