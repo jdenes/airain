@@ -92,6 +92,7 @@ def fetch_yahoo_news(filename, company):
     df['full_date'] = pd.to_datetime(df['provider_publish_time'].astype(int), unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
     df = df.set_index('date', drop=True)
     df.drop(['rank', 'imageSet'], axis=1, inplace=True)
+    df['tickers'] = df['tickers'].apply(lambda x: '|'.join(str(elt) for elt in x))
     write_data(filename, df, same_ids=True)
 
 

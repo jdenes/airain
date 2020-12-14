@@ -4,7 +4,7 @@ import warnings
 logging.basicConfig(handlers=[logging.FileHandler("../logs/LOG.log"), logging.StreamHandler()],
                     format='%(asctime)s: %(levelname)s: %(message)s')
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
+# warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 def get_logger():

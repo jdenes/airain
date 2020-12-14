@@ -27,15 +27,16 @@ def write_data(path, new_row, same_ids=False):
 
 def clean_string(string):
     """
-    Removes HTML tags, multiple spaces and line breaks from string.
+    Removes HTML tags, URLs, multiple spaces and line breaks from string.
 
     :param str string: string to clean.
     :return: cleaned string.
     :rtype: str
     """
-    string = string.replace(r'\n', ' ').strip()
+    string = re.sub(r'\n', ' ', string).strip()
     string = re.sub(r'\s+', ' ', string)
     string = re.sub(r'<[^<]+?>', '', string)
+    string = re.sub(r'http[s]?://\S+', '', string)
     return string
 
 

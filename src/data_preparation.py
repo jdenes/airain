@@ -13,6 +13,7 @@ from utils.logging import get_logger
 
 logger = get_logger()
 
+T0 = '2000-01-01'
 T1 = '2020-04-01'
 
 KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
@@ -65,26 +66,22 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
     for number, asset in enumerate(KEYWORDS.keys()):
 
-        file = folder + asset.lower() + '_prices.csv'
-        # filename = '../data/jena_climate_2009_2016.csv'
-
-        """ Testing YF """
-        # import yfinance as yf
-        # ticker = yf.Ticker(asset)
-        # df = ticker.history(period="max")
-        # df.columns = [col.lower() for col in df]
-        # df.drop(['dividends', 'stock splits'], axis=1, inplace=True)
-        # df.index = df.index.strftime('%Y-%m-%d')
-        """"""
+        file = f'{folder}{asset.lower()}_prices.csv'
 
         df = pd.read_csv(file, encoding='utf-8', index_col=0)
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
 
-        # askcol, bidcol = 'ask' + str(target_col), 'bid' + str(target_col)
-        # askcol, bidcol = 'T (degC)', 'p (mbar)'
+        df2 = pd.read_csv(f'../data/intrinio/{asset.lower()}_prices.csv', encoding='utf-8', index_col=0)
+        df2.index = df2.index.rename('date')
+        df2 = df2.loc[~df2.index.duplicated(keep='last')].sort_index()
+        df2.drop([col for col in df2 if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
+        df = pd.concat([df2, df], axis=0)
+        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
+
         askcol, bidcol = 'close', 'open'
+        df.dropna(inplace=True)
 
         """ Sentiment """
         # path = folder + '{}_news_sentiment.csv'.format(asset.lower())
@@ -99,34 +96,6 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         #         write_data(path, sentiment)
         #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
 
-        """ Embeddings """
-        path = folder + '{}_news_embed.csv'.format(asset.lower())
-        if not os.path.exists(path):
-            embed = load_news(asset, folder, KEYWORDS[asset])
-            embed.to_csv(path, encoding='utf-8')
-        else:
-            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-            if update_embed:
-                last_embed = embed.index.max()
-                embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
-                write_data(path, embed)
-                embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-
-        dim = 60
-        pca_path = f"../data/pca_sbert_{dim}.joblib"
-        if not os.path.exists(pca_path):
-            pca = train_sbert_pca(dim=dim)
-        else:
-            pca = joblib.load(pca_path)
-        embed = pd.DataFrame(pca.transform(embed), index=embed.index)
-        embed.columns = [f"news_sum_{i}" for i in embed]
-
-        df = pd.concat([df, embed], axis=1).sort_index()
-        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
-        df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
-        del embed
-
-        df = df.dropna()
         shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
         df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
 
@@ -135,12 +104,13 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['month'] = time_index.month
         df['quarter'] = time_index.quarter
         df['day'] = time_index.day
-        df['week'] = time_index.week
+        df['week'] = time_index.isocalendar()['week'].to_list()
         df['mweek'] = time_index.map(week_of_month)
         df['wday'] = time_index.weekday
         df['dayofyear'] = time_index.dayofyear
 
-        # i = df.index.get_loc(T1)
+        df = df[df.index >= T0]
+        df = df[df['wday'] < 5]
 
         for col in ['open', 'close']:
             df[col + '_delta_1'] = df[col].diff(1)
@@ -169,6 +139,34 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 #     df[f'{period}_adj_{col}'] = df[f'{period}_mean_{col}'] / df[f'{period}_std_{col}']
                 #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
+        """ Embeddings """
+        path = folder + f'{asset.lower()}_news_embed.csv'
+        if not os.path.exists(path):
+            embed = load_news(asset, folder, KEYWORDS[asset])
+            embed.to_csv(path, encoding='utf-8')
+        else:
+            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+            if update_embed:
+                last_embed = embed.index.max()
+                embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
+                write_data(path, embed)
+                embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+
+        dim = 60
+        pca_path = f"../data/pca_sbert_{dim}.joblib"
+        if not os.path.exists(pca_path):
+            pca = train_sbert_pca(dim=dim)
+        else:
+            pca = joblib.load(pca_path)
+        embed = pd.DataFrame(pca.transform(embed), index=embed.index)
+        embed.columns = [f"news_sum_{i}" for i in embed]
+
+        df = pd.concat([df, embed], axis=1).sort_index()
+        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
+        df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
+        df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
+        del embed
+
         # Hodrick-Prescott filter
         # for count, i in enumerate(df.index):
         #     if count > 5:
@@ -176,6 +174,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         #             cycle, trend = sm.tsa.filters.hpfilter(df[df.index <= i][col], 1600)
         #             df.loc[i, col + '_cycle'], df.loc[i, col + '_trend'] = cycle[-1], trend[-1]
 
+        # df = df[df[[c for c in df if c != 'labels']].notnull().all(axis=1)]
         res = pd.concat([res, df], axis=0)
 
     # Computing overall aggregate features
@@ -187,15 +186,14 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
             res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].std())
 
     if start_from is not None:
-        res = res[start_from:]
-        # res = res[res['asset'] == subset[0]]
+        res = res[res.index >= start_from]
 
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
     if update_embed:
-        index = pd.notnull(res).all(1)
+        index = pd.notnull(res).all(axis=1)
     else:
-        index = pd.notnull(res).all(1) & pd.notnull(labels)
+        index = pd.notnull(res).all(axis=1) & pd.notnull(labels)
 
     return res[index], labels[index]
 

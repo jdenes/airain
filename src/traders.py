@@ -50,7 +50,7 @@ class Trader(object):
         self.P_val = None
         self.y_val = None
 
-        self.t0, self.t1, self.t2 = '1990-01-01', '2020-04-01', '2020-06-01'
+        self.t0, self.t1, self.t2 = '2000-01-01', '2020-04-01', '2020-06-01'
 
         if load_from is not None:
             self.load(model_name=load_from)
@@ -72,7 +72,11 @@ class Trader(object):
         self.testsize = testsize
         self.valsize = valsize
 
-        df_train, labels_train = df.loc[self.t0:self.t1], labels.loc[self.t0:self.t1]
+        train_ind = (df.index >= self.t0) & (df.index < self.t1)
+        val_ind = (df.index >= self.t1) & (df.index < self.t2)
+        test_ind = (df.index >= self.t2)
+
+        df_train, labels_train = df[train_ind], labels[train_ind]
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
@@ -86,7 +90,7 @@ class Trader(object):
             self.y_train = np.concatenate((self.y_train, y))
         del df_train, labels_train
 
-        df_test, labels_test = df.loc[self.t2:], labels.loc[self.t2:]
+        df_test, labels_test = df[test_ind], labels[test_ind]
         X, P, y = self.transform_data(df_test, labels_test)
         if self.X_test is None:
             self.X_test, self.P_test, self.y_test = X, P, y
@@ -96,7 +100,7 @@ class Trader(object):
             self.y_test = np.concatenate((self.y_test, y))
         del df_test, labels_test
 
-        df_val, labels_val = df.loc[self.t1:self.t2], labels.loc[self.t1:self.t2]
+        df_val, labels_val = df[val_ind], labels[val_ind]
         X, P, y = self.transform_data(df_val, labels_val)
         if self.X_val is None:
             self.X_val, self.P_val, self.y_val = X, P, y
@@ -236,10 +240,10 @@ class LightgbmTrader(Trader):
             'min_data_in_leaf': 2 ** 12 - 1,
             'feature_fraction': 0.7,  # between 0.4 and 0.6
             'max_bin': 11,  # 255
-            'num_iterations': 1140,  # 7000,
+            'num_iterations': 1140 * 100,  # 7000,
             'boost_from_average': True,
             'verbose': -1,
-            # 'early_stopping_rounds': 300,
+            'early_stopping_rounds': 1000,
         }
 
     def transform_data(self, df, labels, get_index=False, keep_last=True):
@@ -293,11 +297,11 @@ class LightgbmTrader(Trader):
             fig.tight_layout()
             plt.show()
 
-            i = self.y_test != 0
-            plt.plot((y_pred[i] - self.y_test[i]), '.')
-            plt.show()
-            plt.plot(self.y_test, y_pred, '.')
-            plt.show()
+            # i = self.y_test != 0
+            # plt.plot((y_pred[i] - self.y_test[i]), '.')
+            # plt.show()
+            # plt.plot(self.y_test, y_pred, '.')
+            # plt.show()
 
     def predict(self, X, P):
         """

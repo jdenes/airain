@@ -38,6 +38,7 @@
       <w>reco</w>
       <w>sbert</w>
       <w>testsize</w>
+      <w>tqdm</w>
       <w>tradefreq</w>
       <w>traindata</w>
       <w>unnormalize</w>
@@ -46,6 +47,7 @@
       <w>valsteps</w>
       <w>wday</w>
       <w>xgboost</w>
+      <w>yahooquery</w>
     </words>
   </dictionary>
 </component>

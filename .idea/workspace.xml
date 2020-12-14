@@ -19,13 +19,16 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Changed .format for f-strings">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Started to work with yahoo finance data">
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/julie.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils/basics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/basics.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/logging.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/logging.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -304,7 +307,9 @@
       <workItem from="1607551286745" duration="71000" />
       <workItem from="1607551393829" duration="62000" />
       <workItem from="1607551543372" duration="2725000" />
-      <workItem from="1607718702170" duration="24080000" />
+      <workItem from="1607718702170" duration="30911000" />
+      <workItem from="1607958113868" duration="6542000" />
+      <workItem from="1607964796909" duration="6998000" />
     </task>
     <task id="LOCAL-00001" summary="Improved code indus for MlTraders">
       <created>1580553809030</created>
@@ -383,7 +388,14 @@
       <option name="project" value="LOCAL" />
       <updated>1606758663053</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Started to work with yahoo finance data">
+      <created>1607901683965</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1607901683965</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -412,11 +424,12 @@
     <MESSAGE value="A bit of research on LSTM, not working" />
     <MESSAGE value="Split utils into subfiles + changed daily news aggregation" />
     <MESSAGE value="Changed .format for f-strings" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changed .format for f-strings" />
+    <MESSAGE value="Started to work with yahoo finance data" />
+    <option name="LAST_COMMIT_MESSAGE" value="Started to work with yahoo finance data" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1598438442125" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1607901504910" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
+    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1607973971571" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
     <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
