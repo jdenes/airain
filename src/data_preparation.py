@@ -45,7 +45,7 @@ KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'TRV': ['trv', 'travel', 'insurance'],
             # 'UTX': ['utx', 'united', 'tech'],
             }
-dow = ['AXP', 'AMGN', 'AAPL', 'BA', 'CAT', 'CSCO', 'CVX', 'GS', 'HD', 'HON', 'IBM', 'INTC', 'JNJ', 'KO', 'JPM', 'MCD',
+DOW = ['AXP', 'AMGN', 'AAPL', 'BA', 'CAT', 'CSCO', 'CVX', 'GS', 'HD', 'HON', 'IBM', 'INTC', 'JNJ', 'KO', 'JPM', 'MCD',
        'MMM', 'MRK', 'MSFT', 'NLE', 'PG', 'TRV', 'UNH', 'CRM', 'VZ', 'V', 'WBA', 'WMT', 'DIS', 'DOW']
 
 
@@ -68,16 +68,30 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
         file = f'{folder}{asset.lower()}_prices.csv'
 
+        # Chosen data
         df = pd.read_csv(file, encoding='utf-8', index_col=0)
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
 
+        # Complete with Intrinio for past
         df2 = pd.read_csv(f'../data/intrinio/{asset.lower()}_prices.csv', encoding='utf-8', index_col=0)
         df2.index = df2.index.rename('date')
         df2 = df2.loc[~df2.index.duplicated(keep='last')].sort_index()
         df2.drop([col for col in df2 if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
+
+        # Add today results of Nikkei225
+        jpn = pd.read_csv('../data/yahoo/^n225_prices.csv', encoding='utf-8', index_col=0)
+        jpn.index = jpn.index.rename('date')
+        jpn = jpn[['open', 'high', 'low', 'close']]
+        jpn.columns = ['jpn_open', 'jpn_high', 'jpn_low', 'jpn_close']
+        jpn['jpn_labels'] = ((jpn['jpn_close'] - jpn['jpn_open']) > 0).astype(int)
+        jpn = jpn.loc[~jpn.index.duplicated(keep='last')].sort_index()
+        jpn = jpn.shift(-1)
+
         df = pd.concat([df2, df], axis=0)
+        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
+        df = pd.concat([df, jpn], axis=1)
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
 
         askcol, bidcol = 'close', 'open'

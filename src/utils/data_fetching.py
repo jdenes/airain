@@ -28,7 +28,8 @@ def fetch_intrinio_news(filename, api_key, company, update=False):
             break
         df = pd.DataFrame(data['news'])
         df = df[df['summary'].str.len() > 180]
-        df['date'] = df['publication_date'].str[:10]
+        # df['date'] = df['publication_date'].str[:10]
+        df['date'] = pd.to_datetime(df['publication_time'], format='%Y-%m-%dT%H:%M:%SZ').dt.strftime('%Y-%m-%d')
         df['summary'] = df['summary'].apply(clean_string)
         df = df.set_index('date', drop=True)
         if next_page == 0 and not update:

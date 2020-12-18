@@ -70,6 +70,7 @@ def fetch_yahoo_data():
         path = folder + company.lower()
         fetch_yahoo_news(filename=path + '_news.csv', company=company)
         fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
+    fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')
     precompute_embeddings(folder)
 
 
@@ -102,7 +103,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
     """
     print('_' * 100, '\n')
     print('Initializing backtest...')
-    folder = '../data/yahoo/'
+    folder = '../data/intrinio/'
     trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
     if precomputed_df is None or precomputed_labels is None:
         ov_df, ov_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
@@ -402,7 +403,7 @@ if __name__ == "__main__":
     # fetch_intrinio_data()
     # fetch_yahoo_data()
     # update_data()
-    train_model()
+    # train_model()
     backtest(plot=False)
     # grid_search()
     # o = get_recommendations()
