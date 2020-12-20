@@ -41,7 +41,7 @@ leverages = {'AAPL': 5, 'XOM': 5, 'KO': 5, 'INTC': 5, 'WMT': 5, 'MSFT': 5, 'IBM'
              'PG': 5, 'PFE': 5, 'VZ': 5, 'BA': 5, 'MRK': 5, 'CSCO': 5, 'HD': 5, 'MCD': 5, 'MMM': 5,
              'GE': 5, 'NKE': 5, 'CAT': 5, 'V': 5, 'JPM': 5, 'AXP': 5, 'GS': 5, 'UNH': 5, 'TRV': 5}
 # performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
-performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS']
+PERFORMERS = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS']
 
 
 def fetch_intrinio_data():
@@ -114,7 +114,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
     print(ov_df)
 
     for asset in enumerate(companies):
-        if asset[1] in performers:
+        if asset[1] in PERFORMERS:
             print('_' * 100, '\n')
             print(f'Backtesting on {asset[1]}...\n')
 
@@ -272,7 +272,7 @@ def get_recommendations():
     lev = pd.Series([leverages[co] for co in companies])
     quantity = (INITIAL_GAMBLE * (lev / df['close'])).astype(int)
     for i, pred in enumerate(preds):
-        if companies[i] in performers:
+        if companies[i] in PERFORMERS:
             reco[companies[i]] = pred
             order_book.append({'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i])})
     path = '../outputs/recommendations.csv'
