@@ -14,7 +14,7 @@ from utils.logging import get_logger
 logger = get_logger()
 
 T0 = '2000-01-01'
-T1 = '2020-04-01'
+T1 = '2020-08-01'
 
 KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'XOM': ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],
@@ -75,10 +75,10 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
 
         # Complete with Intrinio for past
-        df2 = pd.read_csv(f'../data/intrinio/{asset.lower()}_prices.csv', encoding='utf-8', index_col=0)
-        df2.index = df2.index.rename('date')
-        df2 = df2.loc[~df2.index.duplicated(keep='last')].sort_index()
-        df2.drop([col for col in df2 if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
+        # df2 = pd.read_csv(f'../data/intrinio/{asset.lower()}_prices.csv', encoding='utf-8', index_col=0)
+        # df2.index = df2.index.rename('date')
+        # df2 = df2.loc[~df2.index.duplicated(keep='last')].sort_index()
+        # df2.drop([col for col in df2 if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
 
         # Add today results of Nikkei225
         jpn = pd.read_csv('../data/yahoo/^n225_prices.csv', encoding='utf-8', index_col=0)
@@ -89,7 +89,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         jpn = jpn.loc[~jpn.index.duplicated(keep='last')].sort_index()
         jpn = jpn.shift(-1)
 
-        df = pd.concat([df2, df], axis=0)
+        # df = pd.concat([df2, df], axis=0)
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df = pd.concat([df, jpn], axis=1)
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
@@ -145,7 +145,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < T1].mean())
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < T1].std())
 
-        for period in ['year', 'quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day'
+        for period in ['quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day', 'year'
             for col in ['labels', 'volume', askcol, bidcol]:
                 df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < T1].mean())
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < T1].std())
@@ -165,7 +165,6 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
                 write_data(path, embed)
                 embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-
         dim = 60
         pca_path = f"../data/pca_sbert_{dim}.joblib"
         if not os.path.exists(pca_path):
@@ -194,7 +193,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     # Computing overall aggregate features
     res = res.rename_axis('date').sort_values(['date', 'asset'])
 
-    for period in ['year', 'month', 'day', 'wday']:
+    for period in ['month', 'day', 'wday']:  # 'year'
         for col in ['labels', 'volume']:
             res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].mean())
             res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].std())
@@ -204,6 +203,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
+
     if update_embed:
         index = pd.notnull(res).all(axis=1)
     else:
@@ -227,7 +227,7 @@ def load_news(asset, folder, keywords=None, use_weekends=False, last_day=None):
 
     news = preprocess_news(asset=asset, folder=folder, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
-    tmp = mod.encode(news['summary'], show_progress_bar=(last_day is None))
+    tmp = mod.encode(news['summary'], batch_size=32, show_progress_bar=(last_day is None))
     embed_sum = pd.DataFrame(tmp, index=news.index)
     embed_sum.columns = [f'news_sum_{i}' for i in embed_sum]
     # embed = pd.concat([embed_title, embed_sum], axis=1).sort_index()

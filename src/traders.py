@@ -3,13 +3,12 @@ import json
 import logging
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 
 from utils.basics import normalize_data, unnormalize_data
-from sklearn.metrics import classification_report
+from utils.metrics import classification_perf
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +49,7 @@ class Trader(object):
         self.P_val = None
         self.y_val = None
 
-        self.t0, self.t1, self.t2 = '2000-01-01', '2020-04-01', '2020-06-01'
+        self.t0, self.t1, self.t2 = '2000-01-01', '2020-08-01', '2020-10-01'
 
         if load_from is not None:
             self.load(model_name=load_from)
@@ -77,6 +76,7 @@ class Trader(object):
         test_ind = (df.index >= self.t2)
 
         df_train, labels_train = df[train_ind], labels[train_ind]
+        df_train, labels_train = pd.concat([df_train] * 10, axis=0), pd.concat([labels_train] * 10, axis=0)
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
@@ -129,23 +129,17 @@ class Trader(object):
         #     y_train = unnormalize_data(y_train, self.y_max, self.y_min)
         #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
-        print("Performance metrics on train...")
+        print("Performance metrics on train:")
         y_pred = self.predict(self.X_train, self.P_train)
-        print(classification_report(y_train, y_pred, digits=4))
-        # print(tf.math.confusion_matrix(self.y_train, y_pred))
-        # print(compute_metrics(y_train, y_pred))
+        print(classification_perf(y_train, y_pred))
 
-        print("Performance metrics on val...")
+        print("Performance metrics on val:")
         y_pred = self.predict(self.X_val, self.P_val)
-        print(classification_report(y_val, y_pred, digits=4))
-        # print(tf.math.confusion_matrix(self.y_test, y_pred))
-        # print(compute_metrics(y_test, y_pred))
+        print(classification_perf(y_val, y_pred))
 
-        print("Performance metrics on test...")
+        print("Performance metrics on test:")
         y_pred = self.predict(self.X_test, self.P_test)
-        print(classification_report(y_test, y_pred, digits=4))
-        # print(tf.math.confusion_matrix(self.y_test, y_pred))
-        # print(compute_metrics(y_test, y_pred))
+        print(classification_perf(y_test, y_pred))
 
     def predict(self, X, P):
         """
@@ -240,10 +234,10 @@ class LightgbmTrader(Trader):
             'min_data_in_leaf': 2 ** 12 - 1,
             'feature_fraction': 0.7,  # between 0.4 and 0.6
             'max_bin': 11,  # 255
-            'num_iterations': 1140 * 100,  # 7000,
+            'num_iterations': 15000,
             'boost_from_average': True,
             'verbose': -1,
-            'early_stopping_rounds': 1000,
+            # 'early_stopping_rounds': 1000,
         }
 
     def transform_data(self, df, labels, get_index=False, keep_last=True):
@@ -387,6 +381,7 @@ class LstmTrader(Trader):
         Using prepared data, trains model depending on agent type.
         """
 
+        import tensorflow as tf
         self.gpu = gpu
         self.batch_size = batch_size
         self.buffer_size = buffer_size
@@ -446,6 +441,7 @@ class LstmTrader(Trader):
         """
         Save model to folder.
         """
+        import tensorflow as tf
         super().save(model_name)
         model_name = '../models/' + model_name
         if self.model is not None:
@@ -455,6 +451,7 @@ class LstmTrader(Trader):
         """
         Load model from folder.
         """
+        import tensorflow as tf
         super().load(model_name=model_name, fast=fast)
         model_name = '../models/' + model_name
         self.model = tf.keras.models.load_model(f'{model_name}/model.h5')

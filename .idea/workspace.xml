@@ -21,10 +21,14 @@
   <component name="ChangeListManager">
     <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Trying to train BERT on detecting pos/neg days">
       <change beforePath="$PROJECT_DIR$/.idea/airain.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/airain.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/roberta_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/roberta_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/metrics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/metrics.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,13 +72,13 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="Python" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/roberta_model.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
+    <property name="settings.editor.selected.configurable" value="RainbowCSV.Settings" />
   </component>
-  <component name="RunManager" selected="Python.tf-roberta">
+  <component name="RunManager" selected="Python.main">
     <configuration name="app" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="airain" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -464,11 +468,5 @@
     <MESSAGE value="Adapted code to work with yahoo data" />
     <MESSAGE value="Trying to train BERT on detecting pos/neg days" />
     <option name="LAST_COMMIT_MESSAGE" value="Trying to train BERT on detecting pos/neg days" />
-  </component>
-  <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/Airain$app.coverage" NAME="app Coverage Results" MODIFIED="1598438442125" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
-    <SUITE FILE_PATH="coverage/Airain$main.coverage" NAME="main Coverage Results" MODIFIED="1608128326122" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src/" />
-    <SUITE FILE_PATH="coverage/Airain$tf_roberta.coverage" NAME="tf-roberta Coverage Results" MODIFIED="1608483641755" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/src" />
-    <SUITE FILE_PATH="coverage/airain$main.coverage" NAME="main Coverage Results" MODIFIED="1582121894783" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

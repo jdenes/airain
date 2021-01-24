@@ -3,7 +3,7 @@ import configparser
 import pandas as pd
 from datetime import datetime as dt
 
-from traders import LstmTrader, LightgbmTrader
+from traders import LightgbmTrader
 from api_emulator import Emulator
 from utils.plots import nice_plot
 from utils.basics import write_data
@@ -23,7 +23,7 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 5
+VERSION = 1
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
@@ -82,7 +82,7 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
-    folder = '../data/intrinio/'
+    folder = '../data/yahoo/'
     trader = LightgbmTrader(h=H, normalize=False)
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     trader.ingest_traindata(df, labels)
@@ -103,7 +103,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
     """
     print('_' * 100, '\n')
     print('Initializing backtest...')
-    folder = '../data/intrinio/'
+    folder = '../data/yahoo/'
     trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
     if precomputed_df is None or precomputed_labels is None:
         ov_df, ov_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
@@ -111,7 +111,6 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
         ov_df, ov_labels = precomputed_df, precomputed_labels
     assets_balance, benchmarks_balance = [], []
     index_hist = None
-    print(ov_df)
 
     for asset in enumerate(companies):
         if asset[1] in PERFORMERS:
@@ -260,7 +259,7 @@ def update_data():
 def get_recommendations():
     now = time.time()
     folder = '../data/intrinio/'
-    trader = LstmTrader(load_from=f'Huorn_v{VERSION}')
+    trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
     # yesterday = '2020-09-17'
@@ -403,7 +402,7 @@ if __name__ == "__main__":
     # fetch_intrinio_data()
     # fetch_yahoo_data()
     # update_data()
-    # train_model()
+    train_model()
     backtest(plot=False)
     # grid_search()
     # o = get_recommendations()

@@ -1,3 +1,24 @@
+from sklearn.metrics import f1_score, accuracy_score, recall_score, precision_score
+
+
+def classification_perf(y_true, y_pred):
+    """
+    Computes and formats performance metrics of classifier.
+
+    :param y_true: true labels.
+    :param y_pred: predicted labels.
+    :return: string to print.
+    :rtype: str
+    """
+
+    accuracy = accuracy_score(y_true, y_pred)
+    f1_macro = f1_score(y_true, y_pred, average='macro')
+    f1_micro = f1_score(y_true, y_pred, average='micro')
+    recall = recall_score(y_true, y_pred)
+    precision = precision_score(y_true, y_pred)
+    string = f"- accuracy: {accuracy:.3f}\n- f1 macro: {f1_macro:.3f}\n- f1 micro: {f1_micro:.3f}\n"
+    string += f"- recall: {recall:.3f}\n- precision: {precision:.3f}"
+    return string
 
 
 def benchmark_metrics(initial_gamble, balance_hist, orders_hist):
