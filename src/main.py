@@ -3,7 +3,7 @@ import configparser
 import pandas as pd
 from datetime import datetime as dt
 
-from traders import LightgbmTrader
+from traders import LGBMTrader
 from api_emulator import Emulator
 from utils.plots import nice_plot
 from utils.basics import write_data
@@ -28,7 +28,7 @@ UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
 H = 30
-INITIAL_GAMBLE = 2000
+INITIAL_GAMBLE = 4000
 EPOCHS = 30
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
@@ -37,9 +37,9 @@ LOWER_CURR = 'eurusd'
 # Removed UTX
 companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
              'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV']
-leverages = {'AAPL': 5, 'XOM': 5, 'KO': 5, 'INTC': 5, 'WMT': 5, 'MSFT': 5, 'IBM': 5, 'CVX': 5, 'JNJ': 5,
-             'PG': 5, 'PFE': 5, 'VZ': 5, 'BA': 5, 'MRK': 5, 'CSCO': 5, 'HD': 5, 'MCD': 5, 'MMM': 5,
-             'GE': 5, 'NKE': 5, 'CAT': 5, 'V': 5, 'JPM': 5, 'AXP': 5, 'GS': 5, 'UNH': 5, 'TRV': 5}
+leverages = {'AAPL': 1, 'XOM': 1, 'KO': 1, 'INTC': 1, 'WMT': 1, 'MSFT': 1, 'IBM': 1, 'CVX': 1, 'JNJ': 1,
+             'PG': 1, 'PFE': 1, 'VZ': 1, 'BA': 1, 'MRK': 1, 'CSCO': 1, 'HD': 1, 'MCD': 1, 'MMM': 1,
+             'GE': 1, 'NKE': 1, 'CAT': 1, 'V': 1, 'JPM': 1, 'AXP': 1, 'GS': 1, 'UNH': 1, 'TRV': 1}
 # performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
 PERFORMERS = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS']
 
@@ -83,7 +83,7 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LightgbmTrader(h=H, normalize=False)
+    trader = LGBMTrader(h=H, normalize=False)
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     trader.ingest_traindata(df, labels)
     trader.train(epochs=EPOCHS)
@@ -104,7 +104,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
     print('_' * 100, '\n')
     print('Initializing backtest...')
     folder = '../data/yahoo/'
-    trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
+    trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
     if precomputed_df is None or precomputed_labels is None:
         ov_df, ov_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
     else:
@@ -206,7 +206,7 @@ def decide_order(asset, quantity, open_price, pred, date):
         order = {'asset': asset, 'is_buy': True, 'open': open_price, 'quantity': quantity, 'date': date}
     # elif pred_ask < now_bid / (1 - tolerance):
     elif pred == 0:
-        order = {'asset': asset, 'is_buy': False, 'open': open_price, 'quantity': quantity, 'date': date}
+        order = {'asset': asset, 'is_buy': None, 'open': open_price, 'quantity': quantity, 'date': date}
     else:
         order = {'asset': asset, 'is_buy': None, 'open': open_price, 'quantity': quantity, 'date': date}
     return order
@@ -259,7 +259,7 @@ def update_data():
 def get_recommendations():
     now = time.time()
     folder = '../data/intrinio/'
-    trader = LightgbmTrader(load_from=f'Huorn_v{VERSION}')
+    trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
     # yesterday = '2020-09-17'
@@ -349,7 +349,7 @@ def grid_search():
 
     folder = '../data/intrinio/'
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
-    trader = LightgbmTrader(h=H, normalize=True)
+    trader = LGBMTrader(h=H, normalize=True)
     trader.ingest_traindata(df, labels)
     test_df, test_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
     del df, labels
@@ -384,7 +384,7 @@ def heartbeat():
             logger.info('still running')
         if now.hour == 14 and now.minute == 30 and now.second == 0:
             logger.info('updating data')
-            safe_try(update_data)
+            safe_try(fetch_yahoo_data)
             logger.info('updating was successful')
         if now.hour == 15 and now.minute == 29 and now.second == 30:
             logger.info('placing orders')
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     # fetch_intrinio_data()
     # fetch_yahoo_data()
     # update_data()
-    train_model()
+    # train_model()
     backtest(plot=False)
     # grid_search()
     # o = get_recommendations()

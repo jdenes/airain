@@ -92,7 +92,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         # df = pd.concat([df2, df], axis=0)
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df = pd.concat([df, jpn], axis=1)
-        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
+        df = df.ffill()
 
         askcol, bidcol = 'close', 'open'
         df.dropna(inplace=True)

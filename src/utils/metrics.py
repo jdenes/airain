@@ -16,8 +16,8 @@ def classification_perf(y_true, y_pred):
     f1_micro = f1_score(y_true, y_pred, average='micro')
     recall = recall_score(y_true, y_pred)
     precision = precision_score(y_true, y_pred)
-    string = f"- accuracy: {accuracy:.3f}\n- f1 macro: {f1_macro:.3f}\n- f1 micro: {f1_micro:.3f}\n"
-    string += f"- recall: {recall:.3f}\n- precision: {precision:.3f}"
+    string = f"- accuracy: {accuracy:.3f}\n- f1 macro: {f1_macro:.3f}\n- f1 micro: {f1_micro:.3f}"
+    # string += f"\n- recall: {recall:.3f}\n- precision: {precision:.3f}"
     return string
 
 

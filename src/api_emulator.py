@@ -20,16 +20,31 @@ class Emulator:
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
         time.sleep(20)
 
-    def open_trade(self, order):
-        if order['is_buy'] is None:
-            time.sleep(1)
-            return self
-        direction = 'buy' if order['is_buy'] == 1 else 'sell'
-        xpath = f"//div[@data-code='{order['asset']}']//span[@class='buy-sell-price-container {direction}']"
-        self.driver.find_element_by_xpath(xpath).click()
-        self.driver.find_element_by_xpath("//div[@class='dropdown-arrow svg-icon-holder']").click()
-        ActionChains(self.driver).send_keys(order['quantity']).perform()
-        self.driver.find_element_by_xpath("//div[@class='custom-button confirm-button']").click()
+    def open_trade(self, order, mode='invest'):
+
+        if mode == 'invest':
+            if order['is_buy'] is None or not order['is_buy']:
+                time.sleep(1)
+                return self
+            xpath = f"//div[@data-code='{order['asset']}_US_EQ']//div[@class='buy-button']"
+            self.driver.find_element_by_xpath(xpath).click()
+            self.driver.find_element_by_xpath("//div[@class='visible-input']").click()
+            ActionChains(self.driver).send_keys(order['quantity']).perform()
+            time.sleep(0.5)
+            self.driver.find_element_by_xpath("//div[@class='button-container']").click()
+            self.driver.find_element_by_xpath("//div[@class='custom-button send-order-button']").click()
+
+        else:
+            if order['is_buy'] is None:
+                time.sleep(1)
+                return self
+            direction = 'buy' if order['is_buy'] == 1 else 'sell'
+            xpath = f"//div[@data-code='{order['asset']}']//span[@class='buy-sell-price-container {direction}']"
+            self.driver.find_element_by_xpath(xpath).click()
+            self.driver.find_element_by_xpath("//div[@class='dropdown-arrow svg-icon-holder']").click()
+            ActionChains(self.driver).send_keys(order['quantity']).perform()
+            self.driver.find_element_by_xpath("//div[@class='custom-button confirm-button']").click()
+
         time.sleep(1)
         return self
 

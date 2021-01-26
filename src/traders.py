@@ -208,7 +208,7 @@ class Trader(object):
 ####################################################################################
 
 
-class LightgbmTrader(Trader):
+class LGBMTrader(Trader):
     """
     A trader-forecaster based on a LightGBM model.
     """
