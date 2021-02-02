@@ -1,12 +1,9 @@
 import os
-import flair
 import joblib
 import numpy as np
 import pandas as pd
 
 from datetime import datetime
-from sklearn.decomposition import PCA
-from sentence_transformers import SentenceTransformer
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
@@ -232,6 +229,7 @@ def load_news(asset, folder, keywords=None, use_weekends=False, last_day=None):
     :rtype: pd.DataFrame
     """
 
+    from sentence_transformers import SentenceTransformer
     news = preprocess_news(asset=asset, folder=folder, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
     mod = SentenceTransformer('bert-base-nli-stsb-mean-tokens')
     tmp = mod.encode(news['summary'], batch_size=32, show_progress_bar=(last_day is None))
@@ -254,6 +252,7 @@ def sentiment_analysis(asset, folder, keywords=None, use_weekends=False, last_da
     :rtype: pd.DataFrame
     """
 
+    import flair
     news = preprocess_news(asset=asset, folder=folder, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
     flair_sentiment = flair.models.TextClassifier.load('en-sentiment')
 
@@ -334,6 +333,7 @@ def train_sbert_pca(dim=100):
     :rtype: sklearn.decomposition.PCA
     """
 
+    from sklearn.decomposition import PCA
     df = pd.DataFrame()
     for asset in KEYWORDS.keys():
         path = f'../data/intrinio/{asset.lower()}_news_embed.csv'

@@ -19,12 +19,13 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Updated project dictionary">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Minor modif on parameters and data preparation">
+      <change afterPath="$PROJECT_DIR$/src/stats.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -77,7 +78,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="Python" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/stats.py" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
@@ -128,6 +129,27 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="stats" type="PythonConfigurationType" factoryName="Python">
+      <module name="airain" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Program Files (x86)\Python\Python38\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/stats.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="tf-roberta" type="PythonConfigurationType" factoryName="Python">
       <module name="airain" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -151,6 +173,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.stats" />
       <item itemvalue="Python.app" />
       <item itemvalue="Python.main" />
       <item itemvalue="Python.tf-roberta" />
@@ -461,7 +484,14 @@
       <option name="project" value="LOCAL" />
       <updated>1611686727457</updated>
     </task>
-    <option name="localTasksCounter" value="18" />
+    <task id="LOCAL-00018" summary="Minor modif on parameters and data preparation">
+      <created>1612261334677</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1612261334677</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -496,6 +526,7 @@
     <MESSAGE value="Reformatted to train on Yahoo only" />
     <MESSAGE value="Worked on backtest metrics + adapted to T212 Invest interface" />
     <MESSAGE value="Updated project dictionary" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated project dictionary" />
+    <MESSAGE value="Minor modif on parameters and data preparation" />
+    <option name="LAST_COMMIT_MESSAGE" value="Minor modif on parameters and data preparation" />
   </component>
 </project>

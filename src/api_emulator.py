@@ -25,7 +25,7 @@ class Emulator:
 
         if self.mode == 'invest':
             if order['is_buy'] is None or not order['is_buy']:
-                time.sleep(1)
+                time.sleep(0.5)
                 return self
             xpath = f"//div[@data-code='{order['asset']}_US_EQ']//div[@class='buy-button']"
             self.driver.find_element_by_xpath(xpath).click()

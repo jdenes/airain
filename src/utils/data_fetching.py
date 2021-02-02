@@ -110,3 +110,19 @@ def fetch_yahoo_prices(filename, company):
     df.index = df.index.droplevel('symbol')
     df.index = pd.to_datetime(df.index).strftime('%Y-%m-%d')
     write_data(filename, df)
+
+
+def fetch_yahoo_intraday(filename, company):
+    """
+    Fetches and saves Yahoo API to get assets' past 2 months 5min frequency intraday prices.
+
+    :param str filename: name of the file where to store the obtained data.
+    :param str company: company's symbol (e.g. AAPL, MSFT)
+    :rtype: None
+    """
+
+    ticker = yahooquery.Ticker(company)
+    df = ticker.history(interval='5m')
+    df.index = df.index.droplevel('symbol')
+    df.index = pd.to_datetime(df.index).strftime('%Y-%m-%d %H:%M:%S')
+    write_data(filename, df)

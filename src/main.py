@@ -257,12 +257,11 @@ def update_data():
 
 
 def get_recommendations():
-    now = time.time()
+    now = dt.now()
     folder = '../data/yahoo/'
     trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
-    yesterday = '2021-01-29'
     df = df.loc[yesterday].reset_index(drop=True)
     # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
@@ -273,11 +272,13 @@ def get_recommendations():
     for i, pred in enumerate(preds):
         if companies[i] in PERFORMERS:
             reco[companies[i]] = pred
-            order_book.append({'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i])})
+            order = {'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i]),
+                     'data_date': yesterday, 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
+            order_book.append(order)
     path = '../outputs/recommendations.csv'
     reco = pd.DataFrame([reco]).set_index('date', drop=True)
     write_data(path, reco)
-    logger.info(f'recommendations inference took {round(time.time() - now)} seconds')
+    logger.info(f'recommendations inference took {round((dt.now() - now).total_seconds())} seconds')
     return order_book
 
 
@@ -404,14 +405,13 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    # fetch_yahoo_data()
+    fetch_yahoo_data()
     # update_data()
     # train_model()
-    # backtest(plot=True)
+    # backtest(plot=False)
     # grid_search()
     o = get_recommendations()
-    print(o)
-    # place_orders(o)
+    place_orders(o)
     # get_trades_results()
     # yesterday_perf()
     # heartbeat()
