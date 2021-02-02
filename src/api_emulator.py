@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 
 class Emulator:
 
-    def __init__(self, user_name, password):
+    def __init__(self, user_name, password,  mode='invest'):
         self.user_name = user_name
         self.password = password
+        self.mode = mode
         self.driver = webdriver.Firefox(log_path='../logs/geckodriver.log')
         self.driver.get("https://demo.trading212.com/")
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
@@ -20,9 +21,9 @@ class Emulator:
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
         time.sleep(20)
 
-    def open_trade(self, order, mode='invest'):
+    def open_trade(self, order):
 
-        if mode == 'invest':
+        if self.mode == 'invest':
             if order['is_buy'] is None or not order['is_buy']:
                 time.sleep(1)
                 return self

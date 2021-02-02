@@ -1,7 +1,6 @@
 import pandas as pd
 import requests
 import yahooquery
-import os
 
 from .basics import write_data, clean_string
 

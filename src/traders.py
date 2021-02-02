@@ -234,7 +234,7 @@ class LGBMTrader(Trader):
             'min_data_in_leaf': 2 ** 12 - 1,
             'feature_fraction': 0.7,  # between 0.4 and 0.6
             'max_bin': 11,  # 255
-            'num_iterations': 15000,
+            'num_iterations': 10000,
             'boost_from_average': True,
             'verbose': -1,
             # 'early_stopping_rounds': 1000,

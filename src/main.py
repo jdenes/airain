@@ -258,11 +258,11 @@ def update_data():
 
 def get_recommendations():
     now = time.time()
-    folder = '../data/intrinio/'
+    folder = '../data/yahoo/'
     trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     yesterday = df.index.max()
-    # yesterday = '2020-09-17'
+    yesterday = '2021-01-29'
     df = df.loc[yesterday].reset_index(drop=True)
     # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
     X, P, _, ind = trader.transform_data(df, labels, get_index=True)
@@ -378,17 +378,21 @@ def heartbeat():
     """
 
     logger.info('launching heartbeat')
+    order_book = []
     while True:
         now = dt.now()
         if now.minute % 10 == 0 and now.second == 0:
             logger.info('still running')
-        if now.hour == 14 and now.minute == 30 and now.second == 0:
+        if now.hour == 15 and now.minute == 15 and now.second == 0:
             logger.info('updating data')
             safe_try(fetch_yahoo_data)
             logger.info('updating was successful')
-        if now.hour == 15 and now.minute == 29 and now.second == 30:
-            logger.info('placing orders')
+        if now.hour == 15 and now.minute == 25 and now.second == 0:
+            logger.info('computing orders')
             order_book = safe_try(get_recommendations)
+            logger.info('computing was successful')
+        if now.hour == 15 and now.minute == 29 and now.second == 45:
+            logger.info('placing orders')
             safe_try(place_orders, order_book)
             logger.info('placing was successful')
         if now.hour == 21 and now.minute == 50 and now.second == 0:
@@ -403,9 +407,10 @@ if __name__ == "__main__":
     # fetch_yahoo_data()
     # update_data()
     # train_model()
-    backtest(plot=False)
+    # backtest(plot=True)
     # grid_search()
-    # o = get_recommendations()
+    o = get_recommendations()
+    print(o)
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()

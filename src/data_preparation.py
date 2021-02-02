@@ -1,6 +1,7 @@
 import os
 import flair
 import joblib
+import numpy as np
 import pandas as pd
 
 from datetime import datetime
@@ -63,6 +64,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     """
 
     res = pd.DataFrame()
+    askcol, bidcol = 'close', 'open'
 
     for number, asset in enumerate(KEYWORDS.keys()):
 
@@ -92,23 +94,9 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         # df = pd.concat([df2, df], axis=0)
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df = pd.concat([df, jpn], axis=1)
-        df = df.ffill()
-
-        askcol, bidcol = 'close', 'open'
+        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
+        # df = df.ffill()
         df.dropna(inplace=True)
-
-        """ Sentiment """
-        # path = folder + '{}_news_sentiment.csv'.format(asset.lower())
-        # if not os.path.exists(path):
-        #     sentiment = sentiment_analysis(asset, KEYWORDS[asset])
-        #     sentiment.to_csv(path, encoding='utf-8')
-        # else:
-        #     sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
-        #     if update_embed:
-        #         last_embed = sentiment.index.max()
-        #         sentiment = sentiment_analysis(asset, KEYWORDS[asset], last_day=last_embed)
-        #         write_data(path, sentiment)
-        #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
 
         shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
         df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
@@ -174,11 +162,27 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         embed = pd.DataFrame(pca.transform(embed), index=embed.index)
         embed.columns = [f"news_sum_{i}" for i in embed]
 
+        """ Sentiment """
+        # path = f'{folder}{asset.lower()}_news_sentiment.csv'
+        # if not os.path.exists(path):
+        #     sentiment = sentiment_analysis(asset, folder, KEYWORDS[asset])
+        #     sentiment.to_csv(path, encoding='utf-8')
+        # else:
+        #     sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
+        #     if update_embed:
+        #         last_embed = sentiment.index.max()
+        #         sentiment = sentiment_analysis(asset, folder, KEYWORDS[asset], last_day=last_embed)
+        #         write_data(path, sentiment)
+        #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
+
         df = pd.concat([df, embed], axis=1).sort_index()
-        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
         df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
+        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
         df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
         del embed
+
+        mat = df[[c for c in df if 'news' in c]].to_numpy()
+        df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
 
         # Hodrick-Prescott filter
         # for count, i in enumerate(df.index):
@@ -197,6 +201,9 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         for col in ['labels', 'volume']:
             res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].mean())
             res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].std())
+
+    for col in ['lag_1_labels', 'volume']:
+        res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
 
     if start_from is not None:
         res = res[res.index >= start_from]
@@ -234,11 +241,12 @@ def load_news(asset, folder, keywords=None, use_weekends=False, last_day=None):
     return embed_sum.groupby(embed_sum.index).mean()
 
 
-def sentiment_analysis(asset, keywords=None, use_weekends=False, last_day=None):
+def sentiment_analysis(asset, folder, keywords=None, use_weekends=False, last_day=None):
     """
     Loads a sentiment-analyzed, daily-aggregated version of a company's news.
 
     :param str asset: company's symbol (e.g. AAPL, MSFT)
+    :param str folder: folder where data are stored.
     :param list[str] keywords: a list of keywords on which to filter the news to ensure relevance.
     :param bool use_weekends: whether news published during weekends should be used.
     :param None|str last_day: the last date before truncation, in format '%Y-%m-%d'. If None, no truncation is made.
@@ -246,7 +254,7 @@ def sentiment_analysis(asset, keywords=None, use_weekends=False, last_day=None):
     :rtype: pd.DataFrame
     """
 
-    news = preprocess_news(asset=asset, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
+    news = preprocess_news(asset=asset, folder=folder, keywords=keywords, use_weekends=use_weekends, last_day=last_day)
     flair_sentiment = flair.models.TextClassifier.load('en-sentiment')
 
     sentences = [flair.data.Sentence(s) for s in news['title']]
