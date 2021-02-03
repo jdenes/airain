@@ -18,6 +18,7 @@ class Emulator:
         self.driver.get("https://demo.trading212.com/")
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
+        time.sleep(0.5)
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
         time.sleep(20)
 

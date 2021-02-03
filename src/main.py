@@ -3,7 +3,7 @@ import configparser
 import pandas as pd
 from datetime import datetime as dt
 
-from traders import LGBMTrader
+from traders import LGBMTrader, LstmContextTrader
 from api_emulator import Emulator
 from utils.plots import nice_plot
 from utils.basics import write_data
@@ -27,9 +27,9 @@ VERSION = 1
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
-H = 30
+H = 10
 INITIAL_GAMBLE = 4000
-EPOCHS = 30
+EPOCHS = 100
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
 LOWER_CURR = 'eurusd'
@@ -83,9 +83,9 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LGBMTrader(h=H, normalize=False)
+    trader = LstmContextTrader(h=H, normalize=True)
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
-    trader.ingest_traindata(df, labels)
+    trader.ingest_traindata(df, labels, duplicate=False)
     trader.train(epochs=EPOCHS)
     trader.test(plot=plot)
     trader.save(model_name=f'Huorn_v{VERSION}')
@@ -405,7 +405,7 @@ def heartbeat():
 
 if __name__ == "__main__":
     # fetch_intrinio_data()
-    fetch_yahoo_data()
+    # fetch_yahoo_data()
     # update_data()
     # train_model()
     # backtest(plot=False)
