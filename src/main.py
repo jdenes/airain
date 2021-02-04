@@ -23,13 +23,13 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 1
+VERSION = 2
 UNIT = 'H'  # 'm' or 'd'
 DATAFREQ = 1
 TRADEFREQ = 1
 H = 10
 INITIAL_GAMBLE = 4000
-EPOCHS = 100
+EPOCHS = 10
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
 LOWER_CURR = 'eurusd'
@@ -77,7 +77,7 @@ def fetch_yahoo_data():
 def train_model(plot=True):
     """
     Trains a model.
-
+zéa"
     :param bool plot: whether to plot model summary, if appropriate.
     :rtype: None
     """
@@ -87,8 +87,9 @@ def train_model(plot=True):
     df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     trader.ingest_traindata(df, labels, duplicate=False)
     trader.train(epochs=EPOCHS)
-    trader.test(plot=plot)
     trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    trader.test(plot=plot)
 
 
 def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
@@ -121,7 +122,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
             balance = bench_balance = INITIAL_GAMBLE
 
             df, labels = ov_df[ov_df['asset'] == asset[0]], ov_labels[ov_df['asset'] == asset[0]]
-            X, P, y, ind = trader.transform_data(df, labels, get_index=True)
+            X, P, y, ind = trader.transform_data(df, labels)
             df = df.loc[ind]
 
             preds = trader.predict(X, P)
@@ -264,7 +265,7 @@ def get_recommendations():
     yesterday = df.index.max()
     df = df.loc[yesterday].reset_index(drop=True)
     # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
-    X, P, _, ind = trader.transform_data(df, labels, get_index=True)
+    X, P, _, ind = trader.transform_data(df, labels)
     preds = trader.predict(X, P)
     reco, order_book = {'date': yesterday}, []
     lev = pd.Series([leverages[co] for co in companies])
@@ -407,11 +408,11 @@ if __name__ == "__main__":
     # fetch_intrinio_data()
     # fetch_yahoo_data()
     # update_data()
-    # train_model()
+    train_model()
     # backtest(plot=False)
     # grid_search()
-    o = get_recommendations()
-    place_orders(o)
+    # o = get_recommendations()
+    # place_orders(o)
     # get_trades_results()
     # yesterday_perf()
     # heartbeat()

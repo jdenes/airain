@@ -1,7 +1,3 @@
-import os
-import re
-import pandas as pd
-
 
 def write_data(path, new_row, same_ids=False):
     """
@@ -12,7 +8,8 @@ def write_data(path, new_row, same_ids=False):
     :param bool same_ids: whether the data contains duplicated indexes.
     :rtype: None
     """
-
+    import os
+    import pandas as pd
     if os.path.exists(path):
         df = pd.read_csv(path, encoding='utf-8', index_col=0)
         df = pd.concat([df, new_row], axis=0)
@@ -33,6 +30,7 @@ def clean_string(string):
     :return: cleaned string.
     :rtype: str
     """
+    import re
     string = re.sub(r'\n', ' ', string)
     string = re.sub(r'<[^<]+?>', '', string)
     string = re.sub(r'\[.+?\]', '', string)
@@ -54,7 +52,7 @@ def normalize_data(data, data_max, data_min):
     :rtype: int|float|pd.Series
     """
 
-    return 2 * (data - data_min) / (data_max - data_min) - 1
+    return (data - data_min) / (data_max - data_min)
 
 
 def unnormalize_data(data, data_max, data_min):
@@ -68,4 +66,31 @@ def unnormalize_data(data, data_max, data_min):
     :rtype: int|float|pd.Series
     """
 
-    return (data + 1) * (data_max - data_min) / 2 + data_min
+    return data * (data_max - data_min) + data_min
+
+
+def omega2assets(value, omega, prices):
+    """
+    From a portfolio desired value, a pie (omega), and assets' prices, returns portfolio in term of asset numbers.
+
+    :param int|float value: desired value of the portfolio.
+    :param np.array omega: assets share of the portfolio (must sum up to one).
+    :param np.array prices: buying price of each asset.
+    :return: a portfolio in term of assets number.
+    :rtype: np.array
+    """
+    import numpy as np
+    return np.floor(np.array(value * omega).round(2) / prices)
+
+
+def evaluate_portfolio(portfolio, prices):
+    """
+    Get the value of a portfolio given its assets prices.
+
+    :param np.array portfolio: portfolio, each component being the number of each asset.
+    :param prices: corresponding price of each asset.
+    :return: value of portfolio.
+    :rtype: float
+    """
+    import numpy as np
+    return np.sum(portfolio * prices).round(2)

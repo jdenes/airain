@@ -6,9 +6,11 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 import lightgbm as lgb
+import tensorflow as tf
 
-from utils.basics import normalize_data, unnormalize_data
+from utils.basics import omega2assets, evaluate_portfolio, normalize_data, unnormalize_data
 from utils.metrics import classification_perf
+from utils.plots import nice_plot
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ class Trader(object):
     A general trader-forecaster to inherit from.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
@@ -42,26 +44,23 @@ class Trader(object):
         self.X_train = None
         self.P_train = None
         self.y_train = None
+        self.ind_train = None
         self.X_test = None
         self.P_test = None
         self.y_test = None
+        self.ind_test = None
         self.X_val = None
         self.P_val = None
         self.y_val = None
+        self.ind_val = None
 
         self.t0, self.t1, self.t2 = '2000-01-01', '2020-08-01', '2020-10-01'
 
-        if load_from is not None:
-            self.load(model_name=load_from)
-
-    def transform_data(self, df, labels, get_index=False, keep_last=False):
+    def transform_data(self, df, labels, keep_last=False):
         """
         Converts dataframe file to appropriate data format for this agent type.
         """
-        if get_index:
-            return None, None, np.array(0)
-        else:
-            return None, None
+        return None, None, None, np.array(0)
 
     def ingest_traindata(self, df, labels, duplicate=False, testsize=0.1, valsize=0.1):
         """
@@ -82,33 +81,17 @@ class Trader(object):
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
-        X, P, y = self.transform_data(df_train, labels_train)
-        if self.X_train is None:
-            self.X_train, self.P_train, self.y_train = X, P, y
-        else:
-            self.X_train = np.concatenate((self.X_train, X))
-            self.P_train = pd.concat((self.P_train, P), axis=0)
-            self.y_train = np.concatenate((self.y_train, y))
-        del df_train, labels_train
+        X, P, y, ind = self.transform_data(df_train, labels_train)
+        self.X_train, self.P_train, self.y_train, self.ind_train = X, P, y, ind
 
         df_test, labels_test = df[test_ind], labels[test_ind]
-        X, P, y = self.transform_data(df_test, labels_test)
-        if self.X_test is None:
-            self.X_test, self.P_test, self.y_test = X, P, y
-        else:
-            self.X_test = np.concatenate((self.X_test, X))
-            self.P_test = pd.concat((self.P_test, P), axis=0)
-            self.y_test = np.concatenate((self.y_test, y))
+        X, P, y, ind = self.transform_data(df_test, labels_test)
+        self.X_test, self.P_test, self.y_test, self.ind_test = X, P, y, ind
         del df_test, labels_test
 
         df_val, labels_val = df[val_ind], labels[val_ind]
-        X, P, y = self.transform_data(df_val, labels_val)
-        if self.X_val is None:
-            self.X_val, self.P_val, self.y_val = X, P, y
-        else:
-            self.X_val = np.concatenate((self.X_val, X))
-            self.P_val = pd.concat((self.P_val, P), axis=0)
-            self.y_val = np.concatenate((self.y_val, y))
+        X, P, y, ind = self.transform_data(df_val, labels_val)
+        self.X_val, self.P_val, self.y_val, self.ind_val = X, P, y, ind
         del df_val, labels_val
 
     def train(self):
@@ -126,9 +109,6 @@ class Trader(object):
         Once model is trained, uses test data to output performance metrics.
         """
         y_train, y_val, y_test = self.y_train, self.y_val, self.y_test
-        # if self.normalize:
-        #     y_train = unnormalize_data(y_train, self.y_max, self.y_min)
-        #     y_test = unnormalize_data(y_test, self.y_max, self.y_min)
 
         print("Performance metrics on train:")
         y_pred = self.predict(self.X_train, self.P_train)
@@ -156,10 +136,11 @@ class Trader(object):
         model_name = '../models/' + model_name
         if not os.path.exists(model_name):
             os.makedirs(model_name)
-            os.makedirs(model_name + '/tree/')
 
-        to_rm = ['model', 'optimizer', 'x_max', 'x_min', 'p_min', 'p_max', 'X_train', 'P_train', 'y_train',
-                 'X_test', 'P_test', 'y_test', 'X_val', 'P_val', 'y_val']
+        to_rm = ['model', 'optimizer', 'x_max', 'x_min', 'p_min', 'p_max',
+                 'X_train', 'P_train', 'y_train', 'ind_train',
+                 'X_test', 'P_test', 'y_test', 'ind_test',
+                 'X_val', 'P_val', 'y_val', 'ind_val']
         attr_dict = {}
         for attr, value in self.__dict__.items():
             if attr not in to_rm:
@@ -175,13 +156,18 @@ class Trader(object):
         self.p_max.to_csv(model_name + '/p_max.csv', header=False)
         self.p_min.to_csv(model_name + '/p_min.csv', header=False)
         np.save(model_name + '/X_train.npy', self.X_train)
-        np.save(model_name + '/P_train.npy', self.P_train)
-        self.P_train.to_csv(model_name + '/P_train.csv')
         np.save(model_name + '/y_train.npy', self.y_train)
+        np.save(model_name + '/ind_train.npy', self.ind_train)
         np.save(model_name + '/X_test.npy', self.X_test)
-        np.save(model_name + '/P_test.npy', self.P_test)
-        self.P_test.to_csv(model_name + '/P_test.csv')
         np.save(model_name + '/y_test.npy', self.y_test)
+        np.save(model_name + '/ind_test.npy', self.ind_test)
+
+        if isinstance(self.P_train, pd.DataFrame):
+            self.P_train.to_csv(model_name + '/P_train.csv')
+            self.P_train.to_csv(model_name + '/P_test.csv')
+        else:
+            np.save(model_name + '/P_train.npy', self.P_train)
+            np.save(model_name + '/P_test.npy', self.P_test)
 
     def load(self, model_name, fast=False):
         """
@@ -199,11 +185,19 @@ class Trader(object):
 
         if not fast:
             self.X_train = np.load(model_name + '/X_train.npy')
-            self.P_train = pd.read_csv(model_name + '/P_train.csv')
             self.y_train = np.load(model_name + '/y_train.npy')
+            self.ind_train = np.load(model_name + '/ind_train.npy')
             self.X_test = np.load(model_name + '/X_test.npy')
-            self.P_test = pd.read_csv(model_name + '/P_test.csv')
             self.y_test = np.load(model_name + '/y_test.npy')
+            self.ind_test = np.load(model_name + '/ind_test.npy')
+            try:
+                self.P_train = pd.read_csv(model_name + '/P_train.csv')
+            except FileNotFoundError:
+                self.P_train = np.load(model_name + '/P_train.npy')
+            try:
+                self.P_test = pd.read_csv(model_name + '/P_test.csv')
+            except FileNotFoundError:
+                self.P_test = np.load(model_name + '/P_test.npy')
 
 
 ####################################################################################
@@ -214,12 +208,13 @@ class LGBMTrader(Trader):
     A trader-forecaster based on a LightGBM model.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
 
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize, load_from=load_from)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize,
+                         load_from=load_from, fast_load=fast_load)
 
         self.lgb_params = {
             'objective': 'binary',  # multiclass
@@ -241,7 +236,10 @@ class LGBMTrader(Trader):
             # 'early_stopping_rounds': 1000,
         }
 
-    def transform_data(self, df, labels, get_index=False, keep_last=True):
+        if load_from is not None:
+            self.load(model_name=load_from, fast=fast_load)
+
+    def transform_data(self, df, labels, keep_last=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -253,10 +251,7 @@ class LGBMTrader(Trader):
             # labels = normalize_data(labels, self.y_max, self.y_min)
 
         X, P, y = np.array([]), df, labels.to_numpy()
-        if get_index:
-            return X, P, y, ind
-        else:
-            return X, P, y
+        return X, P, y, ind
 
     def train(self, batch_size=80, buffer_size=10000, epochs=50, steps=1000, valsteps=100, gpu=True):
         """
@@ -332,12 +327,13 @@ class LstmTrader(Trader):
     A trader-forecaster based on a LSTM neural network.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
 
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize, load_from=load_from)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize,
+                         load_from=load_from, fast_load=fast_load)
 
         self.batch_size = None
         self.buffer_size = None
@@ -346,7 +342,10 @@ class LstmTrader(Trader):
         self.valsteps = None
         self.gpu = None
 
-    def transform_data(self, df, labels, get_index=False, keep_last=True):
+        if load_from is not None:
+            self.load(model_name=load_from, fast=fast_load)
+
+    def transform_data(self, df, labels, keep_last=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -371,18 +370,13 @@ class LstmTrader(Trader):
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
         P = pd.DataFrame(P, columns=columns)
-
-        if get_index:
-            return X, P, y, ind
-        else:
-            return X, P, y
+        return X, P, y, ind
 
     def train(self, batch_size=80, buffer_size=10000, epochs=50, steps=1000, valsteps=1000, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
 
-        import tensorflow as tf
         self.gpu = gpu
         self.batch_size = batch_size
         self.buffer_size = buffer_size
@@ -442,7 +436,6 @@ class LstmTrader(Trader):
         """
         Save model to folder.
         """
-        import tensorflow as tf
         super().save(model_name)
         model_name = '../models/' + model_name
         if self.model is not None:
@@ -452,7 +445,6 @@ class LstmTrader(Trader):
         """
         Load model from folder.
         """
-        import tensorflow as tf
         super().load(model_name=model_name, fast=fast)
         model_name = '../models/' + model_name
         self.model = tf.keras.models.load_model(f'{model_name}/model.h5')
@@ -466,12 +458,13 @@ class LstmContextTrader(Trader):
     A trader-forecaster based on a LSTM neural network.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
 
-        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize, load_from=load_from)
+        super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize,
+                         load_from=load_from, fast_load=fast_load)
 
         self.batch_size = None
         self.buffer_size = None
@@ -483,43 +476,20 @@ class LstmContextTrader(Trader):
         self.model = None
         self.optimizer = None
 
-    def loss(self, features, future_prices):
-        """
-        Loss of the model is defined as minus the value of the portfolio (nb of asset times asset price).
+        if load_from is not None:
+            self.load(model_name=load_from, fast=fast_load)
 
-        :param features:
-        :param future_prices:
-        :return:
-        """
-        import tensorflow as tf
-        future_prices = tf.constant(future_prices, dtype=tf.float64)
-        portfolio = self.model(features)
-        loss_value = -tf.reduce_mean(portfolio * future_prices)
-        return loss_value
-
-    def gradient(self, features, future_prices):
-        """
-        Gradient definition or TF gradient descent.
-
-        :param features:
-        :param future_prices:
-        :return:
-        """
-        import tensorflow as tf
-        with tf.GradientTape() as tape:
-            loss_value = self.loss(features, future_prices)
-        return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
-
-    def transform_data(self, df, labels, get_index=False, keep_last=True):
+    def transform_data(self, df, labels, keep_last=False):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
 
         if self.normalize:
-            df = normalize_data(df, self.x_max, self.x_min)
-            # labels = normalize_data(labels, self.y_max, self.y_min)
+            norm_df = normalize_data(df, self.x_max, self.x_min)
+        else:
+            norm_df = df
 
-        df = df[['volume', 'open', 'close', 'high', 'low', 'asset']].copy()
+        # df = df[['volume', 'open', 'close', 'high', 'low', 'asset']].copy()
         dates = sorted(df.index.unique().to_list())
         assets = sorted(df['asset'].unique())
         self.num_assets = df['asset'].nunique()
@@ -532,28 +502,24 @@ class LstmContextTrader(Trader):
             day = dates[i]
             tmp = []
             for asset in assets:
-                asset_df = df[(df.index <= day) & (df.asset == asset)].sort_index()
-                asset_df = asset_df.tail(self.h).to_numpy()
+                asset_df = norm_df[(df.index <= day) & (df.asset == asset)].sort_index()
+                asset_df = asset_df.drop('asset', 1).tail(self.h).to_numpy(dtype=np.float32)
                 tmp.append(asset_df)
             if all(x.shape[0] == self.h for x in tmp):
                 X.append(tmp)
-                P.append(df[df.index == day].to_numpy())
-                y.append(labels[labels.index == day].values[0])
+                P.append(df[df.index == day].to_numpy(dtype=np.float32))
+                y.append(labels[labels.index == day].to_numpy(dtype=np.float32))
                 ind.append(day)
             else:
                 count += 1
 
         X, P, y, ind = np.array(X), np.array(P), np.array(y), np.array(ind)
-        if get_index:
-            return X, P, y, ind
-        else:
-            return X, P, y
+        return X, P, y, ind
 
     def init_model(self):
         """
         Create TensorFlow internal model.
         """
-        import tensorflow as tf
         initializer = tf.keras.initializers.GlorotNormal()
         # [batch, assets, window, features]
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
@@ -561,21 +527,45 @@ class LstmContextTrader(Trader):
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.LSTM(64, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.LSTM(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         lstm_concat = tf.keras.layers.concatenate(lstm_layers)
         lin_layer = tf.keras.layers.Dense(self.num_assets+1, name='linear')(lstm_concat)
-        output_layer = tf.keras.layers.Softmax(name='output', dtype=tf.float64)(lin_layer)
+        output_layer = tf.keras.layers.Softmax(name='output')(lin_layer)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
         self.model.summary()
 
-    def train(self, batch_size=80, buffer_size=10000, epochs=10, steps=1000, valsteps=1000, gpu=True):
+    def loss(self, features, future_prices):
+        """
+        Loss of the model is defined as minus the value of the portfolio (nb of asset times asset price).
+
+        :param features:
+        :param future_prices:
+        :return:
+        """
+        portfolio = self.model(features)
+        loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
+        loss_value += 1e-2 * tf.math.reduce_mean(tf.math.reduce_sum(tf.math.square(portfolio), axis=1))
+        return loss_value
+
+    def gradient(self, features, future_prices):
+        """
+        Gradient definition or TF gradient descent.
+
+        :param features:
+        :param future_prices:
+        :return:
+        """
+        with tf.GradientTape() as tape:
+            loss_value = self.loss(features, future_prices)
+        return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
+
+    def train(self, batch_size=264, buffer_size=10000, epochs=10, steps=1000, valsteps=1000, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
 
-        import tensorflow as tf
         self.gpu = gpu
         self.batch_size = batch_size
         self.buffer_size = buffer_size
@@ -596,30 +586,48 @@ class LstmContextTrader(Trader):
         valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
-        checkpoint = tf.keras.callbacks.ModelCheckpoint(filepath='../models/checkpoint.hdf5',
-                                                        monitor='val_accuracy',
-                                                        save_best_only=True)
         train_loss_results = []
+        epoch_loss_avg = tf.keras.metrics.Mean()
+        epoch_val_loss_avg = tf.keras.metrics.Mean()
+
+        # @tf.function
+        def train_step(X, y):
+            cash_price = tf.zeros((y.shape[0], 1))  # for cash, price change is always zero
+            future_prices = tf.concat((cash_price, y), axis=1)
+            loss_value, grads = self.gradient(X, future_prices)
+            self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+            epoch_loss_avg.update_state(loss_value)
+            return loss_value
+
+        # @tf.function
+        def val_step(X, y):
+            cash_price = tf.zeros((y.shape[0], 1))
+            future_prices = tf.concat((cash_price, y), axis=1)
+            val_loss = self.loss(X, future_prices)
+            epoch_val_loss_avg.update_state(val_loss)
+            return val_loss
 
         for epoch in range(self.epochs):
-            epoch_loss_avg = tf.keras.metrics.Mean()
 
             for features, labels in train_data:
-                future_prices = features['input_P'][:, :, 2]  # select 'close' feature, shape (batch_size, 27)
-                cash_price = np.ones((future_prices.shape[0], 1))
-                future_prices = np.hstack((cash_price, future_prices))
-                loss_value, grads = self.gradient(features, future_prices)
-                self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-                epoch_loss_avg.update_state(loss_value)
+                train_step(features, labels)
 
-            # End epoch
+            for val_features, val_labels in valid_data:
+                val_step(val_features, val_labels)
+
             train_loss_results.append(epoch_loss_avg.result())
 
-            if epoch % 10 == 0:
-                print(f"Epoch {epoch:03d}: Loss: {epoch_loss_avg.result():.3f}")
+            if epoch % 1 == 0:
+                print(f"Epoch {epoch:03d}/{self.epochs} "
+                      f"- loss: {epoch_loss_avg.result():.3e}- val_loss: {epoch_val_loss_avg.result():.3e}")
+
+            epoch_loss_avg.reset_states()
+            epoch_val_loss_avg.reset_states()
 
         print('_' * 100, '\n')
         print(self.model(features)[-1].numpy())
+        print(self.model(features)[3].numpy())
+        print(np.argmax(self.model(features).numpy(), axis=1))
 
     def predict(self, X, P):
         """
@@ -633,23 +641,43 @@ class LstmContextTrader(Trader):
         """
         Once model is trained, uses test data to output performance metrics.
         """
-        pass
+
+        # Prediction at day t is computed at day t-1
+        omegas = self.model((self.X_test, self.P_test))
+        gamble = balance = 10000
+        history, index = [balance], [self.ind_test[0]]
+
+        for i in range(1, len(self.ind_test)):
+            today = self.ind_test[i]
+            open_price, close_price = self.P_test[i][:, 3], self.P_test[i][:, 2]
+            open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
+            omega = omegas[i - 1]
+
+            # Omega gives me proportions, I need to make a number of assets out of that
+            portfolio = omega2assets(gamble, omega, open_price)
+            morning_value = evaluate_portfolio(portfolio, open_price)
+
+            # Then days goes on and portfolio value changes
+            evening_value = evaluate_portfolio(portfolio, close_price)
+            profit_loss = evening_value - morning_value
+            balance += profit_loss
+            history.append(balance), index.append(today)
+
+        nice_plot(index, [history], ['Portfolio balance'], title=f'Portfolio balance evolution')
 
     def save(self, model_name):
         """
         Save model to folder.
         """
-        import tensorflow as tf
         super().save(model_name)
         model_name = '../models/' + model_name
         if self.model is not None:
-            tf.keras.models.save_model(self.model, f'{model_name}/model.h5')
+            tf.keras.models.save_model(self.model, f'{model_name}/model.h5', include_optimizer=True)
 
     def load(self, model_name, fast=False):
         """
         Load model from folder.
         """
-        import tensorflow as tf
         super().load(model_name=model_name, fast=fast)
         model_name = '../models/' + model_name
-        self.model = tf.keras.models.load_model(f'{model_name}/model.h5')
+        self.model = tf.keras.models.load_model(f'{model_name}/model.h5', compile=False)

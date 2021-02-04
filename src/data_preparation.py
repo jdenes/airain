@@ -11,7 +11,7 @@ from utils.logging import get_logger
 
 logger = get_logger()
 
-T0 = '2000-01-01'
+T0 = '2018-01-01'
 T1 = '2020-08-01'
 
 KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
@@ -96,7 +96,8 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df.dropna(inplace=True)
 
         shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
-        df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
+        # df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
+        df['labels'] = (df['close'].shift(-1) - df['open'].shift(-1)) / df['open'].shift(-1)  # relative change
 
         time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year
@@ -139,25 +140,25 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
         """ Embeddings """
-        path = folder + f'{asset.lower()}_news_embed.csv'
-        if not os.path.exists(path):
-            embed = load_news(asset, folder, KEYWORDS[asset])
-            embed.to_csv(path, encoding='utf-8')
-        else:
-            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-            if update_embed:
-                last_embed = embed.index.max()
-                embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
-                write_data(path, embed)
-                embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-        dim = 60
-        pca_path = f"../data/pca_sbert_{dim}.joblib"
-        if not os.path.exists(pca_path):
-            pca = train_sbert_pca(dim=dim)
-        else:
-            pca = joblib.load(pca_path)
-        embed = pd.DataFrame(pca.transform(embed), index=embed.index)
-        embed.columns = [f"news_sum_{i}" for i in embed]
+        # path = folder + f'{asset.lower()}_news_embed.csv'
+        # if not os.path.exists(path):
+        #     embed = load_news(asset, folder, KEYWORDS[asset])
+        #     embed.to_csv(path, encoding='utf-8')
+        # else:
+        #     embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        #     if update_embed:
+        #         last_embed = embed.index.max()
+        #         embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
+        #         write_data(path, embed)
+        #         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        # dim = 60
+        # pca_path = f"../data/pca_sbert_{dim}.joblib"
+        # if not os.path.exists(pca_path):
+        #     pca = train_sbert_pca(dim=dim)
+        # else:
+        #     pca = joblib.load(pca_path)
+        # embed = pd.DataFrame(pca.transform(embed), index=embed.index)
+        # embed.columns = [f"news_sum_{i}" for i in embed]
 
         """ Sentiment """
         # path = f'{folder}{asset.lower()}_news_sentiment.csv'
@@ -172,14 +173,14 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         #         write_data(path, sentiment)
         #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
 
-        df = pd.concat([df, embed], axis=1).sort_index()
-        df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
-        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
-        df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
-        del embed
-
-        mat = df[[c for c in df if 'news' in c]].to_numpy()
-        df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
+        # df = pd.concat([df, embed], axis=1).sort_index()
+        # df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
+        # # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
+        # df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
+        # del embed
+        #
+        # mat = df[[c for c in df if 'news' in c]].to_numpy()
+        # df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
 
         # Hodrick-Prescott filter
         # for count, i in enumerate(df.index):
