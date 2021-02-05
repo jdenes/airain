@@ -11,8 +11,8 @@ from utils.logging import get_logger
 
 logger = get_logger()
 
-T0 = '2018-01-01'
-T1 = '2020-08-01'
+T0 = '2000-01-01'
+T1 = '2019-08-01'
 
 KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
             'XOM': ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],

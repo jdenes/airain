@@ -13,7 +13,8 @@ from utils.metrics import classification_perf
 from utils.plots import nice_plot
 
 logger = logging.getLogger(__name__)
-
+# physical_devices = tf.config.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
 ####################################################################################
 
@@ -54,7 +55,7 @@ class Trader(object):
         self.y_val = None
         self.ind_val = None
 
-        self.t0, self.t1, self.t2 = '2000-01-01', '2020-08-01', '2020-10-01'
+        self.t0, self.t1, self.t2 = '2000-01-01', '2019-08-01', '2020-01-01'
 
     def transform_data(self, df, labels, keep_last=False):
         """
@@ -158,16 +159,21 @@ class Trader(object):
         np.save(model_name + '/X_train.npy', self.X_train)
         np.save(model_name + '/y_train.npy', self.y_train)
         np.save(model_name + '/ind_train.npy', self.ind_train)
+        np.save(model_name + '/X_val.npy', self.X_val)
+        np.save(model_name + '/y_val.npy', self.y_val)
+        np.save(model_name + '/ind_val.npy', self.ind_val)
         np.save(model_name + '/X_test.npy', self.X_test)
         np.save(model_name + '/y_test.npy', self.y_test)
         np.save(model_name + '/ind_test.npy', self.ind_test)
 
         if isinstance(self.P_train, pd.DataFrame):
             self.P_train.to_csv(model_name + '/P_train.csv')
-            self.P_train.to_csv(model_name + '/P_test.csv')
+            self.P_test.to_csv(model_name + '/P_test.csv')
+            self.P_val.to_csv(model_name + '/P_val.csv')
         else:
             np.save(model_name + '/P_train.npy', self.P_train)
             np.save(model_name + '/P_test.npy', self.P_test)
+            np.save(model_name + '/P_val.npy', self.P_val)
 
     def load(self, model_name, fast=False):
         """
@@ -187,6 +193,9 @@ class Trader(object):
             self.X_train = np.load(model_name + '/X_train.npy')
             self.y_train = np.load(model_name + '/y_train.npy')
             self.ind_train = np.load(model_name + '/ind_train.npy')
+            self.X_val = np.load(model_name + '/X_val.npy')
+            self.y_val = np.load(model_name + '/y_val.npy')
+            self.ind_val = np.load(model_name + '/ind_val.npy')
             self.X_test = np.load(model_name + '/X_test.npy')
             self.y_test = np.load(model_name + '/y_test.npy')
             self.ind_test = np.load(model_name + '/ind_test.npy')
@@ -194,6 +203,10 @@ class Trader(object):
                 self.P_train = pd.read_csv(model_name + '/P_train.csv')
             except FileNotFoundError:
                 self.P_train = np.load(model_name + '/P_train.npy')
+            try:
+                self.P_val = pd.read_csv(model_name + '/P_val.csv')
+            except FileNotFoundError:
+                self.P_val = np.load(model_name + '/P_val.npy')
             try:
                 self.P_test = pd.read_csv(model_name + '/P_test.csv')
             except FileNotFoundError:
@@ -520,18 +533,31 @@ class LstmContextTrader(Trader):
         """
         Create TensorFlow internal model.
         """
+        use_conv = False
         initializer = tf.keras.initializers.GlorotNormal()
-        # [batch, assets, window, features]
+        # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
+        # Step 1: one LSTM per feature, taking an (asset, window) matrix as input
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.LSTM(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
-        lstm_concat = tf.keras.layers.concatenate(lstm_layers)
-        lin_layer = tf.keras.layers.Dense(self.num_assets+1, name='linear')(lstm_concat)
-        output_layer = tf.keras.layers.Softmax(name='output')(lin_layer)
+        if use_conv:
+            # Step 2: concat ouptuts as a tensor of shape (lstm_size, 1, features)
+            lstm_concat = tf.stack(lstm_layers, axis=2)
+            lstm_concat = tf.transpose(lstm_concat, perm=[0, 2, 1])
+            lstm_concat = tf.reshape(lstm_concat, (-1, lstm_concat.shape[1], 1, lstm_concat.shape[2]))
+            # Step 3: get this 3D matrix into Conv2D
+            conv = tf.keras.layers.Flatten()(tf.keras.layers.Conv2D(1, kernel_size=(1, 1), name='conv')(lstm_concat))
+        else:
+            conv = tf.concat(lstm_layers, axis=1)
+            conv = tf.keras.layers.Dense(self.num_assets)(conv)
+        # Step 4: add cash bias
+        with_bias = tf.pad(conv, tf.constant([[0, 0], [1, 0]]), mode='CONSTANT', constant_values=0.0)
+        # Step 5: vote using softmax
+        output_layer = tf.keras.layers.Softmax(name='output')(with_bias)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
         self.model.summary()
@@ -590,7 +616,7 @@ class LstmContextTrader(Trader):
         epoch_loss_avg = tf.keras.metrics.Mean()
         epoch_val_loss_avg = tf.keras.metrics.Mean()
 
-        # @tf.function
+        @tf.function
         def train_step(X, y):
             cash_price = tf.zeros((y.shape[0], 1))  # for cash, price change is always zero
             future_prices = tf.concat((cash_price, y), axis=1)
@@ -599,7 +625,7 @@ class LstmContextTrader(Trader):
             epoch_loss_avg.update_state(loss_value)
             return loss_value
 
-        # @tf.function
+        @tf.function
         def val_step(X, y):
             cash_price = tf.zeros((y.shape[0], 1))
             future_prices = tf.concat((cash_price, y), axis=1)
@@ -619,14 +645,14 @@ class LstmContextTrader(Trader):
 
             if epoch % 1 == 0:
                 print(f"Epoch {epoch:03d}/{self.epochs} "
-                      f"- loss: {epoch_loss_avg.result():.3e}- val_loss: {epoch_val_loss_avg.result():.3e}")
+                      f"- loss: {epoch_loss_avg.result():.3e} - val_loss: {epoch_val_loss_avg.result():.3e}")
 
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
 
         print('_' * 100, '\n')
         print(self.model(features)[-1].numpy())
-        print(self.model(features)[3].numpy())
+        print(self.model(features)[0].numpy())
         print(np.argmax(self.model(features).numpy(), axis=1))
 
     def predict(self, X, P):
@@ -644,26 +670,30 @@ class LstmContextTrader(Trader):
 
         # Prediction at day t is computed at day t-1
         omegas = self.model((self.X_test, self.P_test))
-        gamble = balance = 10000
-        history, index = [balance], [self.ind_test[0]]
+        gamble = balance = ref_balance = 10000
+        history, ref_history, index = [balance], [ref_balance], [self.ind_test[0]]
 
         for i in range(1, len(self.ind_test)):
             today = self.ind_test[i]
             open_price, close_price = self.P_test[i][:, 3], self.P_test[i][:, 2]
             open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
             omega = omegas[i - 1]
+            ref_omega = np.ones((len(omega))) / len(omega)
 
             # Omega gives me proportions, I need to make a number of assets out of that
             portfolio = omega2assets(gamble, omega, open_price)
+            ref_portfolio = omega2assets(gamble, ref_omega, open_price)
             morning_value = evaluate_portfolio(portfolio, open_price)
+            ref_morning_value = evaluate_portfolio(ref_portfolio, open_price)
 
             # Then days goes on and portfolio value changes
             evening_value = evaluate_portfolio(portfolio, close_price)
-            profit_loss = evening_value - morning_value
-            balance += profit_loss
-            history.append(balance), index.append(today)
+            ref_evening_value = evaluate_portfolio(ref_portfolio, close_price)
+            balance += (evening_value - morning_value)
+            ref_balance += (ref_evening_value - ref_morning_value)
+            history.append(balance), ref_history.append(ref_balance), index.append(today)
 
-        nice_plot(index, [history], ['Portfolio balance'], title=f'Portfolio balance evolution')
+        nice_plot(index, [history, ref_history], ['Portfolio', 'Benchmark'], title=f'Portfolio balance evolution')
 
     def save(self, model_name):
         """

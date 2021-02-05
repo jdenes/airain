@@ -29,7 +29,7 @@ DATAFREQ = 1
 TRADEFREQ = 1
 H = 10
 INITIAL_GAMBLE = 4000
-EPOCHS = 10
+EPOCHS = 50
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
 LOWER_CURR = 'eurusd'
@@ -77,18 +77,19 @@ def fetch_yahoo_data():
 def train_model(plot=True):
     """
     Trains a model.
-zéa"
+
     :param bool plot: whether to plot model summary, if appropriate.
     :rtype: None
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LstmContextTrader(h=H, normalize=True)
-    df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
-    trader.ingest_traindata(df, labels, duplicate=False)
-    trader.train(epochs=EPOCHS)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # trader = LstmContextTrader(h=H, normalize=True)
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
+    # trader.ingest_traindata(df, labels, duplicate=False)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.train(epochs=EPOCHS)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(plot=plot)
 
 
