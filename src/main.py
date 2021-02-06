@@ -29,7 +29,7 @@ DATAFREQ = 1
 TRADEFREQ = 1
 H = 10
 INITIAL_GAMBLE = 4000
-EPOCHS = 50
+EPOCHS = 20
 TARGET_COL = 'close'
 CURR = 'EUR/USD'
 LOWER_CURR = 'eurusd'
@@ -88,8 +88,8 @@ def train_model(plot=True):
     # df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
     # trader.ingest_traindata(df, labels, duplicate=False)
     # trader.save(model_name=f'Huorn_v{VERSION}')
-    # trader.train(epochs=EPOCHS)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.train(epochs=EPOCHS)
+    trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(plot=plot)
 
 

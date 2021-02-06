@@ -97,7 +97,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
         shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
         # df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
-        df['labels'] = (df['close'].shift(-1) - df['open'].shift(-1)) / df['open'].shift(-1)  # relative change
+        df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
 
         time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
         df['year'] = time_index.year

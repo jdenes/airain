@@ -542,7 +542,8 @@ class LstmContextTrader(Trader):
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.SimpleRNN(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(5, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.Dense(1)(lstm_layer)
             lstm_layers.append(lstm_layer)
         if use_conv:
             # Step 2: concat ouptuts as a tensor of shape (lstm_size, 1, features)
@@ -553,11 +554,11 @@ class LstmContextTrader(Trader):
             conv = tf.keras.layers.Flatten()(tf.keras.layers.Conv2D(1, kernel_size=(1, 1), name='conv')(lstm_concat))
         else:
             conv = tf.concat(lstm_layers, axis=1)
-            conv = tf.keras.layers.Dense(self.num_assets)(conv)
+            conv = tf.keras.layers.Dense(self.num_assets+1)(conv)
         # Step 4: add cash bias
-        with_bias = tf.pad(conv, tf.constant([[0, 0], [1, 0]]), mode='CONSTANT', constant_values=0.0)
+        # with_bias = tf.pad(conv, tf.constant([[0, 0], [1, 0]]), mode='CONSTANT', constant_values=0.0)
         # Step 5: vote using softmax
-        output_layer = tf.keras.layers.Softmax(name='output')(with_bias)
+        output_layer = tf.keras.layers.Softmax(name='output')(conv)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
         self.model.summary()
@@ -572,7 +573,7 @@ class LstmContextTrader(Trader):
         """
         portfolio = self.model(features)
         loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
-        loss_value += 1e-2 * tf.math.reduce_mean(tf.math.reduce_sum(tf.math.square(portfolio), axis=1))
+        loss_value += 1e-3 * tf.math.reduce_mean(tf.math.reduce_sum(tf.math.square(portfolio), axis=1))
         return loss_value
 
     def gradient(self, features, future_prices):
@@ -670,7 +671,7 @@ class LstmContextTrader(Trader):
 
         # Prediction at day t is computed at day t-1
         omegas = self.model((self.X_test, self.P_test))
-        gamble = balance = ref_balance = 10000
+        gamble = balance = ref_balance = 100000
         history, ref_history, index = [balance], [ref_balance], [self.ind_test[0]]
 
         for i in range(1, len(self.ind_test)):
