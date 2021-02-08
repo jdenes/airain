@@ -9,39 +9,30 @@ from utils.plots import nice_plot
 from utils.basics import write_data
 from utils.logging import get_logger
 from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
-from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices, fetch_yahoo_news, fetch_yahoo_prices
+from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices
+from utils.data_fetching import fetch_yahoo_news, fetch_yahoo_prices, fetch_yahoo_intraday
 
 from data_preparation import load_data, precompute_embeddings
+from utils.constants import COMPANIES, PERFORMERS, LEVERAGES
 
 logger = get_logger()
-
 config = configparser.ConfigParser()
-config.read('../resources/intrinio.cfg')
-api_key = config['INTRINIO']['access_token']
 config.read('../resources/trading212.cfg')
 user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-VERSION = 2
 UNIT = 'H'  # 'm' or 'd'
+TARGET_COL = 'close'
 DATAFREQ = 1
 TRADEFREQ = 1
-H = 10
-INITIAL_GAMBLE = 4000
+INITIAL_GAMBLE = 10000
+VERSION = 3
+H = 30
 EPOCHS = 20
-TARGET_COL = 'close'
-CURR = 'EUR/USD'
-LOWER_CURR = 'eurusd'
-
-# Removed UTX
-companies = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
-             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'V', 'JPM', 'AXP', 'GS', 'UNH', 'TRV']
-leverages = {'AAPL': 1, 'XOM': 1, 'KO': 1, 'INTC': 1, 'WMT': 1, 'MSFT': 1, 'IBM': 1, 'CVX': 1, 'JNJ': 1,
-             'PG': 1, 'PFE': 1, 'VZ': 1, 'BA': 1, 'MRK': 1, 'CSCO': 1, 'HD': 1, 'MCD': 1, 'MMM': 1,
-             'GE': 1, 'NKE': 1, 'CAT': 1, 'V': 1, 'JPM': 1, 'AXP': 1, 'GS': 1, 'UNH': 1, 'TRV': 1}
-# performers = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'IBM', 'CVX', 'JNJ', 'PG', 'VZ', 'MRK', 'HD', 'GE', 'GS']
-PERFORMERS = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS']
+T0 = '2000-01-01'
+T1 = '2019-08-01'
+T2 = '2020-01-01'
 
 
 def fetch_intrinio_data():
@@ -51,7 +42,10 @@ def fetch_intrinio_data():
     :rtype: None
     """
     folder = '../data/intrinio/'
-    for company in companies:
+    parser = configparser.ConfigParser()
+    parser.read('../resources/intrinio.cfg')
+    api_key = parser['INTRINIO']['access_token']
+    for company in COMPANIES:
         print(f'Fetching {company} data...')
         path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
@@ -65,11 +59,12 @@ def fetch_yahoo_data():
     :rtype: None
     """
     folder = '../data/yahoo/'
-    for company in companies:
+    for company in COMPANIES:
         print(f'Fetching {company} data...')
         path = folder + company.lower()
         fetch_yahoo_news(filename=path + '_news.csv', company=company)
         fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
+        fetch_yahoo_intraday(f'../data/yahoo_intraday/{company.lower()}_prices.csv', company=company)
     fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')
     precompute_embeddings(folder)
 
@@ -83,11 +78,11 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    # trader = LstmContextTrader(h=H, normalize=True)
-    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    # df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
-    # trader.ingest_traindata(df, labels, duplicate=False)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
+    trader = LstmContextTrader(h=H, normalize=False, t0=T0, t1=T1, t2=T2)
+    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    df, labels = load_data(folder, T0, T1)
+    trader.ingest_traindata(df, labels, duplicate=False)
+    trader.save(model_name=f'Huorn_v{VERSION}')
     trader.train(epochs=EPOCHS)
     trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(plot=plot)
@@ -108,13 +103,13 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
     folder = '../data/yahoo/'
     trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
     if precomputed_df is None or precomputed_labels is None:
-        ov_df, ov_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
+        ov_df, ov_labels = load_data(folder, T0, T1, start_from=trader.t2)
     else:
         ov_df, ov_labels = precomputed_df, precomputed_labels
     assets_balance, benchmarks_balance = [], []
     index_hist = None
 
-    for asset in enumerate(companies):
+    for asset in enumerate(COMPANIES):
         if asset[1] in PERFORMERS:
             print('_' * 100, '\n')
             print(f'Backtesting on {asset[1]}...\n')
@@ -140,7 +135,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
                     pl, gpl = 0, 0
                     # quantity = int(balance * 3 / 100)
                     amount = INITIAL_GAMBLE
-                    quantity = int(amount * leverages[asset[1]] / open_price)
+                    quantity = int(amount * LEVERAGES[asset[1]] / open_price)
 
                     # Step 1 (morning) : decide what to do today and open position
                     pred, label = preds[i - 1], labels[ind[i - 1]]
@@ -218,7 +213,7 @@ def yesterday_perf():
     print("Correctness of yesterday's predictions")
 
     folder = '../data/intrinio/'
-    df, _ = load_data(folder, TRADEFREQ, DATAFREQ)
+    df, _ = load_data(folder, T0, T1)
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
     prices = pd.read_csv('../outputs/trade_data.csv', encoding='utf-8', index_col=0)
 
@@ -230,14 +225,14 @@ def yesterday_perf():
     print('_' * 100, '\n')
     print('Asset | Quantity | Reco | Order | Exp P/L | True P/L | Exp Open | True Open | Exp Close | True Close')
     print('-' * 100)
-    for i, asset in enumerate(companies):
+    for i, asset in enumerate(COMPANIES):
         if asset in traded_assets:
             df_row, prices_row = df[df['asset'] == i], prices[prices['asset'] == asset]
             exp_open, exp_close = df_row['open'].values[0], df_row['close'].values[0]
             true_open, true_close = prices_row['open'].values[0], prices_row['close'].values[0]
             true_pl, order = prices_row['result'].values[0], prices_row['is_buy'].values[0]
             asset_reco = reco[asset]
-            quantity = int(INITIAL_GAMBLE * leverages[asset] / exp_open)
+            quantity = int(INITIAL_GAMBLE * LEVERAGES[asset] / exp_open)
             exp_pl = (2 * asset_reco - 1) * (exp_close - exp_open) * quantity
             exp_accuracy.append(asset_reco == (exp_close > exp_open)), exp_profits.append(exp_pl)
             true_accuracy.append(asset_reco == (true_close > true_open)), true_profits.append(true_pl)
@@ -251,7 +246,10 @@ def yesterday_perf():
 
 def update_data():
     folder = '../data/intrinio/'
-    for company in companies:
+    parser = configparser.ConfigParser()
+    parser.read('../resources/intrinio.cfg')
+    api_key = parser['INTRINIO']['access_token']
+    for company in COMPANIES:
         path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company, update=True)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company, update=True)
@@ -262,19 +260,19 @@ def get_recommendations():
     now = dt.now()
     folder = '../data/yahoo/'
     trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
-    df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
+    df, labels = load_data(folder, T0, T1)
     yesterday = df.index.max()
     df = df.loc[yesterday].reset_index(drop=True)
     # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
     X, P, _, ind = trader.transform_data(df, labels)
     preds = trader.predict(X, P)
     reco, order_book = {'date': yesterday}, []
-    lev = pd.Series([leverages[co] for co in companies])
+    lev = pd.Series([LEVERAGES[co] for co in COMPANIES])
     quantity = (INITIAL_GAMBLE * (lev / df['close'])).astype(int)
     for i, pred in enumerate(preds):
-        if companies[i] in PERFORMERS:
-            reco[companies[i]] = pred
-            order = {'asset': companies[i], 'is_buy': pred, 'quantity': int(quantity[i]),
+        if COMPANIES[i] in PERFORMERS:
+            reco[COMPANIES[i]] = pred
+            order = {'asset': COMPANIES[i], 'is_buy': pred, 'quantity': int(quantity[i]),
                      'data_date': yesterday, 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
             order_book.append(order)
     path = '../outputs/recommendations.csv'
@@ -351,10 +349,10 @@ def grid_search():
     """
 
     folder = '../data/intrinio/'
-    df, labels = load_data(folder, TRADEFREQ, DATAFREQ)
+    df, labels = load_data(folder, T0, T1)
     trader = LGBMTrader(h=H, normalize=True)
     trader.ingest_traindata(df, labels)
-    test_df, test_labels = load_data(folder, TRADEFREQ, DATAFREQ, start_from=trader.t2)
+    test_df, test_labels = load_data(folder, T0, T1, start_from=trader.t2)
     del df, labels
 
     res = []

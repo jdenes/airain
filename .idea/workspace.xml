@@ -19,7 +19,7 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Tried to improved model according to paper">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Those settings are nearly working">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
@@ -80,6 +80,11 @@
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
     <property name="settings.editor.selected.configurable" value="RainbowCSV.Settings" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Julien Denes\Documents\Airain\src\utils" />
+    </key>
   </component>
   <component name="RunManager" selected="Python.main">
     <configuration name="app" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
@@ -516,7 +521,14 @@
       <option name="project" value="LOCAL" />
       <updated>1612537461340</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Those settings are nearly working">
+      <created>1612646482996</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1612646482996</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -556,6 +568,7 @@
     <MESSAGE value="Created PGPortofolio-like model" />
     <MESSAGE value="Improved model and adapted Trader object" />
     <MESSAGE value="Tried to improved model according to paper" />
-    <option name="LAST_COMMIT_MESSAGE" value="Tried to improved model according to paper" />
+    <MESSAGE value="Those settings are nearly working" />
+    <option name="LAST_COMMIT_MESSAGE" value="Those settings are nearly working" />
   </component>
 </project>

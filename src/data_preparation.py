@@ -1,60 +1,25 @@
 import os
 import joblib
-import numpy as np
 import pandas as pd
 
 from datetime import datetime
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
+from utils.constants import COMPANIES_KEYWORDS
 from utils.logging import get_logger
 
 logger = get_logger()
 
-T0 = '2000-01-01'
-T1 = '2019-08-01'
 
-KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
-            'XOM': ['xom', 'exxon', 'mobil', 'petrol', 'gas', 'energy'],
-            'KO': ['ko', 'coca', 'cola', 'pepsi', 'soda'],
-            'INTC': ['intc', 'intel', 'chip', 'cpu', 'computer'],
-            'WMT': ['wmt', 'walmart', 'food'],
-            'MSFT': ['msft', 'microsoft', 'gates', 'apple', 'computer'],
-            'IBM': ['ibm', 'business', 'machine'],
-            'CVX': ['cvx', 'chevron', 'petrol', 'gas', 'energy'],
-            'JNJ': ['jnj', 'johnson', 'health', 'medi', 'pharma'],
-            'PG': ['pg', 'procter', 'gamble', 'health', 'care'],
-            'PFE': ['pfe', 'pfizer', 'health', 'medi', 'pharma'],
-            'VZ': ['vz', 'verizon', 'comm'],
-            'BA': ['ba', 'boeing', 'plane', 'air'],
-            'MRK': ['mrk', 'merck', 'health', 'medi', 'pharma'],
-            'CSCO': ['csco', 'cisco', 'system', 'techn'],
-            'HD': ['hd', 'home', 'depot', 'construction'],
-            'MCD': ['mcd', 'donald', 'food', 'burger'],
-            'MMM': ['mmm', '3m'],
-            'GE': ['ge', 'general', 'electric', 'tech', 'energy'],
-            'NKE': ['nke', 'nike', 'sport', 'wear'],
-            'CAT': ['cat', 'caterpillar', 'construction'],
-            'V': ['visa', 'bank', 'card', 'pay'],
-            'JPM': ['jpm', 'morgan', 'chase', 'bank'],
-            'AXP': ['axp', 'american', 'express', 'bank', 'card', 'pay'],
-            'GS': ['gs', 'goldman', 'sachs', 'bank'],
-            'UNH': ['unh', 'united', 'health', 'insurance'],
-            'TRV': ['trv', 'travel', 'insurance'],
-            # 'UTX': ['utx', 'united', 'tech'],
-            }
-DOW = ['AXP', 'AMGN', 'AAPL', 'BA', 'CAT', 'CSCO', 'CVX', 'GS', 'HD', 'HON', 'IBM', 'INTC', 'JNJ', 'KO', 'JPM', 'MCD',
-       'MMM', 'MRK', 'MSFT', 'NLE', 'PG', 'TRV', 'UNH', 'CRM', 'VZ', 'V', 'WBA', 'WMT', 'DIS', 'DOW']
-
-
-def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=False):
+def load_data(folder, t0, t1, start_from=None, update_embed=False):
     """
     Loads, data-engineers and concatenates each assets' data into a large machine-usable dataframe.
 
     :param str folder: a folder where to find the dataset.
-    :param int tradefreq: at which tick frequency you will trade.
-    :param int datafreq: at which frequency you want each tick, in minutes.
-    :param None|str start_from: a starting date for truncation, in format '%Y-%m-%d'. If None, no truncation is made.
+    :param str t0: starting date of the data, formatted YYYY-MM-DD.
+    :param str t1: date before which aggregated features must be computed, formatted YYYY-MM-DD.
+    :param None|str start_from: a starting date for truncation, formatted YYYY-MM-DD. If None, no truncation is made.
     :param bool update_embed: whether new news have been obtained and embeddings should be re-computed.
     :return: a rich dataframe.
     :rtype: pd.DataFrame
@@ -63,7 +28,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
     res = pd.DataFrame()
     askcol, bidcol = 'close', 'open'
 
-    for number, asset in enumerate(KEYWORDS.keys()):
+    for number, asset in enumerate(COMPANIES_KEYWORDS.keys()):
 
         file = f'{folder}{asset.lower()}_prices.csv'
 
@@ -95,7 +60,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         # df = df.ffill()
         df.dropna(inplace=True)
 
-        shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
+        # shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
         # df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
         df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
 
@@ -109,7 +74,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         df['wday'] = time_index.weekday
         df['dayofyear'] = time_index.dayofyear
 
-        df = df[df.index >= T0]
+        df = df[df.index >= t0]
         df = df[df['wday'] < 5]
 
         for col in ['open', 'close']:
@@ -128,13 +93,13 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
                 df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
 
         df['asset'] = number
-        df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < T1].mean())
-        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < T1].std())
+        df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
+        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
 
         for period in ['quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day', 'year'
             for col in ['labels', 'volume', askcol, bidcol]:
-                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < T1].mean())
-                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < T1].std())
+                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
                 # if col != 'labels':
                 #     df[f'{period}_adj_{col}'] = df[f'{period}_mean_{col}'] / df[f'{period}_std_{col}']
                 #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
@@ -154,7 +119,7 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
         # dim = 60
         # pca_path = f"../data/pca_sbert_{dim}.joblib"
         # if not os.path.exists(pca_path):
-        #     pca = train_sbert_pca(dim=dim)
+        #     pca = train_sbert_pca(t1=t1, dim=dim)
         # else:
         #     pca = joblib.load(pca_path)
         # embed = pd.DataFrame(pca.transform(embed), index=embed.index)
@@ -197,8 +162,8 @@ def load_data(folder, tradefreq=1, datafreq=1, start_from=None, update_embed=Fal
 
     for period in ['month', 'day', 'wday']:  # 'year'
         for col in ['labels', 'volume']:
-            res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].mean())
-            res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < T1].std())
+            res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+            res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
 
     for col in ['lag_1_labels', 'volume']:
         res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
@@ -313,22 +278,23 @@ def precompute_embeddings(folder):
     :rtype: None
     """
 
-    for number, asset in enumerate(KEYWORDS.keys()):
+    for number, asset in enumerate(COMPANIES_KEYWORDS.keys()):
         path = folder + f'{asset.lower()}_news_embed.csv'
         if not os.path.exists(path):
-            embed = load_news(asset, folder, KEYWORDS[asset])
+            embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset])
             embed.to_csv(path, encoding='utf-8')
         else:
             embed = pd.read_csv(path, encoding='utf-8', index_col=0)
             last_embed = embed.index.max()
-            embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
+            embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
             write_data(path, embed)
 
 
-def train_sbert_pca(dim=100):
+def train_sbert_pca(t1, dim=100):
     """
     Trains and saves a PCA to reduce Sentence-BERT embeddings size.
 
+    :param str t1: date before which aggregated features must be computed, formatted YYYY-MM-DD.
     :param int dim: size of the reduced embedding.
     :return: a trained PCA model.
     :rtype: sklearn.decomposition.PCA
@@ -336,10 +302,10 @@ def train_sbert_pca(dim=100):
 
     from sklearn.decomposition import PCA
     df = pd.DataFrame()
-    for asset in KEYWORDS.keys():
+    for asset in COMPANIES_KEYWORDS.keys():
         path = f'../data/intrinio/{asset.lower()}_news_embed.csv'
         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-        embed = embed[embed.index < T1]
+        embed = embed[embed.index < t1]
         df = pd.concat([df, embed], axis=0, ignore_index=True)
     pca = PCA(n_components=dim)
     pca.fit(df)

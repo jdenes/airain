@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import lightgbm as lgb
 import tensorflow as tf
 
-from utils.basics import omega2assets, evaluate_portfolio, normalize_data, unnormalize_data
+from utils.basics import omega2assets, evaluate_portfolio, normalize_data
 from utils.metrics import classification_perf
 from utils.plots import nice_plot
 
@@ -24,7 +24,9 @@ class Trader(object):
     A general trader-forecaster to inherit from.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
+    def __init__(self, h=10, seed=123, forecast=1, normalize=False,
+                 t0='2000-01-01', t1='2019-01-01', t2='2020-01-01',
+                 load_from=None, fast_load=True):
         """
         Initialize method.
         """
@@ -55,7 +57,7 @@ class Trader(object):
         self.y_val = None
         self.ind_val = None
 
-        self.t0, self.t1, self.t2 = '2000-01-01', '2019-08-01', '2020-01-01'
+        self.t0, self.t1, self.t2 = t0, t1, t2
 
     def transform_data(self, df, labels, keep_last=False):
         """
@@ -221,12 +223,15 @@ class LGBMTrader(Trader):
     A trader-forecaster based on a LightGBM model.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
+    def __init__(self, h=10, seed=123, forecast=1,
+                 t0='2000-01-01', t1='2019-01-01', t2='2020-01-01',
+                 normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
 
         super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize,
+                         t0=t0, t1=t1, t2=t2,
                          load_from=load_from, fast_load=fast_load)
 
         self.lgb_params = {
@@ -289,7 +294,6 @@ class LGBMTrader(Trader):
         """
 
         super().test()
-        y_pred = self.predict(self.X_test, self.P_test)
 
         if plot:
             fig, ax = plt.subplots(1, 2, figsize=(14, 14))
@@ -300,6 +304,7 @@ class LGBMTrader(Trader):
             fig.tight_layout()
             plt.show()
 
+            # y_pred = self.predict(self.X_test, self.P_test)
             # i = self.y_test != 0
             # plt.plot((y_pred[i] - self.y_test[i]), '.')
             # plt.show()
@@ -340,12 +345,15 @@ class LstmTrader(Trader):
     A trader-forecaster based on a LSTM neural network.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
+    def __init__(self, h=10, seed=123, forecast=1,
+                 t0='2000-01-01', t1='2019-01-01', t2='2020-01-01',
+                 normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
 
         super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize,
+                         t0=t0, t1=t1, t2=t2,
                          load_from=load_from, fast_load=fast_load)
 
         self.batch_size = None
@@ -471,14 +479,18 @@ class LstmContextTrader(Trader):
     A trader-forecaster based on a LSTM neural network.
     """
 
-    def __init__(self, h=10, seed=123, forecast=1, normalize=False, load_from=None, fast_load=True):
+    def __init__(self, h=10, seed=123, forecast=1,
+                 t0='2000-01-01', t1='2019-01-01', t2='2020-01-01',
+                 normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
         """
 
         super().__init__(h=h, seed=seed, forecast=forecast, normalize=normalize,
+                         t0=t0, t1=t1, t2=t2,
                          load_from=load_from, fast_load=fast_load)
 
+        tf.random.set_seed(self.seed)
         self.batch_size = None
         self.buffer_size = None
         self.epochs = None
@@ -506,6 +518,7 @@ class LstmContextTrader(Trader):
         dates = sorted(df.index.unique().to_list())
         assets = sorted(df['asset'].unique())
         self.num_assets = df['asset'].nunique()
+        assets_df = [norm_df[norm_df.asset == asset].sort_index().drop('asset', 1) for asset in assets]
 
         X, P, y, ind = [], [], [], []
         count = 0
@@ -514,11 +527,11 @@ class LstmContextTrader(Trader):
         for i in tqdm(range(self.h - 1, len(dates))):
             day = dates[i]
             tmp = []
-            for asset in assets:
-                asset_df = norm_df[(df.index <= day) & (df.asset == asset)].sort_index()
-                asset_df = asset_df.drop('asset', 1).tail(self.h).to_numpy(dtype=np.float32)
+            for j, asset in enumerate(assets):
+                asset_df = assets_df[j]
+                asset_df = asset_df[asset_df.index <= day].tail(self.h).to_numpy(dtype=np.float32)
                 tmp.append(asset_df)
-            if all(x.shape[0] == self.h for x in tmp):
+            if not any(x.shape[0] != self.h for x in tmp):
                 X.append(tmp)
                 P.append(df[df.index == day].to_numpy(dtype=np.float32))
                 y.append(labels[labels.index == day].to_numpy(dtype=np.float32))
@@ -542,8 +555,8 @@ class LstmContextTrader(Trader):
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.SimpleRNN(5, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
-            lstm_layer = tf.keras.layers.Dense(1)(lstm_layer)
+            lstm_layer = tf.keras.layers.SimpleRNN(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            # lstm_layer = tf.keras.layers.Dense(1)(lstm_layer)
             lstm_layers.append(lstm_layer)
         if use_conv:
             # Step 2: concat ouptuts as a tensor of shape (lstm_size, 1, features)
@@ -619,7 +632,7 @@ class LstmContextTrader(Trader):
 
         @tf.function
         def train_step(X, y):
-            cash_price = tf.zeros((y.shape[0], 1))  # for cash, price change is always zero
+            cash_price = tf.ones((y.shape[0], 1))  # for cash, price change is always zero
             future_prices = tf.concat((cash_price, y), axis=1)
             loss_value, grads = self.gradient(X, future_prices)
             self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
@@ -646,7 +659,7 @@ class LstmContextTrader(Trader):
 
             if epoch % 1 == 0:
                 print(f"Epoch {epoch:03d}/{self.epochs} "
-                      f"- loss: {epoch_loss_avg.result():.3e} - val_loss: {epoch_val_loss_avg.result():.3e}")
+                      f"- loss: {epoch_loss_avg.result():.5f} - val_loss: {epoch_val_loss_avg.result():.5f}")
 
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
@@ -660,9 +673,7 @@ class LstmContextTrader(Trader):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        y_pred = self.model.predict((X, P))
-        y_pred = np.argmax(y_pred, axis=1)
-        return y_pred
+        return self.model((X, P))
 
     def test(self, plot=False):
         """
