@@ -19,7 +19,7 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Those settings are nearly working">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Added constants.py">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
@@ -79,7 +79,7 @@
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
-    <property name="settings.editor.selected.configurable" value="RainbowCSV.Settings" />
+    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -175,9 +175,9 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.stats" />
       <item itemvalue="Python.app" />
       <item itemvalue="Python.main" />
+      <item itemvalue="Python.stats" />
       <item itemvalue="Python.tf-roberta" />
     </list>
   </component>
@@ -528,7 +528,21 @@
       <option name="project" value="LOCAL" />
       <updated>1612646482996</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="More than 40% with current settings">
+      <created>1612810707398</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1612810707398</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Added constants.py">
+      <created>1612810734471</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1612810734471</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -569,6 +583,8 @@
     <MESSAGE value="Improved model and adapted Trader object" />
     <MESSAGE value="Tried to improved model according to paper" />
     <MESSAGE value="Those settings are nearly working" />
-    <option name="LAST_COMMIT_MESSAGE" value="Those settings are nearly working" />
+    <MESSAGE value="More than 40% with current settings" />
+    <MESSAGE value="Added constants.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added constants.py" />
   </component>
 </project>

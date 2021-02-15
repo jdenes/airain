@@ -586,8 +586,8 @@ class LstmContextTrader(Trader):
         """
         portfolio = self.model(features)
         loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
-        loss_value += 1e-3 * tf.math.reduce_mean(tf.math.reduce_sum(tf.math.square(portfolio), axis=1))
-        return loss_value
+        entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
+        return loss_value - 1e-3 * entropy
 
     def gradient(self, features, future_prices):
         """
@@ -629,6 +629,7 @@ class LstmContextTrader(Trader):
         train_loss_results = []
         epoch_loss_avg = tf.keras.metrics.Mean()
         epoch_val_loss_avg = tf.keras.metrics.Mean()
+        best_loss, best_epoch, best_model = 1000, self.epochs, None
 
         @tf.function
         def train_step(X, y):
@@ -643,9 +644,9 @@ class LstmContextTrader(Trader):
         def val_step(X, y):
             cash_price = tf.zeros((y.shape[0], 1))
             future_prices = tf.concat((cash_price, y), axis=1)
-            val_loss = self.loss(X, future_prices)
-            epoch_val_loss_avg.update_state(val_loss)
-            return val_loss
+            loss_value = self.loss(X, future_prices)
+            epoch_val_loss_avg.update_state(loss_value)
+            return loss_value
 
         for epoch in range(self.epochs):
 
@@ -655,14 +656,25 @@ class LstmContextTrader(Trader):
             for val_features, val_labels in valid_data:
                 val_step(val_features, val_labels)
 
-            train_loss_results.append(epoch_loss_avg.result())
+            train_loss = epoch_loss_avg.result()
+            val_loss = epoch_val_loss_avg.result()
+            train_loss_results.append(train_loss)
+
+            # if val_loss < best_loss:
+            #     best_loss = val_loss
+            #     best_epoch = epoch
+            #     tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
 
             if epoch % 1 == 0:
                 print(f"Epoch {epoch:03d}/{self.epochs} "
-                      f"- loss: {epoch_loss_avg.result():.5f} - val_loss: {epoch_val_loss_avg.result():.5f}")
+                      f"- loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
 
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
+
+        # if best_epoch != self.epochs-1:
+        #     print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch:03d}.')
+        #     self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
         print('_' * 100, '\n')
         print(self.model(features)[-1].numpy())
@@ -681,13 +693,14 @@ class LstmContextTrader(Trader):
         """
 
         # Prediction at day t is computed at day t-1
-        omegas = self.model((self.X_test, self.P_test))
+        X, P, ind = self.X_test, self.P_test, self.ind_test
+        omegas = self.model((X, P))
         gamble = balance = ref_balance = 100000
-        history, ref_history, index = [balance], [ref_balance], [self.ind_test[0]]
+        history, ref_history, index = [balance], [ref_balance], [ind[0]]
 
-        for i in range(1, len(self.ind_test)):
-            today = self.ind_test[i]
-            open_price, close_price = self.P_test[i][:, 3], self.P_test[i][:, 2]
+        for i in range(1, len(ind)):
+            today = ind[i]
+            open_price, close_price = P[i][:, 3], P[i][:, 2]
             open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
             omega = omegas[i - 1]
             ref_omega = np.ones((len(omega))) / len(omega)

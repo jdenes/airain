@@ -6,7 +6,7 @@ from datetime import datetime
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
-from utils.constants import COMPANIES_KEYWORDS
+from utils.constants import COMPANIES, COMPANIES_KEYWORDS
 from utils.logging import get_logger
 
 logger = get_logger()
@@ -28,7 +28,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     res = pd.DataFrame()
     askcol, bidcol = 'close', 'open'
 
-    for number, asset in enumerate(COMPANIES_KEYWORDS.keys()):
+    for number, asset in enumerate(COMPANIES):
 
         file = f'{folder}{asset.lower()}_prices.csv'
 

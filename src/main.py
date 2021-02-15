@@ -29,9 +29,9 @@ TRADEFREQ = 1
 INITIAL_GAMBLE = 10000
 VERSION = 3
 H = 30
-EPOCHS = 20
+EPOCHS = 50
 T0 = '2000-01-01'
-T1 = '2019-08-01'
+T1 = '2019-01-01'
 T2 = '2020-01-01'
 
 
@@ -415,3 +415,9 @@ if __name__ == "__main__":
     # get_trades_results()
     # yesterday_perf()
     # heartbeat()
+
+    # for company in COMPANIES:
+    #     folder = '../data/intrinio/'
+    #     path = folder + company.lower()
+    #     df = pd.read_csv(f'{path}_prices.csv', index_col=0)
+    #     print(company, df.index.min())
