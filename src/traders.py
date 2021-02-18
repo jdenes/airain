@@ -514,10 +514,9 @@ class LstmContextTrader(Trader):
         else:
             norm_df = df
 
-        # df = df[['volume', 'open', 'close', 'high', 'low', 'asset']].copy()
-        dates = sorted(df.index.unique().to_list())
-        assets = sorted(df['asset'].unique())
-        self.num_assets = df['asset'].nunique()
+        dates = sorted(norm_df.index.unique().to_list())
+        assets = sorted(norm_df['asset'].unique())
+        self.num_assets = norm_df['asset'].nunique()
         assets_df = [norm_df[norm_df.asset == asset].sort_index().drop('asset', 1) for asset in assets]
 
         X, P, y, ind = [], [], [], []
@@ -546,7 +545,6 @@ class LstmContextTrader(Trader):
         """
         Create TensorFlow internal model.
         """
-        use_conv = False
         initializer = tf.keras.initializers.GlorotNormal()
         # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
@@ -556,24 +554,21 @@ class LstmContextTrader(Trader):
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
             lstm_layer = tf.keras.layers.SimpleRNN(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
-            # lstm_layer = tf.keras.layers.Dense(1)(lstm_layer)
             lstm_layers.append(lstm_layer)
-        if use_conv:
-            # Step 2: concat ouptuts as a tensor of shape (lstm_size, 1, features)
-            lstm_concat = tf.stack(lstm_layers, axis=2)
-            lstm_concat = tf.transpose(lstm_concat, perm=[0, 2, 1])
-            lstm_concat = tf.reshape(lstm_concat, (-1, lstm_concat.shape[1], 1, lstm_concat.shape[2]))
-            # Step 3: get this 3D matrix into Conv2D
-            conv = tf.keras.layers.Flatten()(tf.keras.layers.Conv2D(1, kernel_size=(1, 1), name='conv')(lstm_concat))
-        else:
-            conv = tf.concat(lstm_layers, axis=1)
-            conv = tf.keras.layers.Dense(self.num_assets+1)(conv)
-        # Step 4: add cash bias
-        # with_bias = tf.pad(conv, tf.constant([[0, 0], [1, 0]]), mode='CONSTANT', constant_values=0.0)
+        # Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim
+        # conv = []
+        # fusion = tf.stack(lstm_layers, axis=1)
+        # for i in range(fusion.shape[-1]):
+        #     asset_slice = fusion[:, :, i]
+        #     asset_dense = tf.keras.layers.Dense(1)(asset_slice)
+        #     conv.append(asset_dense)
+        # conv = tf.concat(conv, axis=1)
+        conv = tf.concat(lstm_layers, axis=1)
+        conv = tf.keras.layers.Dense(self.num_assets+1)(conv)
         # Step 5: vote using softmax
         output_layer = tf.keras.layers.Softmax(name='output')(conv)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         self.model.summary()
 
     def loss(self, features, future_prices):
@@ -587,7 +582,7 @@ class LstmContextTrader(Trader):
         portfolio = self.model(features)
         loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
         entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
-        return loss_value - 1e-3 * entropy
+        return loss_value  # - 9e-4 * entropy
 
     def gradient(self, features, future_prices):
         """
@@ -660,20 +655,19 @@ class LstmContextTrader(Trader):
             val_loss = epoch_val_loss_avg.result()
             train_loss_results.append(train_loss)
 
-            # if val_loss < best_loss:
+            # if val_loss < best_loss and epoch > 5:
             #     best_loss = val_loss
             #     best_epoch = epoch
             #     tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
 
             if epoch % 1 == 0:
-                print(f"Epoch {epoch:03d}/{self.epochs} "
+                print(f"Epoch {epoch+1:02d}/{self.epochs} "
                       f"- loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
-
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
 
         # if best_epoch != self.epochs-1:
-        #     print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch:03d}.')
+        #     print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
         #     self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
         print('_' * 100, '\n')

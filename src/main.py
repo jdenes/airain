@@ -28,8 +28,8 @@ DATAFREQ = 1
 TRADEFREQ = 1
 INITIAL_GAMBLE = 10000
 VERSION = 3
-H = 30
-EPOCHS = 50
+H = 20
+EPOCHS = 250
 T0 = '2000-01-01'
 T1 = '2019-01-01'
 T2 = '2020-01-01'
@@ -78,7 +78,7 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LstmContextTrader(h=H, normalize=False, t0=T0, t1=T1, t2=T2)
+    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
     # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
     df, labels = load_data(folder, T0, T1)
     trader.ingest_traindata(df, labels, duplicate=False)
