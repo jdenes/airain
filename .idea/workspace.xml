@@ -19,9 +19,8 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Good results with smaller model, slower training">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Reduced learning rate even more">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -555,7 +554,14 @@
       <option name="project" value="LOCAL" />
       <updated>1613688854891</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Reduced learning rate even more">
+      <created>1613866740266</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1613866740266</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -574,7 +580,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved data fetching + test with EUR-GBP" />
     <MESSAGE value="Added random simulation" />
     <MESSAGE value="Better recommendation interface" />
     <MESSAGE value="Added sentiment analysis addon, not convincing" />
@@ -599,6 +604,7 @@
     <MESSAGE value="Added constants.py" />
     <MESSAGE value="Perf are nearly stable with these settings" />
     <MESSAGE value="Good results with smaller model, slower training" />
-    <option name="LAST_COMMIT_MESSAGE" value="Good results with smaller model, slower training" />
+    <MESSAGE value="Reduced learning rate even more" />
+    <option name="LAST_COMMIT_MESSAGE" value="Reduced learning rate even more" />
   </component>
 </project>

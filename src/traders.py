@@ -554,7 +554,7 @@ class LstmContextTrader(Trader):
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.SimpleRNN(1, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(5, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         # Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim
         # conv = []
@@ -619,7 +619,7 @@ class LstmContextTrader(Trader):
         valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
 
         train_loss_results = []
         epoch_loss_avg = tf.keras.metrics.Mean()
