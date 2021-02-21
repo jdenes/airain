@@ -514,6 +514,7 @@ class LstmContextTrader(Trader):
         else:
             norm_df = df
 
+        norm_df = norm_df[[c for c in norm_df if not ('mean' in c or 'std' in c)]]
         dates = sorted(norm_df.index.unique().to_list())
         assets = sorted(norm_df['asset'].unique())
         self.num_assets = norm_df['asset'].nunique()
@@ -568,7 +569,6 @@ class LstmContextTrader(Trader):
         # Step 5: vote using softmax
         output_layer = tf.keras.layers.Softmax(name='output')(conv)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
         self.model.summary()
 
     def loss(self, features, future_prices):
@@ -581,7 +581,7 @@ class LstmContextTrader(Trader):
         """
         portfolio = self.model(features)
         loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
-        entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
+        # entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
         return loss_value  # - 9e-4 * entropy
 
     def gradient(self, features, future_prices):
@@ -596,7 +596,7 @@ class LstmContextTrader(Trader):
             loss_value = self.loss(features, future_prices)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
-    def train(self, batch_size=264, buffer_size=10000, epochs=10, steps=1000, valsteps=1000, gpu=True):
+    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
@@ -605,8 +605,6 @@ class LstmContextTrader(Trader):
         self.batch_size = batch_size
         self.buffer_size = buffer_size
         self.epochs = epochs
-        self.steps = steps
-        self.valsteps = valsteps
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
@@ -621,10 +619,13 @@ class LstmContextTrader(Trader):
         valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4)
+
         train_loss_results = []
         epoch_loss_avg = tf.keras.metrics.Mean()
         epoch_val_loss_avg = tf.keras.metrics.Mean()
         best_loss, best_epoch, best_model = 1000, self.epochs, None
+        no_progress = 0
 
         @tf.function
         def train_step(X, y):
@@ -654,21 +655,25 @@ class LstmContextTrader(Trader):
             train_loss = epoch_loss_avg.result()
             val_loss = epoch_val_loss_avg.result()
             train_loss_results.append(train_loss)
+            print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
 
-            # if val_loss < best_loss and epoch > 5:
-            #     best_loss = val_loss
-            #     best_epoch = epoch
-            #     tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
+            if val_loss < best_loss:
+                no_progress = 0
+                best_loss, best_epoch = val_loss, epoch
+                tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
+            else:
+                no_progress += 1
 
-            if epoch % 1 == 0:
-                print(f"Epoch {epoch+1:02d}/{self.epochs} "
-                      f"- loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
 
-        # if best_epoch != self.epochs-1:
-        #     print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
-        #     self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
+            if no_progress > patience:
+                print(f'No progress since {patience} epochs, early stopping')
+                break
+
+        if best_epoch != self.epochs-1:
+            print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
+            self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
         print('_' * 100, '\n')
         print(self.model(features)[-1].numpy())
