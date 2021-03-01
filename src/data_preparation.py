@@ -6,7 +6,7 @@ from datetime import datetime
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
-from utils.constants import COMPANIES, COMPANIES_KEYWORDS
+from utils.constants import COMPANIES, PERFORMERS, COMPANIES_KEYWORDS
 from utils.logging import get_logger
 
 logger = get_logger()
@@ -28,7 +28,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     res = pd.DataFrame()
     askcol, bidcol = 'close', 'open'
 
-    for number, asset in enumerate(COMPANIES):
+    for number, asset in enumerate(PERFORMERS):
 
         file = f'{folder}{asset.lower()}_prices.csv'
 
@@ -105,25 +105,25 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
                 #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
         """ Embeddings """
-        # path = folder + f'{asset.lower()}_news_embed.csv'
-        # if not os.path.exists(path):
-        #     embed = load_news(asset, folder, KEYWORDS[asset])
-        #     embed.to_csv(path, encoding='utf-8')
-        # else:
-        #     embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-        #     if update_embed:
-        #         last_embed = embed.index.max()
-        #         embed = load_news(asset, folder, KEYWORDS[asset], last_day=last_embed)
-        #         write_data(path, embed)
-        #         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-        # dim = 60
-        # pca_path = f"../data/pca_sbert_{dim}.joblib"
-        # if not os.path.exists(pca_path):
-        #     pca = train_sbert_pca(t1=t1, dim=dim)
-        # else:
-        #     pca = joblib.load(pca_path)
-        # embed = pd.DataFrame(pca.transform(embed), index=embed.index)
-        # embed.columns = [f"news_sum_{i}" for i in embed]
+        path = '../data/intrinio/' + f'{asset.lower()}_news_embed.csv'
+        if not os.path.exists(path):
+            embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset])
+            embed.to_csv(path, encoding='utf-8')
+        else:
+            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+            if update_embed:
+                last_embed = embed.index.max()
+                embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
+                write_data(path, embed)
+                embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        dim = 60
+        pca_path = f"../data/pca_sbert_{dim}.joblib"
+        if not os.path.exists(pca_path):
+            pca = train_sbert_pca(t1=t1, dim=dim)
+        else:
+            pca = joblib.load(pca_path)
+        embed = pd.DataFrame(pca.transform(embed), index=embed.index)
+        embed.columns = [f"news_sum_{i}" for i in embed]
 
         """ Sentiment """
         # path = f'{folder}{asset.lower()}_news_sentiment.csv'
@@ -138,14 +138,15 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         #         write_data(path, sentiment)
         #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
 
-        # df = pd.concat([df, embed], axis=1).sort_index()
-        # df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
-        # # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
-        # df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
-        # del embed
-        #
-        # mat = df[[c for c in df if 'news' in c]].to_numpy()
-        # df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
+        df = pd.concat([df, embed], axis=1).sort_index()
+        df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
+        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
+        df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
+        del embed
+
+        import numpy as np
+        mat = df[[c for c in df if 'news' in c]].to_numpy()
+        df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
 
         # Hodrick-Prescott filter
         # for count, i in enumerate(df.index):

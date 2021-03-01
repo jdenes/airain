@@ -26,10 +26,10 @@ UNIT = 'H'  # 'm' or 'd'
 TARGET_COL = 'close'
 DATAFREQ = 1
 TRADEFREQ = 1
-INITIAL_GAMBLE = 10000
+INITIAL_GAMBLE = 1000
 VERSION = 3
 H = 20
-EPOCHS = 300
+EPOCHS = 10000
 T0 = '2000-01-01'
 T1 = '2019-01-01'
 T2 = '2020-01-01'
@@ -78,13 +78,13 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    df, labels = load_data(folder, T0, T1)
-    trader.ingest_traindata(df, labels, duplicate=False)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.train(epochs=EPOCHS)
-    trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # df, labels = load_data(folder, T0, T1)
+    # trader.ingest_traindata(df, labels, duplicate=False)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.train(epochs=EPOCHS)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(plot=plot)
 
 

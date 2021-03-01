@@ -35,7 +35,7 @@ COMPANIES_KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
 List of companies used in this project (subset of DOW).
 """
 COMPANIES = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
-             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'JPM', 'AXP', 'GS', 'UNH', 'TRV']
+             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'JPM', 'AXP', 'GS', 'UNH', 'V', 'TRV']
 
 """
 Leverages on Trading 212 CFD.

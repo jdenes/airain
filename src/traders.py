@@ -87,15 +87,15 @@ class Trader(object):
         X, P, y, ind = self.transform_data(df_train, labels_train)
         self.X_train, self.P_train, self.y_train, self.ind_train = X, P, y, ind
 
-        df_test, labels_test = df[test_ind], labels[test_ind]
-        X, P, y, ind = self.transform_data(df_test, labels_test)
-        self.X_test, self.P_test, self.y_test, self.ind_test = X, P, y, ind
-        del df_test, labels_test
-
         df_val, labels_val = df[val_ind], labels[val_ind]
         X, P, y, ind = self.transform_data(df_val, labels_val)
         self.X_val, self.P_val, self.y_val, self.ind_val = X, P, y, ind
         del df_val, labels_val
+
+        df_test, labels_test = df[test_ind], labels[test_ind]
+        X, P, y, ind = self.transform_data(df_test, labels_test)
+        self.X_test, self.P_test, self.y_test, self.ind_test = X, P, y, ind
+        del df_test, labels_test
 
     def train(self):
         """
@@ -550,13 +550,13 @@ class LstmContextTrader(Trader):
         # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
         price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
-        # Step 1: one LSTM per feature, taking an (asset, window) matrix as input
+        """ Step 1: one LSTM per feature, taking an (asset, window) matrix as input """
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.SimpleRNN(5, kernel_initializer=initializer, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.LSTM(1, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
-        # Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim
+        """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
         # fusion = tf.stack(lstm_layers, axis=1)
         # for i in range(fusion.shape[-1]):
@@ -564,9 +564,10 @@ class LstmContextTrader(Trader):
         #     asset_dense = tf.keras.layers.Dense(1)(asset_slice)
         #     conv.append(asset_dense)
         # conv = tf.concat(conv, axis=1)
+        """ Step 2bis: simply concatenate all outputs """
         conv = tf.concat(lstm_layers, axis=1)
         conv = tf.keras.layers.Dense(self.num_assets+1)(conv)
-        # Step 5: vote using softmax
+        """ Step 3: vote using softmax """
         output_layer = tf.keras.layers.Softmax(name='output')(conv)
         self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
         self.model.summary()
@@ -581,8 +582,11 @@ class LstmContextTrader(Trader):
         """
         portfolio = self.model(features)
         loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
-        # entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
-        return loss_value  # - 9e-4 * entropy
+        entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
+        # value = tf.math.reduce_sum(portfolio * future_prices, axis=1)
+        # baseline = tf.math.reduce_mean(future_prices, axis=1)
+        # loss_value = -tf.math.reduce_mean(value - baseline)
+        return loss_value - 2e-4 * entropy
 
     def gradient(self, features, future_prices):
         """
@@ -596,7 +600,7 @@ class LstmContextTrader(Trader):
             loss_value = self.loss(features, future_prices)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
-    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, gpu=True):
+    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=100, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
@@ -667,9 +671,10 @@ class LstmContextTrader(Trader):
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
 
-            if no_progress > patience:
-                print(f'No progress since {patience} epochs, early stopping')
-                break
+            if patience is not None:
+                if no_progress > patience:
+                    print(f'No progress since {patience} epochs, early stopping')
+                    break
 
         if best_epoch != self.epochs-1:
             print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
@@ -692,10 +697,11 @@ class LstmContextTrader(Trader):
         """
 
         # Prediction at day t is computed at day t-1
-        X, P, ind = self.X_test, self.P_test, self.ind_test
+        X, P, ind = self.X_val, self.P_val, self.ind_val
         omegas = self.model((X, P))
         gamble = balance = ref_balance = 100000
         history, ref_history, index = [balance], [ref_balance], [ind[0]]
+        portfolio_history = []
 
         for i in range(1, len(ind)):
             today = ind[i]
@@ -710,14 +716,18 @@ class LstmContextTrader(Trader):
             morning_value = evaluate_portfolio(portfolio, open_price)
             ref_morning_value = evaluate_portfolio(ref_portfolio, open_price)
 
-            # Then days goes on and portfolio value changes
+            # Then days goes on and portfolio value change s
             evening_value = evaluate_portfolio(portfolio, close_price)
             ref_evening_value = evaluate_portfolio(ref_portfolio, close_price)
             balance += (evening_value - morning_value)
             ref_balance += (ref_evening_value - ref_morning_value)
             history.append(balance), ref_history.append(ref_balance), index.append(today)
+            portfolio_history.append(omega)
 
         nice_plot(index, [history, ref_history], ['Portfolio', 'Benchmark'], title=f'Portfolio balance evolution')
+        from utils.constants import PERFORMERS
+        pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS).plot()
+        plt.show()
 
     def save(self, model_name):
         """
