@@ -282,7 +282,7 @@ class LGBMTrader(Trader):
         # idx = (np.random.permutation(len(self.P_train)))
         train_data = lgb.Dataset(self.P_train, label=self.y_train, categorical_feature=cat_feat)
         valid_data = lgb.Dataset(self.P_val, label=self.y_val)
-        self.model = lgb.train(self.lgb_params, train_data, valid_sets=[valid_data], verbose_eval=200, )
+        self.model = lgb.train(self.lgb_params, train_data, valid_sets=[train_data, valid_data], verbose_eval=200, )
 
         # print(model.dump_model()["tree_info"])
 
@@ -531,11 +531,14 @@ class LstmContextTrader(Trader):
                 asset_df = assets_df[j]
                 asset_df = asset_df[asset_df.index <= day].tail(self.h).to_numpy(dtype=np.float32)
                 tmp.append(asset_df)
-            if not any(x.shape[0] != self.h for x in tmp):
-                X.append(tmp)
-                P.append(df[df.index == day].to_numpy(dtype=np.float32))
-                y.append(labels[labels.index == day].to_numpy(dtype=np.float32))
-                ind.append(day)
+            if (not any(x.shape[0] != self.h for x in tmp)) and (len(tmp) == len(assets)):
+                lab = labels[labels.index == day].to_numpy(dtype=np.float32)
+                p = df[df.index == day].to_numpy(dtype=np.float32)
+                if (len(lab) == len(assets)) and (len(p) == len(assets)):
+                    X.append(tmp)
+                    P.append(p)
+                    y.append(lab)
+                    ind.append(day)
             else:
                 count += 1
 
@@ -546,15 +549,14 @@ class LstmContextTrader(Trader):
         """
         Create TensorFlow internal model.
         """
-        initializer = tf.keras.initializers.GlorotNormal()
         # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
-        price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
+        # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
         """ Step 1: one LSTM per feature, taking an (asset, window) matrix as input """
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.LSTM(1, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.LSTM(self.num_assets+1, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -569,7 +571,7 @@ class LstmContextTrader(Trader):
         conv = tf.keras.layers.Dense(self.num_assets+1)(conv)
         """ Step 3: vote using softmax """
         output_layer = tf.keras.layers.Softmax(name='output')(conv)
-        self.model = tf.keras.Model(inputs=[input_layer, price_layer], outputs=output_layer)
+        self.model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
 
     def loss(self, features, future_prices):
@@ -581,12 +583,11 @@ class LstmContextTrader(Trader):
         :return:
         """
         portfolio = self.model(features)
-        loss_value = -tf.math.reduce_mean(tf.math.reduce_sum(portfolio * future_prices, axis=1))
-        entropy = tf.math.reduce_mean(-tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1))
-        # value = tf.math.reduce_sum(portfolio * future_prices, axis=1)
-        # baseline = tf.math.reduce_mean(future_prices, axis=1)
-        # loss_value = -tf.math.reduce_mean(value - baseline)
-        return loss_value - 2e-4 * entropy
+        portfolio_value = tf.math.reduce_sum(portfolio * future_prices, axis=1)
+        entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
+        # baseline = tf.nn.relu(tf.math.reduce_mean(future_prices, axis=1) - 1) + 1  # max(return, 1)
+        # loss_value = -tf.math.reduce_mean(portfolio_value / baseline)
+        return tf.math.reduce_mean(-portfolio_value - 1e-4 * entropy)
 
     def gradient(self, features, future_prices):
         """
@@ -600,7 +601,7 @@ class LstmContextTrader(Trader):
             loss_value = self.loss(features, future_prices)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
-    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=100, gpu=True):
+    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=50, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
@@ -615,75 +616,89 @@ class LstmContextTrader(Trader):
 
         super().train()
 
-        train_data = tf.data.Dataset.from_tensor_slices(
-            ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
-        train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size)
-        valid_data = tf.data.Dataset.from_tensor_slices(
-            ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
-        valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
+        self.y_train = np.append(np.zeros((len(self.y_train), 1)), self.y_train, axis=1)
+        self.y_test = np.append(np.zeros((len(self.y_test), 1)), self.y_test, axis=1)
+        self.y_val = np.append(np.zeros((len(self.y_val), 1)), self.y_val, axis=1)
+        self.y_train = (self.y_train == self.y_train.max(axis=1)[:, None]).astype(int)
+        self.y_test = (self.y_test == self.y_test.max(axis=1)[:, None]).astype(int)
+        self.y_val = (self.y_val == self.y_val.max(axis=1)[:, None]).astype(int)
+        print(self.X_train)
+
+        # train_data = tf.data.Dataset.from_tensor_slices(
+        #     ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
+        # train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size)
+        # valid_data = tf.data.Dataset.from_tensor_slices(
+        #     ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
+        # valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
+        # self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
 
-        train_loss_results = []
-        epoch_loss_avg = tf.keras.metrics.Mean()
-        epoch_val_loss_avg = tf.keras.metrics.Mean()
-        best_loss, best_epoch, best_model = 1000, self.epochs, None
-        no_progress = 0
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer=tf.keras.optimizers.Adam(lr=1e-9),
+                           metrics=['accuracy'])
+        self.model.fit(self.X_train, self.y_train, validation_data=(self.X_val, self.y_val),
+                       batch_size=128, epochs=10, shuffle=True, verbose=True)
 
-        @tf.function
-        def train_step(X, y):
-            cash_price = tf.ones((y.shape[0], 1))  # for cash, price change is always zero
-            future_prices = tf.concat((cash_price, y), axis=1)
-            loss_value, grads = self.gradient(X, future_prices)
-            self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-            epoch_loss_avg.update_state(loss_value)
-            return loss_value
-
-        @tf.function
-        def val_step(X, y):
-            cash_price = tf.zeros((y.shape[0], 1))
-            future_prices = tf.concat((cash_price, y), axis=1)
-            loss_value = self.loss(X, future_prices)
-            epoch_val_loss_avg.update_state(loss_value)
-            return loss_value
-
-        for epoch in range(self.epochs):
-
-            for features, labels in train_data:
-                train_step(features, labels)
-
-            for val_features, val_labels in valid_data:
-                val_step(val_features, val_labels)
-
-            train_loss = epoch_loss_avg.result()
-            val_loss = epoch_val_loss_avg.result()
-            train_loss_results.append(train_loss)
-            print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
-
-            if val_loss < best_loss:
-                no_progress = 0
-                best_loss, best_epoch = val_loss, epoch
-                tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
-            else:
-                no_progress += 1
-
-            epoch_loss_avg.reset_states()
-            epoch_val_loss_avg.reset_states()
-
-            if patience is not None:
-                if no_progress > patience:
-                    print(f'No progress since {patience} epochs, early stopping')
-                    break
-
-        if best_epoch != self.epochs-1:
-            print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
-            self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
-
-        print('_' * 100, '\n')
-        print(self.model(features)[-1].numpy())
-        print(self.model(features)[0].numpy())
-        print(np.argmax(self.model(features).numpy(), axis=1))
+        # train_loss_results = []
+        # epoch_loss_avg = tf.keras.metrics.Mean()
+        # epoch_val_loss_avg = tf.keras.metrics.Mean()
+        # best_loss, best_epoch, best_model = 1000, self.epochs, None
+        # no_progress = 0
+        #
+        # @tf.function
+        # def train_step(X, y):
+        #     cash_price = tf.ones((y.shape[0], 1))  # for cash, price change is always zero
+        #     future_prices = tf.concat((cash_price, y), axis=1)
+        #     loss_value, grads = self.gradient(X, future_prices)
+        #     self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+        #     epoch_loss_avg.update_state(loss_value)
+        #     return loss_value
+        #
+        # @tf.function
+        # def val_step(X, y):
+        #     cash_price = tf.zeros((y.shape[0], 1))
+        #     future_prices = tf.concat((cash_price, y), axis=1)
+        #     loss_value = self.loss(X, future_prices)
+        #     epoch_val_loss_avg.update_state(loss_value)
+        #     return loss_value
+        #
+        # for epoch in range(self.epochs):
+        #
+        #     for features, labels in train_data:
+        #         train_step(features, labels)
+        #
+        #     for val_features, val_labels in valid_data:
+        #         val_step(val_features, val_labels)
+        #
+        #     train_loss = epoch_loss_avg.result()
+        #     val_loss = epoch_val_loss_avg.result()
+        #     train_loss_results.append(train_loss)
+        #     print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
+        #
+        #     if val_loss < best_loss:
+        #         no_progress = 0
+        #         best_loss, best_epoch = val_loss, epoch
+        #         tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
+        #     else:
+        #         no_progress += 1
+        #
+        #     epoch_loss_avg.reset_states()
+        #     epoch_val_loss_avg.reset_states()
+        #
+        #     if patience is not None:
+        #         if no_progress > patience:
+        #             print(f'No progress since {patience} epochs, early stopping')
+        #             break
+        #
+        # if best_epoch != self.epochs-1:
+        #     print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
+        #     self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
+        #
+        # print('_' * 100, '\n')
+        # print(self.model(features)[-1].numpy())
+        # print(self.model(features)[0].numpy())
+        # print(np.argmax(self.model(features).numpy(), axis=1))
 
     def predict(self, X, P):
         """
@@ -697,10 +712,11 @@ class LstmContextTrader(Trader):
         """
 
         # Prediction at day t is computed at day t-1
-        X, P, ind = self.X_val, self.P_val, self.ind_val
-        omegas = self.model((X, P))
-        gamble = balance = ref_balance = 100000
-        history, ref_history, index = [balance], [ref_balance], [ind[0]]
+        X, P, ind = self.X_test, self.P_test, self.ind_test
+        # omegas = self.model((X, P))
+        omegas = self.model(X)
+        gamble = balance = ref_balance = aapl_balance = 100000
+        history, ref_history, aapl_history, index = [balance], [ref_balance], [aapl_balance], [ind[0]]
         portfolio_history = []
 
         for i in range(1, len(ind)):
@@ -709,22 +725,30 @@ class LstmContextTrader(Trader):
             open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
             omega = omegas[i - 1]
             ref_omega = np.ones((len(omega))) / len(omega)
+            aapl_omega = np.zeros((len(omega)))
+            aapl_omega[1] = 1.0
 
             # Omega gives me proportions, I need to make a number of assets out of that
             portfolio = omega2assets(gamble, omega, open_price)
             ref_portfolio = omega2assets(gamble, ref_omega, open_price)
+            aapl_portfolio = omega2assets(gamble, aapl_omega, open_price)
             morning_value = evaluate_portfolio(portfolio, open_price)
             ref_morning_value = evaluate_portfolio(ref_portfolio, open_price)
+            aapl_morning_value = evaluate_portfolio(aapl_portfolio, open_price)
 
-            # Then days goes on and portfolio value change s
+            # Then days goes on and portfolio value changes
             evening_value = evaluate_portfolio(portfolio, close_price)
             ref_evening_value = evaluate_portfolio(ref_portfolio, close_price)
+            aapl_evening_value = evaluate_portfolio(aapl_portfolio, close_price)
             balance += (evening_value - morning_value)
             ref_balance += (ref_evening_value - ref_morning_value)
-            history.append(balance), ref_history.append(ref_balance), index.append(today)
+            aapl_balance += (aapl_evening_value - aapl_morning_value)
+            history.append(balance), index.append(today)
+            ref_history.append(ref_balance), aapl_history.append(aapl_balance)
             portfolio_history.append(omega)
 
-        nice_plot(index, [history, ref_history], ['Portfolio', 'Benchmark'], title=f'Portfolio balance evolution')
+        nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
+                  title=f'Portfolio balance evolution')
         from utils.constants import PERFORMERS
         pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS).plot()
         plt.show()

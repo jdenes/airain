@@ -6,7 +6,7 @@ from datetime import datetime
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
-from utils.constants import COMPANIES, PERFORMERS, COMPANIES_KEYWORDS
+from utils.constants import COMPANIES, PERFORMERS, COMPANIES_KEYWORDS, PAIRS
 from utils.logging import get_logger
 
 logger = get_logger()
@@ -37,14 +37,15 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
+        df['ratio'] = (df['close'] / df['open']) - 1
 
-        # Complete with Intrinio for past
-        # df2 = pd.read_csv(f'../data/intrinio/{asset.lower()}_prices.csv', encoding='utf-8', index_col=0)
-        # df2.index = df2.index.rename('date')
-        # df2 = df2.loc[~df2.index.duplicated(keep='last')].sort_index()
-        # df2.drop([col for col in df2 if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
+        # Really basic
+        df['asset'] = number
+        # df['labels'] = ((df[askcol].shift(-1) - df[bidcol].shift(-1)) > 0).astype(int)
+        df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
+        df.dropna(inplace=True)
 
-        # Add today results of Nikkei225
+        """ Add today results of Nikkei225 """
         jpn = pd.read_csv('../data/yahoo/^n225_prices.csv', encoding='utf-8', index_col=0)
         jpn.index = jpn.index.rename('date')
         jpn = jpn[['open', 'high', 'low', 'close']]
@@ -52,19 +53,15 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         jpn['jpn_labels'] = ((jpn['jpn_close'] - jpn['jpn_open']) > 0).astype(int)
         jpn = jpn.loc[~jpn.index.duplicated(keep='last')].sort_index()
         jpn = jpn.shift(-1)
-
-        # df = pd.concat([df2, df], axis=0)
-        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df = pd.concat([df, jpn], axis=1)
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
-        # df = df.ffill()
         df.dropna(inplace=True)
 
-        # shifted_askcol, shifted_bidcol = df[askcol].shift(-tradefreq), df[bidcol].shift(-tradefreq)
-        # df['labels'] = ((shifted_askcol - shifted_bidcol) > 0).astype(int)
-        df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
-
-        time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d', utc=True)  # %H:%M:%S', utc=True)
+        """ Time features """
+        try:
+            time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d', utc=True)
+        except ValueError:
+            time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d %H:%M:%S', utc=True)
         df['year'] = time_index.year
         df['month'] = time_index.month
         df['quarter'] = time_index.quarter
@@ -74,13 +71,16 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         df['wday'] = time_index.weekday
         df['dayofyear'] = time_index.dayofyear
 
+        """ Filter time data """
         df = df[df.index >= t0]
         df = df[df['wday'] < 5]
 
+        """ Delta features """
         for col in ['open', 'close']:
             df[col + '_delta_1'] = df[col].diff(1)
             df[col + '_delta_7'] = df[col].diff(7)
 
+        """ Lag and SMA features """
         for lag in [1, 7, 14, 30, 60]:
             lag_col = 'lag_' + str(lag)
             df[lag_col + '_ask'] = df[askcol].shift(lag)
@@ -92,20 +92,20 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
                 df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x: x.rolling(win).mean())
                 df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
 
-        df['asset'] = number
+        df.dropna(inplace=True)
+
+        """ Asset features """
         df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
         df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
 
+        """ Aggregate time features """
         for period in ['quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day', 'year'
             for col in ['labels', 'volume', askcol, bidcol]:
                 df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
-                # if col != 'labels':
-                #     df[f'{period}_adj_{col}'] = df[f'{period}_mean_{col}'] / df[f'{period}_std_{col}']
-                #     df[f'{period}_diff_{col}'] = df[col] - df[f'{period}_mean_{col}']
 
-        """ Embeddings """
-        path = '../data/intrinio/' + f'{asset.lower()}_news_embed.csv'
+        """ News embeddings """
+        path = f'{folder}{asset.lower()}_news_embed.csv'
         if not os.path.exists(path):
             embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset])
             embed.to_csv(path, encoding='utf-8')
@@ -125,28 +125,28 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         embed = pd.DataFrame(pca.transform(embed), index=embed.index)
         embed.columns = [f"news_sum_{i}" for i in embed]
 
-        """ Sentiment """
+        """ Sentiment inference """
         # path = f'{folder}{asset.lower()}_news_sentiment.csv'
         # if not os.path.exists(path):
-        #     sentiment = sentiment_analysis(asset, folder, KEYWORDS[asset])
+        #     sentiment = sentiment_analysis(asset, folder, COMPANIES_KEYWORDS[asset])
         #     sentiment.to_csv(path, encoding='utf-8')
         # else:
         #     sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
         #     if update_embed:
         #         last_embed = sentiment.index.max()
-        #         sentiment = sentiment_analysis(asset, folder, KEYWORDS[asset], last_day=last_embed)
+        #         sentiment = sentiment_analysis(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
         #         write_data(path, sentiment)
         #         sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
 
-        df = pd.concat([df, embed], axis=1).sort_index()
-        df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
+        # df = pd.concat([df, embed], axis=1).sort_index()
+        # df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
         # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
-        df = df[df[[c for c in df if c not in embed and c != 'labels']].notnull().all(axis=1)]
-        del embed
+        # df = df[df[[c for c in df if c not in embed.columns and c != 'labels']].notnull().all(axis=1)]
+        # del embed
 
-        import numpy as np
-        mat = df[[c for c in df if 'news' in c]].to_numpy()
-        df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
+        # import numpy as np
+        # mat = df[[c for c in df if 'news' in c]].to_numpy()
+        # df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
 
         # Hodrick-Prescott filter
         # for count, i in enumerate(df.index):
@@ -161,13 +161,14 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     # Computing overall aggregate features
     res = res.rename_axis('date').sort_values(['date', 'asset'])
 
-    for period in ['month', 'day', 'wday']:  # 'year'
-        for col in ['labels', 'volume']:
-            res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
-            res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
+    """ Overall aggregated time features """
+    # for period in ['month', 'day', 'wday']:  # 'year'
+    #     for col in ['labels', 'volume']:
+    #         res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+    #         res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
 
-    for col in ['lag_1_labels', 'volume']:
-        res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
+    # for col in ['lag_1_labels', 'volume']:
+    #     res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
 
     if start_from is not None:
         res = res[res.index >= start_from]

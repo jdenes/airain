@@ -9,11 +9,11 @@ from utils.plots import nice_plot
 from utils.basics import write_data
 from utils.logging import get_logger
 from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
-from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices
+from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices, fetch_poloniex_prices
 from utils.data_fetching import fetch_yahoo_news, fetch_yahoo_prices, fetch_yahoo_intraday
 
 from data_preparation import load_data, precompute_embeddings
-from utils.constants import COMPANIES, PERFORMERS, LEVERAGES
+from utils.constants import COMPANIES, PERFORMERS, LEVERAGES, PAIRS
 
 logger = get_logger()
 config = configparser.ConfigParser()
@@ -27,12 +27,12 @@ TARGET_COL = 'close'
 DATAFREQ = 1
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
-VERSION = 3
-H = 20
+VERSION = 5
+H = 7
 EPOCHS = 10000
 T0 = '2000-01-01'
-T1 = '2019-01-01'
-T2 = '2020-01-01'
+T1 = '2020-08-01'
+T2 = '2021-01-01'
 
 
 def fetch_intrinio_data():
@@ -50,6 +50,13 @@ def fetch_intrinio_data():
         path = folder + company.lower()
         fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
         fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
+
+
+def fetch_poloniex_data():
+    folder = '../data/poloniex/'
+    for pair in PAIRS:
+        path = folder + pair.lower()
+        fetch_poloniex_prices(filename=path+'.csv', currency_pair=pair)
 
 
 def fetch_yahoo_data():
@@ -78,13 +85,13 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    # df, labels = load_data(folder, T0, T1)
-    # trader.ingest_traindata(df, labels, duplicate=False)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
-    # trader.train(epochs=EPOCHS)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
+    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    df, labels = load_data(folder, T0, T1)
+    trader.ingest_traindata(df, labels, duplicate=False)
+    trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.train(epochs=EPOCHS)
+    trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(plot=plot)
 
 
@@ -121,6 +128,7 @@ def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
             X, P, y, ind = trader.transform_data(df, labels)
             df = df.loc[ind]
 
+            print(len(df))
             preds = trader.predict(X, P)
             # y_true, y_pred = pd.Series(y.flatten()), pd.Series(preds)
             # from sklearn.metrics import classification_report
@@ -406,6 +414,7 @@ def heartbeat():
 if __name__ == "__main__":
     # fetch_intrinio_data()
     # fetch_yahoo_data()
+    # fetch_poloniex_data()
     # update_data()
     train_model()
     # backtest(plot=False)
@@ -416,8 +425,9 @@ if __name__ == "__main__":
     # yesterday_perf()
     # heartbeat()
 
-    # for company in COMPANIES:
-    #     folder = '../data/intrinio/'
-    #     path = folder + company.lower()
-    #     df = pd.read_csv(f'{path}_prices.csv', index_col=0)
-    #     print(company, df.index.min())
+    # for pair in PAIRS:
+    #     folder = '../data/poloniex/'
+    #     path = folder + pair.lower()
+    #     df = pd.read_csv(f'{path}.csv', index_col=0)
+    #     df = df[df.index > '2000']
+    #     print(pair, df.index.min())

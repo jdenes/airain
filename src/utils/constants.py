@@ -54,3 +54,10 @@ Full list of DOW companies.
 """
 DOW = ['AXP', 'AMGN', 'AAPL', 'BA', 'CAT', 'CSCO', 'CVX', 'GS', 'HD', 'HON', 'IBM', 'INTC', 'JNJ', 'KO', 'JPM', 'MCD',
        'MMM', 'MRK', 'MSFT', 'NLE', 'PG', 'TRV', 'UNH', 'CRM', 'VZ', 'V', 'WBA', 'WMT', 'DIS', 'DOW']
+
+"""
+List of main Poloniex currency pairs.
+"""
+
+PAIRS = ["USDC_ATOM", "USDC_BTC", "USDC_DASH", "USDC_DOGE", "USDC_EOS", "USDC_ETC", "USDC_ETH",
+         "USDC_LTC", "USDC_STR", "USDC_TRX", "USDC_USDT", "USDC_XMR", "USDC_XRP", "USDC_ZEC"]

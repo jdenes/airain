@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 import yahooquery
-
+import time
 from .basics import write_data, clean_string
 
 
@@ -76,6 +76,28 @@ def fetch_intrinio_prices(filename, api_key, company, update=False):
         df.to_csv(filename, encoding='utf-8')
 
 
+def fetch_poloniex_prices(filename, currency_pair, period=1800):
+    """
+    Fetches and saves Poloniex API to get currency pair historical prices.
+
+    :param str filename: name of the file where to store the obtained data.
+    :param str currency_pair: currency pair (e.g. USDT_BTC, BTC_ETH).
+    :param int period: data frequency (one of 300, 900, 1800, 7200, 14400, 86400), default is 1800.
+    :rtype: None
+    """
+
+    pair = currency_pair.upper()
+    end = int(time.time())
+    end = 1577833200
+    start = 1546297200  # 2020-01-01
+    url = f"https://poloniex.com/public?command=returnChartData&currencyPair={pair}&start={start}&end={end}&period={period}"
+    data = requests.get(url).json()
+    df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
+    df = df.set_index('date', drop=True)
+    write_data(filename, df)
+
+
 def fetch_yahoo_news(filename, company):
     """
     Fetches and saves Yahoo API to get assets' historical news.
@@ -122,7 +144,7 @@ def fetch_yahoo_intraday(filename, company):
     """
 
     ticker = yahooquery.Ticker(company)
-    df = ticker.history(interval='5m')
+    df = ticker.history(interval='5m', period='60d')
     df.index = df.index.droplevel('symbol')
     df.index = pd.to_datetime(df.index).strftime('%Y-%m-%d %H:%M:%S')
     write_data(filename, df)

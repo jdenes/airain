@@ -23,7 +23,11 @@ def nice_plot(ind, curves_list, names_list, title):
     plt.rcParams['font.sans-serif'] = 'Lato'
     plt.rcParams['font.weight'] = 500
     from datetime import datetime
-    ind = [datetime.strptime(x, '%Y-%m-%d') for x in ind]
+    try:
+        ind = [datetime.strptime(x, '%Y-%m-%d') for x in ind]
+    except ValueError:
+        ind = [datetime.strptime(x, '%Y-%m-%d %H:%M:%S') for x in ind]
+
     fig, ax = plt.subplots(figsize=(13, 7))
     for i, x in enumerate(curves_list):
         # c_list = ['gray']
