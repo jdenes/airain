@@ -556,7 +556,7 @@ class LstmContextTrader(Trader):
         lstm_layers = []
         for i in range(self.X_train.shape[-1]):
             feature_tensor = input_layer[:, :, :, i]
-            lstm_layer = tf.keras.layers.LSTM(self.num_assets+1, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(self.num_assets+1, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -616,89 +616,88 @@ class LstmContextTrader(Trader):
 
         super().train()
 
-        self.y_train = np.append(np.zeros((len(self.y_train), 1)), self.y_train, axis=1)
-        self.y_test = np.append(np.zeros((len(self.y_test), 1)), self.y_test, axis=1)
-        self.y_val = np.append(np.zeros((len(self.y_val), 1)), self.y_val, axis=1)
-        self.y_train = (self.y_train == self.y_train.max(axis=1)[:, None]).astype(int)
-        self.y_test = (self.y_test == self.y_test.max(axis=1)[:, None]).astype(int)
-        self.y_val = (self.y_val == self.y_val.max(axis=1)[:, None]).astype(int)
-        print(self.X_train)
+        # self.y_train = np.append(np.zeros((len(self.y_train), 1)), self.y_train, axis=1)
+        # self.y_test = np.append(np.zeros((len(self.y_test), 1)), self.y_test, axis=1)
+        # self.y_val = np.append(np.zeros((len(self.y_val), 1)), self.y_val, axis=1)
+        # self.y_train = (self.y_train == self.y_train.max(axis=1)[:, None]).astype(int)
+        # self.y_test = (self.y_test == self.y_test.max(axis=1)[:, None]).astype(int)
+        # self.y_val = (self.y_val == self.y_val.max(axis=1)[:, None]).astype(int)
 
-        # train_data = tf.data.Dataset.from_tensor_slices(
-        #     ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
-        # train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size)
-        # valid_data = tf.data.Dataset.from_tensor_slices(
-        #     ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
-        # valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
+        train_data = tf.data.Dataset.from_tensor_slices(
+            ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
+        train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size)
+        valid_data = tf.data.Dataset.from_tensor_slices(
+            ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
+        valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
-        # self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
 
-        self.model.compile(loss='categorical_crossentropy',
-                           optimizer=tf.keras.optimizers.Adam(lr=1e-9),
-                           metrics=['accuracy'])
-        self.model.fit(self.X_train, self.y_train, validation_data=(self.X_val, self.y_val),
-                       batch_size=128, epochs=10, shuffle=True, verbose=True)
+        # self.model.compile(loss='categorical_crossentropy',
+        #                    optimizer=tf.keras.optimizers.Adam(lr=1e-9),
+        #                    metrics=['accuracy'])
+        # self.model.fit(self.X_train, self.y_train, validation_data=(self.X_val, self.y_val),
+        #                batch_size=128, epochs=10, shuffle=True, verbose=True)
 
-        # train_loss_results = []
-        # epoch_loss_avg = tf.keras.metrics.Mean()
-        # epoch_val_loss_avg = tf.keras.metrics.Mean()
-        # best_loss, best_epoch, best_model = 1000, self.epochs, None
-        # no_progress = 0
-        #
-        # @tf.function
-        # def train_step(X, y):
-        #     cash_price = tf.ones((y.shape[0], 1))  # for cash, price change is always zero
-        #     future_prices = tf.concat((cash_price, y), axis=1)
-        #     loss_value, grads = self.gradient(X, future_prices)
-        #     self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
-        #     epoch_loss_avg.update_state(loss_value)
-        #     return loss_value
-        #
-        # @tf.function
-        # def val_step(X, y):
-        #     cash_price = tf.zeros((y.shape[0], 1))
-        #     future_prices = tf.concat((cash_price, y), axis=1)
-        #     loss_value = self.loss(X, future_prices)
-        #     epoch_val_loss_avg.update_state(loss_value)
-        #     return loss_value
-        #
-        # for epoch in range(self.epochs):
-        #
-        #     for features, labels in train_data:
-        #         train_step(features, labels)
-        #
-        #     for val_features, val_labels in valid_data:
-        #         val_step(val_features, val_labels)
-        #
-        #     train_loss = epoch_loss_avg.result()
-        #     val_loss = epoch_val_loss_avg.result()
-        #     train_loss_results.append(train_loss)
-        #     print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
-        #
-        #     if val_loss < best_loss:
-        #         no_progress = 0
-        #         best_loss, best_epoch = val_loss, epoch
-        #         tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
-        #     else:
-        #         no_progress += 1
-        #
-        #     epoch_loss_avg.reset_states()
-        #     epoch_val_loss_avg.reset_states()
-        #
-        #     if patience is not None:
-        #         if no_progress > patience:
-        #             print(f'No progress since {patience} epochs, early stopping')
-        #             break
-        #
-        # if best_epoch != self.epochs-1:
-        #     print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
-        #     self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
-        #
-        # print('_' * 100, '\n')
-        # print(self.model(features)[-1].numpy())
-        # print(self.model(features)[0].numpy())
-        # print(np.argmax(self.model(features).numpy(), axis=1))
+        train_loss_results = []
+        epoch_loss_avg = tf.keras.metrics.Mean()
+        epoch_val_loss_avg = tf.keras.metrics.Mean()
+        best_loss, best_epoch, best_model = 1000, self.epochs, None
+        no_progress = 0
+
+        @tf.function
+        def train_step(X, y):
+            cash_price = tf.ones((y.shape[0], 1))  # for cash, price change is always zero
+            future_prices = tf.concat((cash_price, y), axis=1)
+            loss_value, grads = self.gradient(X, future_prices)
+            self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
+            epoch_loss_avg.update_state(loss_value)
+            return loss_value
+
+        @tf.function
+        def val_step(X, y):
+            cash_price = tf.zeros((y.shape[0], 1))
+            future_prices = tf.concat((cash_price, y), axis=1)
+            loss_value = self.loss(X, future_prices)
+            epoch_val_loss_avg.update_state(loss_value)
+            return loss_value
+
+        for epoch in range(self.epochs):
+
+            for features, labels in train_data:
+                train_step(features, labels)
+
+            for val_features, val_labels in valid_data:
+                val_step(val_features, val_labels)
+
+            train_loss = epoch_loss_avg.result()
+            val_loss = epoch_val_loss_avg.result()
+            train_loss_results.append(train_loss)
+            print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
+
+            if val_loss < best_loss:
+                no_progress = 0
+                best_loss, best_epoch = val_loss, epoch
+                tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
+            else:
+                no_progress += 1
+
+            epoch_loss_avg.reset_states()
+            epoch_val_loss_avg.reset_states()
+
+            if patience is not None:
+                if no_progress > patience:
+                    print(f'No progress since {patience} epochs, early stopping')
+                    break
+
+        if best_epoch != self.epochs-1:
+            print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
+            self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
+
+        print('_' * 100, '\n')
+        print(self.model(features)[-1].numpy())
+        print(self.model(features)[0].numpy())
+        print(np.argmax(self.model(features).numpy(), axis=1))
 
     def predict(self, X, P):
         """
@@ -706,13 +705,19 @@ class LstmContextTrader(Trader):
         """
         return self.model((X, P))
 
-    def test(self, plot=False):
+    def test(self, test_on='test', plot=False):
         """
         Once model is trained, uses test data to output performance metrics.
         """
 
         # Prediction at day t is computed at day t-1
-        X, P, ind = self.X_test, self.P_test, self.ind_test
+        if test_on == 'train':
+            X, P, ind = self.X_train, self.P_train, self.ind_train
+        elif test_on == 'val':
+            X, P, ind = self.X_val, self.P_val, self.ind_val
+        else:
+            X, P, ind = self.X_test, self.P_test, self.ind_test
+
         # omegas = self.model((X, P))
         omegas = self.model(X)
         gamble = balance = ref_balance = aapl_balance = 100000
@@ -721,7 +726,7 @@ class LstmContextTrader(Trader):
 
         for i in range(1, len(ind)):
             today = ind[i]
-            open_price, close_price = P[i][:, 3], P[i][:, 2]
+            open_price, close_price = P[i-1][:, 2], P[i][:, 2]
             open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
             omega = omegas[i - 1]
             ref_omega = np.ones((len(omega))) / len(omega)
@@ -752,6 +757,11 @@ class LstmContextTrader(Trader):
         from utils.constants import PERFORMERS
         pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS).plot()
         plt.show()
+
+        ret, _ret = pd.Series(history).diff(), pd.Series(ref_history).diff()
+        prc_ret, _prc_ret = 100*(ret/pd.Series(history)).dropna(), 100*(_ret/pd.Series(ref_history)).dropna()
+        print(f"PORTFO - Positive days: {100 * (ret>0).mean():.2f}%. Average daily return: {prc_ret.mean():.4f}%.")
+        print(f"MARKET - Positive days: {100 * (_ret>0).mean():.2f}%. Average daily return: {_prc_ret.mean():.4f}%.")
 
     def save(self, model_name):
         """

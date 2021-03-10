@@ -42,7 +42,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         # Really basic
         df['asset'] = number
         # df['labels'] = ((df[askcol].shift(-1) - df[bidcol].shift(-1)) > 0).astype(int)
-        df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
+        df['labels'] = df['close'].shift(-1) / df['close'].shift(0)  # relative change
         df.dropna(inplace=True)
 
         """ Add today results of Nikkei225 """
@@ -105,25 +105,25 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
                 df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
 
         """ News embeddings """
-        path = f'{folder}{asset.lower()}_news_embed.csv'
-        if not os.path.exists(path):
-            embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset])
-            embed.to_csv(path, encoding='utf-8')
-        else:
-            embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-            if update_embed:
-                last_embed = embed.index.max()
-                embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
-                write_data(path, embed)
-                embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-        dim = 60
-        pca_path = f"../data/pca_sbert_{dim}.joblib"
-        if not os.path.exists(pca_path):
-            pca = train_sbert_pca(t1=t1, dim=dim)
-        else:
-            pca = joblib.load(pca_path)
-        embed = pd.DataFrame(pca.transform(embed), index=embed.index)
-        embed.columns = [f"news_sum_{i}" for i in embed]
+        # path = f'../data/intrinio/{asset.lower()}_news_embed.csv'
+        # if not os.path.exists(path):
+        #     embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset])
+        #     embed.to_csv(path, encoding='utf-8')
+        # else:
+        #     embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        #     if update_embed:
+        #         last_embed = embed.index.max()
+        #         embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
+        #         write_data(path, embed)
+        #         embed = pd.read_csv(path, encoding='utf-8', index_col=0)
+        # dim = 60
+        # pca_path = f"../data/pca_sbert_{dim}.joblib"
+        # if not os.path.exists(pca_path):
+        #     pca = train_sbert_pca(t1=t1, dim=dim)
+        # else:
+        #     pca = joblib.load(pca_path)
+        # embed = pd.DataFrame(pca.transform(embed), index=embed.index)
+        # embed.columns = [f"news_sum_{i}" for i in embed]
 
         """ Sentiment inference """
         # path = f'{folder}{asset.lower()}_news_sentiment.csv'
@@ -140,8 +140,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
 
         # df = pd.concat([df, embed], axis=1).sort_index()
         # df[[c for c in embed]] = df[[c for c in embed]].fillna(method='ffill')
-        # df[[c for c in sentiment]] = df[[c for c in sentiment]].fillna(method='ffill')
-        # df = df[df[[c for c in df if c not in embed.columns and c != 'labels']].notnull().all(axis=1)]
+        # # df = df[df[[c for c in df if c not in embed.columns and c != 'labels']].notnull().all(axis=1)]
         # del embed
 
         # import numpy as np
@@ -162,13 +161,13 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     res = res.rename_axis('date').sort_values(['date', 'asset'])
 
     """ Overall aggregated time features """
-    # for period in ['month', 'day', 'wday']:  # 'year'
-    #     for col in ['labels', 'volume']:
-    #         res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
-    #         res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
+    for period in ['month', 'day', 'wday']:  # 'year'
+        for col in ['labels', 'volume']:
+            res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+            res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
 
-    # for col in ['lag_1_labels', 'volume']:
-    #     res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
+    for col in ['lag_1_labels', 'volume']:
+        res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
 
     if start_from is not None:
         res = res[res.index >= start_from]

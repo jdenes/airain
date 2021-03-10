@@ -28,11 +28,11 @@ DATAFREQ = 1
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
 VERSION = 5
-H = 7
+H = 10
 EPOCHS = 10000
 T0 = '2000-01-01'
-T1 = '2020-08-01'
-T2 = '2021-01-01'
+T1 = '2019-01-01'
+T2 = '2020-01-01'
 
 
 def fetch_intrinio_data():
@@ -84,15 +84,15 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
-    folder = '../data/yahoo/'
-    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    df, labels = load_data(folder, T0, T1)
-    trader.ingest_traindata(df, labels, duplicate=False)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.train(epochs=EPOCHS)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(plot=plot)
+    # folder = '../data/yahoo/'
+    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # df, labels = load_data(folder, T0, T1)
+    # trader.ingest_traindata(df, labels, duplicate=False)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.train(epochs=EPOCHS)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.test(test_on='train', plot=plot)
 
 
 def backtest(plot=False, precomputed_df=None, precomputed_labels=None):

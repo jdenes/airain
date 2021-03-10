@@ -19,15 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Experiments with news">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Attempts with bad student project + cryptos =&gt; bad">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/constants.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/plots.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/plots.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -581,7 +577,14 @@
       <option name="project" value="LOCAL" />
       <updated>1614587429607</updated>
     </task>
-    <option name="localTasksCounter" value="31" />
+    <task id="LOCAL-00031" summary="Attempts with bad student project + cryptos =&gt; bad">
+      <created>1615327794743</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1615327794743</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -600,7 +603,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Added sentiment analysis addon, not convincing" />
     <MESSAGE value="Added grid search for hyperparameter optimization" />
     <MESSAGE value="Finally took time to create distinct LGBM and LSTM classes" />
     <MESSAGE value="A bit of research on LSTM, not working" />
@@ -625,6 +627,7 @@
     <MESSAGE value="Reduced learning rate even more" />
     <MESSAGE value="Increasing RNN output to 5 sometimes gives good results" />
     <MESSAGE value="Experiments with news" />
-    <option name="LAST_COMMIT_MESSAGE" value="Experiments with news" />
+    <MESSAGE value="Attempts with bad student project + cryptos =&gt; bad" />
+    <option name="LAST_COMMIT_MESSAGE" value="Attempts with bad student project + cryptos =&gt; bad" />
   </component>
 </project>
