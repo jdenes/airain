@@ -195,7 +195,7 @@ def simple_indicators():
     texts['sentiment'] = predict_sentiment(texts['summary'].to_list())
     count = texts.groupby(texts.index).count()['summary'].rename('count')
     sent = texts.groupby(texts.index).mean()['sentiment'].rename('sentiment')
-    prices = pd.read_csv('../data/yahoo/aapl_prices.csv', encoding='utf-8', index_col=0)
+    prices = pd.read_csv('../../data/yahoo/aapl_prices.csv', encoding='utf-8', index_col=0)
     prices['labels'] = ((prices['close'].shift(-5) - prices['open']) > 0).astype(int)
     res = pd.concat([special_preprocess_news(asset, '../data/intrinio/', False) for asset in KEYWORDS.keys()])
     res = res.groupby(res.index).count()['summary'].rename('total')

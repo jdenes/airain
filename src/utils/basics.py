@@ -1,3 +1,6 @@
+from .logging import get_logger
+logger = get_logger()
+
 
 def write_data(path, new_row, same_ids=False):
     """
@@ -94,3 +97,32 @@ def evaluate_portfolio(portfolio, prices):
     """
     import numpy as np
     return np.sum(portfolio * prices).round(2)
+
+
+def safe_try(function, arg=None, max_attempts=999):
+    """
+    A safe environment to execute functions likely to fail (e.g. webdriver, scrapping...).
+
+    :param function: function to safely execute.
+    :param arg: one argument to feed the function (only one supported for now)
+    :param max_attempts: maximum attempts for executing the function.
+    :return: result of the function passed as argument.
+    :rtype: Any
+    """
+    res, attempts = None, 0
+    while attempts < max_attempts:
+        try:
+            if arg is None:
+                res = function()
+            else:
+                res = function(arg)
+        except Exception as ex:
+            attempts += 1
+            logger.warning(f"execution of function {function.__name__.strip()} failed {attempts} times."
+                           f"Exception met: {ex}")
+            continue
+        break
+    if attempts == max_attempts:
+        logger.error(f"too many attempts to safely execute function {function.__name__.strip()}")
+        raise Exception("Too many attempts to safely execute")
+    return res

@@ -6,14 +6,13 @@ from datetime import datetime as dt
 from traders import LGBMTrader, LstmContextTrader
 from api_emulator import Emulator
 from utils.plots import nice_plot
-from utils.basics import write_data
+from utils.basics import write_data, safe_try
 from utils.logging import get_logger
 from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
-from utils.data_fetching import fetch_intrinio_news, fetch_intrinio_prices, fetch_poloniex_prices
-from utils.data_fetching import fetch_yahoo_news, fetch_yahoo_prices, fetch_yahoo_intraday
+from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
 
-from data_preparation import load_data, precompute_embeddings
-from utils.constants import COMPANIES, PERFORMERS, LEVERAGES, PAIRS
+from data_preparation import load_data
+from utils.constants import COMPANIES, PERFORMERS, LEVERAGES
 
 logger = get_logger()
 config = configparser.ConfigParser()
@@ -22,58 +21,18 @@ user_name = config['TRADING212']['user_name']
 pwd = config['TRADING212']['password']
 
 # Setting constant values
-UNIT = 'H'  # 'm' or 'd'
 TARGET_COL = 'close'
-DATAFREQ = 1
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
 VERSION = 5
 H = 10
 EPOCHS = 10000
-T0 = '2000-01-01'
-T1 = '2019-01-01'
-T2 = '2020-01-01'
-
-
-def fetch_intrinio_data():
-    """
-    Fetches news and prices data for all companies.
-
-    :rtype: None
-    """
-    folder = '../data/intrinio/'
-    parser = configparser.ConfigParser()
-    parser.read('../resources/intrinio.cfg')
-    api_key = parser['INTRINIO']['access_token']
-    for company in COMPANIES:
-        print(f'Fetching {company} data...')
-        path = folder + company.lower()
-        fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
-        fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
-
-
-def fetch_poloniex_data():
-    folder = '../data/poloniex/'
-    for pair in PAIRS:
-        path = folder + pair.lower()
-        fetch_poloniex_prices(filename=path+'.csv', currency_pair=pair)
-
-
-def fetch_yahoo_data():
-    """
-    Fetches or updates news and prices data for all companies.
-
-    :rtype: None
-    """
-    folder = '../data/yahoo/'
-    for company in COMPANIES:
-        print(f'Fetching {company} data...')
-        path = folder + company.lower()
-        fetch_yahoo_news(filename=path + '_news.csv', company=company)
-        fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
-        fetch_yahoo_intraday(f'../data/yahoo_intraday/{company.lower()}_prices.csv', company=company)
-    fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')
-    precompute_embeddings(folder)
+T0 = '2010-01-01'
+T1 = '2020-01-01'
+T2 = '2021-01-01'
+# 2010: PORTFO - Positive days: 59.96%. Average daily return: 0.0843%.
+# 2000: PORTFO - Positive days: 57.95%. Average daily return: 0.0854%.
+# 2000: MARKET - Positive days: 57.75%. Average daily return: 0.0541%.
 
 
 def train_model(plot=True):
@@ -84,15 +43,15 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
-    # folder = '../data/yahoo/'
-    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    # df, labels = load_data(folder, T0, T1)
-    # trader.ingest_traindata(df, labels, duplicate=False)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
-    # trader.train(epochs=EPOCHS)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(test_on='train', plot=plot)
+    folder = '../data/yahoo/'
+    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    df, labels = load_data(folder, T0, T1)
+    trader.ingest_traindata(df, labels, duplicate=False)
+    trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.train(epochs=EPOCHS)
+    trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.test(test_on='test', plot=plot)
 
 
 def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
@@ -252,18 +211,6 @@ def yesterday_perf():
     print(f'Expected P/L was {sum(exp_profits):.2f}. True P/L was {sum(true_profits):.2f}.')
 
 
-def update_data():
-    folder = '../data/intrinio/'
-    parser = configparser.ConfigParser()
-    parser.read('../resources/intrinio.cfg')
-    api_key = parser['INTRINIO']['access_token']
-    for company in COMPANIES:
-        path = folder + company.lower()
-        fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company, update=True)
-        fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company, update=True)
-    precompute_embeddings(folder)
-
-
 def get_recommendations():
     now = dt.now()
     folder = '../data/yahoo/'
@@ -321,65 +268,6 @@ def get_trades_results():
     emulator.quit()
 
 
-def safe_try(function, arg=None, max_attempts=999):
-    """
-    A safe environment to execute functions likely to fail (e.g. webdriver, scrapping...).
-
-    :param function: function to safely execute.
-    :param arg: one argument to feed the function (only one supported for now)
-    :param max_attempts: maximum attempts for executing the function.
-    :return: result of the function passed as argument.
-    :rtype: Any
-    """
-    res, attempts = None, 0
-    while attempts < max_attempts:
-        try:
-            if arg is None:
-                res = function()
-            else:
-                res = function(arg)
-        except Exception as ex:
-            attempts += 1
-            logger.warning(f"execution of function {function.__name__.strip()} failed {attempts} times."
-                           f"Exception met: {ex}")
-            continue
-        break
-    if attempts == max_attempts:
-        logger.error(f"too many attempts to safely execute function {function.__name__.strip()}")
-        raise Exception("Too many attempts to safely execute")
-    return res
-
-
-def grid_search():
-    """
-    Performs grid search to optimize a single parameter.
-    :rtype: None
-    """
-
-    folder = '../data/intrinio/'
-    df, labels = load_data(folder, T0, T1)
-    trader = LGBMTrader(h=H, normalize=True)
-    trader.ingest_traindata(df, labels)
-    test_df, test_labels = load_data(folder, T0, T1, start_from=trader.t2)
-    del df, labels
-
-    res = []
-    for param in [0.1, 0.2, 0.5, 0.9]:
-        trader.lgb_params['learning_rate'] = param
-        trader.train()
-        trader.test(plot=False)
-        trader.save(model_name=f'Huorn_v{VERSION}')
-        metrics = backtest(plot=False, precomputed_df=test_df, precomputed_labels=test_labels)
-        stats = {'num_iterations': param,
-                 'mean_ret': metrics['assets_mean_returns'],
-                 'pos_days': metrics['portfolio_positive_days'],
-                 'prof_assets': metrics['count_profitable_assets']}
-        print(f"-- Num iterations {param} --\t mean returns: {stats['mean_ret']}%\t"
-              f"positive days: {stats['pos_days']}%\t profitable assets: {stats['prof_assets']}%\t")
-        res.append(stats)
-    print('\n\n\n\n', pd.DataFrame(res))
-
-
 def heartbeat():
     """
     Live trading program, running forever.
@@ -412,13 +300,10 @@ def heartbeat():
 
 
 if __name__ == "__main__":
-    # fetch_intrinio_data()
-    # fetch_yahoo_data()
-    # fetch_poloniex_data()
-    # update_data()
+
+    # fetch_yahoo_data(companies=COMPANIES)
     train_model()
-    # backtest(plot=False)
-    # grid_search()
+
     # o = get_recommendations()
     # place_orders(o)
     # get_trades_results()

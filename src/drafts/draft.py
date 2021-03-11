@@ -244,3 +244,33 @@ def merge_finance_csv(folder='../data/finance', filename='../data/finance/global
 #                validation_data=val_data,
 #                callbacks=[checkpoint]
 #                )
+
+
+# def grid_search():
+#     """
+#     Performs grid search to optimize a single parameter.
+#     :rtype: None
+#     """
+#
+#     folder = '../data/intrinio/'
+#     df, labels = load_data(folder, T0, T1)
+#     trader = LGBMTrader(h=H, normalize=True)
+#     trader.ingest_traindata(df, labels)
+#     test_df, test_labels = load_data(folder, T0, T1, start_from=trader.t2)
+#     del df, labels
+#
+#     res = []
+#     for param in [0.1, 0.2, 0.5, 0.9]:
+#         trader.lgb_params['learning_rate'] = param
+#         trader.train()
+#         trader.test(plot=False)
+#         trader.save(model_name=f'Huorn_v{VERSION}')
+#         metrics = backtest(plot=False, precomputed_df=test_df, precomputed_labels=test_labels)
+#         stats = {'num_iterations': param,
+#                  'mean_ret': metrics['assets_mean_returns'],
+#                  'pos_days': metrics['portfolio_positive_days'],
+#                  'prof_assets': metrics['count_profitable_assets']}
+#         print(f"-- Num iterations {param} --\t mean returns: {stats['mean_ret']}%\t"
+#               f"positive days: {stats['pos_days']}%\t profitable assets: {stats['prof_assets']}%\t")
+#         res.append(stats)
+#     print('\n\n\n\n', pd.DataFrame(res))

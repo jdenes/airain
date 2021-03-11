@@ -1,7 +1,8 @@
-import pandas as pd
-import requests
-import yahooquery
 import time
+import requests
+import configparser
+import pandas as pd
+import yahooquery
 from .basics import write_data, clean_string
 
 
@@ -86,11 +87,10 @@ def fetch_poloniex_prices(filename, currency_pair, period=1800):
     :rtype: None
     """
 
-    pair = currency_pair.upper()
-    end = int(time.time())
-    end = 1577833200
-    start = 1546297200  # 2020-01-01
-    url = f"https://poloniex.com/public?command=returnChartData&currencyPair={pair}&start={start}&end={end}&period={period}"
+    p = currency_pair.upper()
+    e = int(time.time())
+    s = 1546297200  # 2020-01-01
+    url = f"https://poloniex.com/public?command=returnChartData&currencyPair={p}&start={s}&end={e}&period={period}"
     data = requests.get(url).json()
     df = pd.DataFrame(data)
     df['date'] = pd.to_datetime(df['date'], unit='s').dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -130,7 +130,7 @@ def fetch_yahoo_prices(filename, company):
     ticker = yahooquery.Ticker(company)
     df = ticker.history(period='max')
     df.index = df.index.droplevel('symbol')
-    df.index = pd.to_datetime(df.index).strftime('%Y-%m-%d')
+    df.index = pd.to_datetime(df.index.to_list()).strftime('%Y-%m-%d')
     write_data(filename, df)
 
 
@@ -146,5 +146,53 @@ def fetch_yahoo_intraday(filename, company):
     ticker = yahooquery.Ticker(company)
     df = ticker.history(interval='5m', period='60d')
     df.index = df.index.droplevel('symbol')
-    df.index = pd.to_datetime(df.index).strftime('%Y-%m-%d %H:%M:%S')
+    df.index = pd.to_datetime(df.index.to_list()).strftime('%Y-%m-%d %H:%M:%S')
     write_data(filename, df)
+
+
+def fetch_intrinio_data(companies):
+    """
+    Fetches news and prices data for all companies.
+
+    :param list companies: list of companies symbol for which to get data (e.g ['AAPL', 'MSFT'])
+    :rtype: None
+    """
+    folder = '../data/intrinio/'
+    parser = configparser.ConfigParser()
+    parser.read('../resources/intrinio.cfg')
+    api_key = parser['INTRINIO']['access_token']
+    for company in companies:
+        print(f'Fetching {company} data...')
+        path = folder + company.lower()
+        fetch_intrinio_news(filename=path + '_news.csv', api_key=api_key, company=company)
+        fetch_intrinio_prices(filename=path + '_prices.csv', api_key=api_key, company=company)
+
+
+def fetch_poloniex_data(pairs):
+    """
+    Fetches or updates prices data for all crypto pairs provided.
+
+    :param list pairs: list of companies pair for which to get data (e.g ['BTC_ETH'])
+    :return:
+    """
+    folder = '../data/poloniex/'
+    for pair in pairs:
+        path = folder + pair.lower()
+        fetch_poloniex_prices(filename=path+'.csv', currency_pair=pair)
+
+
+def fetch_yahoo_data(companies):
+    """
+    Fetches or updates news and prices data for all companies provided.
+
+    :param list companies: list of companies symbol for which to get data (e.g ['AAPL', 'MSFT'])
+    :rtype: None
+    """
+    folder = '../data/yahoo/'
+    for company in companies:
+        print(f'Fetching {company} data...')
+        path = folder + company.lower()
+        fetch_yahoo_news(filename=path + '_news.csv', company=company)
+        fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
+        fetch_yahoo_intraday(f'../data/yahoo_intraday/{company.lower()}_prices.csv', company=company)
+    fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')

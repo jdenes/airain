@@ -19,11 +19,16 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Attempts with bad student project + cryptos =&gt; bad">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Good - saving nice settings using close-to-close">
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/draft.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/draft.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/live_trade.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/roberta_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/roberta_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/stats.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/stats.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/basics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/basics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -83,6 +88,7 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Julien Denes\Documents\Airain\src\drafts" />
       <recent name="C:\Users\Julien Denes\Documents\Airain\src\utils" />
     </key>
   </component>
@@ -143,7 +149,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/stats.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Julien Denes\Documents\Airain\src\drafts\stats.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -165,7 +171,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/roberta_model.py" />
+      <option name="SCRIPT_NAME" value="C:\Users\Julien Denes\Documents\Airain\src\drafts\roberta_model.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -584,7 +590,14 @@
       <option name="project" value="LOCAL" />
       <updated>1615327794743</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="Good - saving nice settings using close-to-close">
+      <created>1615396043918</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1615396043918</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -603,7 +616,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Added grid search for hyperparameter optimization" />
     <MESSAGE value="Finally took time to create distinct LGBM and LSTM classes" />
     <MESSAGE value="A bit of research on LSTM, not working" />
     <MESSAGE value="Split utils into subfiles + changed daily news aggregation" />
@@ -628,6 +640,7 @@
     <MESSAGE value="Increasing RNN output to 5 sometimes gives good results" />
     <MESSAGE value="Experiments with news" />
     <MESSAGE value="Attempts with bad student project + cryptos =&gt; bad" />
-    <option name="LAST_COMMIT_MESSAGE" value="Attempts with bad student project + cryptos =&gt; bad" />
+    <MESSAGE value="Good - saving nice settings using close-to-close" />
+    <option name="LAST_COMMIT_MESSAGE" value="Good - saving nice settings using close-to-close" />
   </component>
 </project>
