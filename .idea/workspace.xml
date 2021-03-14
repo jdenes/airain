@@ -19,16 +19,12 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Good - saving nice settings using close-to-close">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Settings are good, file reformatting">
+      <change afterPath="$PROJECT_DIR$/outputs/notes.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/draft.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/draft.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/live_trade.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/roberta_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/roberta_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/stats.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/stats.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/basics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/basics.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -597,7 +593,14 @@
       <option name="project" value="LOCAL" />
       <updated>1615396043918</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="Settings are good, file reformatting">
+      <created>1615462153165</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1615462153165</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -616,7 +619,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Finally took time to create distinct LGBM and LSTM classes" />
     <MESSAGE value="A bit of research on LSTM, not working" />
     <MESSAGE value="Split utils into subfiles + changed daily news aggregation" />
     <MESSAGE value="Changed .format for f-strings" />
@@ -641,6 +643,7 @@
     <MESSAGE value="Experiments with news" />
     <MESSAGE value="Attempts with bad student project + cryptos =&gt; bad" />
     <MESSAGE value="Good - saving nice settings using close-to-close" />
-    <option name="LAST_COMMIT_MESSAGE" value="Good - saving nice settings using close-to-close" />
+    <MESSAGE value="Settings are good, file reformatting" />
+    <option name="LAST_COMMIT_MESSAGE" value="Settings are good, file reformatting" />
   </component>
 </project>

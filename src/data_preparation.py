@@ -147,12 +147,13 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         # mat = df[[c for c in df if 'news' in c]].to_numpy()
         # df['news_entropy'] = -np.sum(mat * np.log(mat, where=(mat > 0)), axis=1)
 
-        # Hodrick-Prescott filter
-        # for count, i in enumerate(df.index):
-        #     if count > 5:
-        #         for col in ['volume', askcol, bidcol]:
-        #             cycle, trend = sm.tsa.filters.hpfilter(df[df.index <= i][col], 1600)
-        #             df.loc[i, col + '_cycle'], df.loc[i, col + '_trend'] = cycle[-1], trend[-1]
+        """ Hodrick-Prescott filter """
+        import statsmodels.api as sm
+        for count, i in enumerate(df.index):
+            if count > 5:
+                for col in ['volume', askcol, bidcol]:
+                    cycle, trend = sm.tsa.filters.hpfilter(df[df.index <= i][col], 1e6)
+                    df.loc[i, col + '_cycle'], df.loc[i, col + '_trend'] = cycle[-1], trend[-1]
 
         # df = df[df[[c for c in df if c != 'labels']].notnull().all(axis=1)]
         res = pd.concat([res, df], axis=0)

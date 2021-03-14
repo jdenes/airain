@@ -65,7 +65,7 @@ class Trader(object):
         """
         return None, None, None, np.array(0)
 
-    def ingest_traindata(self, df, labels, duplicate=False, testsize=0.1, valsize=0.1):
+    def ingest_data(self, df, labels, duplicate=False, testsize=0.1, valsize=0.1):
         """
         Loads data from csv file depending on data type.
         """
@@ -554,8 +554,8 @@ class LstmContextTrader(Trader):
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
         """ Step 1: one LSTM per feature, taking an (asset, window) matrix as input """
         lstm_layers = []
-        for i in range(self.X_train.shape[-1]):
-            feature_tensor = input_layer[:, :, :, i]
+        for i in range(self.X_train.shape[-2]):
+            feature_tensor = input_layer[:, :, i, :]
             lstm_layer = tf.keras.layers.SimpleRNN(self.num_assets+1, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
@@ -587,7 +587,7 @@ class LstmContextTrader(Trader):
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
         # baseline = tf.nn.relu(tf.math.reduce_mean(future_prices, axis=1) - 1) + 1  # max(return, 1)
         # loss_value = -tf.math.reduce_mean(portfolio_value / baseline)
-        return tf.math.reduce_mean(-portfolio_value - 1e-4 * entropy)
+        return tf.math.reduce_mean(-portfolio_value - 3e-4 * entropy)
 
     def gradient(self, features, future_prices):
         """
@@ -601,7 +601,7 @@ class LstmContextTrader(Trader):
             loss_value = self.loss(features, future_prices)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
-    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=50, gpu=True):
+    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """

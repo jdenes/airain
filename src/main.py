@@ -30,9 +30,6 @@ EPOCHS = 10000
 T0 = '2010-01-01'
 T1 = '2020-01-01'
 T2 = '2021-01-01'
-# 2010: PORTFO - Positive days: 59.96%. Average daily return: 0.0843%.
-# 2000: PORTFO - Positive days: 57.95%. Average daily return: 0.0854%.
-# 2000: MARKET - Positive days: 57.75%. Average daily return: 0.0541%.
 
 
 def train_model(plot=True):
@@ -47,11 +44,11 @@ def train_model(plot=True):
     trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
     # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
     df, labels = load_data(folder, T0, T1)
-    trader.ingest_traindata(df, labels, duplicate=False)
+    trader.ingest_data(df, labels, duplicate=False)
     trader.save(model_name=f'Huorn_v{VERSION}')
     trader.train(epochs=EPOCHS)
     trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(test_on='test', plot=plot)
+    trader.test(test_on='val', plot=plot)
 
 
 def backtest(plot=False, precomputed_df=None, precomputed_labels=None):
