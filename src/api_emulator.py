@@ -59,15 +59,29 @@ class Emulator:
         time.sleep(3)
         return self
 
-    def get_open_prices(self):
-        res = {'date': datetime.today().strftime('%Y-%m-%d')}
-        xpath = "//tbody[@class='table-body dataTable-show-currentprice-arrows']//tr"
-        open_prices = self.driver.find_elements_by_xpath(xpath)
-        for elt in open_prices:
-            asset = elt.get_attribute("data-code")
-            price = elt.find_element_by_xpath("./td[@class='averagePrice']").text
-            res[asset] = price
-        return res
+    def get_current_prices(self):
+
+        if self.mode == 'invest':
+            res = {'date': datetime.today().strftime('%Y-%m-%d %H:%M:%S')}
+            xpath = "//div[@class='invest-tradebox _focusable pretty-name-shown']"
+            open_prices = self.driver.find_elements_by_xpath(xpath)
+            for elt in open_prices:
+                asset = elt.find_element_by_xpath(".//span[@class='instrument-code']").text
+                int_price = elt.find_element_by_xpath(".//span[@class='integer-value']").text
+                dec_price = elt.find_element_by_xpath(".//span[@class='decimal-value']").text
+                price = int(int_price) + float(dec_price)
+                res[asset] = price
+            return res
+
+        else:
+            res = {'date': datetime.today().strftime('%Y-%m-%d')}
+            xpath = "//tbody[@class='table-body dataTable-show-currentprice-arrows']//tr"
+            open_prices = self.driver.find_elements_by_xpath(xpath)
+            for elt in open_prices:
+                asset = elt.get_attribute("data-code")
+                price = elt.find_element_by_xpath("./td[@class='averagePrice']").text
+                res[asset] = price
+            return res
 
     def get_trades_results(self, horizon=3):
         res = []

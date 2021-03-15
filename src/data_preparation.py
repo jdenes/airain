@@ -42,7 +42,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         # Really basic
         df['asset'] = number
         # df['labels'] = ((df[askcol].shift(-1) - df[bidcol].shift(-1)) > 0).astype(int)
-        df['labels'] = df['close'].shift(-1) / df['close'].shift(0)  # relative change
+        df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
         df.dropna(inplace=True)
 
         """ Add today results of Nikkei225 """
@@ -95,14 +95,14 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         df.dropna(inplace=True)
 
         """ Asset features """
-        df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
-        df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
+        # df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
+        # df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
 
         """ Aggregate time features """
-        for period in ['quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day', 'year'
-            for col in ['labels', 'volume', askcol, bidcol]:
-                df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
-                df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
+        # for period in ['quarter', 'week', 'month', 'wday']:  # 'hour', 'minute', 'dayofyear', 'day', 'year'
+        #     for col in ['labels', 'volume', askcol, bidcol]:
+        #         df[period + '_mean_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+        #         df[period + '_std_' + col] = df.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
 
         """ News embeddings """
         # path = f'../data/intrinio/{asset.lower()}_news_embed.csv'
@@ -162,13 +162,12 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     res = res.rename_axis('date').sort_values(['date', 'asset'])
 
     """ Overall aggregated time features """
-    for period in ['month', 'day', 'wday']:  # 'year'
-        for col in ['labels', 'volume']:
-            res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
-            res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
-
-    for col in ['lag_1_labels', 'volume']:
-        res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
+    # for period in ['month', 'day', 'wday']:  # 'year'
+    #     for col in ['labels', 'volume']:
+    #         res[f'ov_{period}_mean_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].mean())
+    #         res[f'ov_{period}_std_{col}'] = res.groupby(period)[col].transform(lambda x: x[x.index < t1].std())
+    # for col in ['lag_1_labels', 'volume']:
+    #     res[f'ov_mean_{col}'] = res.groupby(res.index)[col].transform(lambda x: x.mean())
 
     if start_from is not None:
         res = res[res.index >= start_from]

@@ -24,14 +24,20 @@ MARKET - Positive days: 56.55%. Average daily return: 0.0378%.
 PORTFO - Positive days: 52.81%. Average daily return: 0.0033%.
 MARKET - Positive days: 56.55%. Average daily return: 0.0378%.
 
-## Same as 5, entropy lambda set to 2e-4
+## 7. Same as 5, entropy lambda set to 2e-4
 PORTFO - Positive days: 55.43%. Average daily return: 0.1037%.
 MARKET - Positive days: 56.55%. Average daily return: 0.0378%.
 
-## Same as 5, entropy lambda set to 3e-4
+## 8. Same as 5, entropy lambda set to 3e-4
 PORTFO - Positive days: 56.55%. Average daily return: 0.1124%.
 MARKET - Positive days: 56.55%. Average daily return: 0.0378%.
 
-## Same as 5, entropy lambda set to 4e-4
+## 9. Same as 5, entropy lambda set to 4e-4
 PORTFO - Positive days: 56.18%. Average daily return: 0.0680%.
 MARKET - Positive days: 56.55%. Average daily return: 0.0378%.
+
+## 10. Same as 8 but open-to-close
+PORTFO - Positive days: 56.84%. Average daily return: 0.1056%.
+MARKET - Positive days: 58.12%. Average daily return: 0.1204%.
+
+## 11. Same as 10,  entropy lambda set to 2e-4

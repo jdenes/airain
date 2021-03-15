@@ -514,7 +514,7 @@ class LstmContextTrader(Trader):
         else:
             norm_df = df
 
-        norm_df = norm_df[[c for c in norm_df if not ('mean' in c or 'std' in c)]]
+        # norm_df = norm_df[[c for c in norm_df if not ('mean' in c or 'std' in c)]]
         dates = sorted(norm_df.index.unique().to_list())
         assets = sorted(norm_df['asset'].unique())
         self.num_assets = norm_df['asset'].nunique()
@@ -587,7 +587,7 @@ class LstmContextTrader(Trader):
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
         # baseline = tf.nn.relu(tf.math.reduce_mean(future_prices, axis=1) - 1) + 1  # max(return, 1)
         # loss_value = -tf.math.reduce_mean(portfolio_value / baseline)
-        return tf.math.reduce_mean(-portfolio_value - 3e-4 * entropy)
+        return tf.math.reduce_mean(-portfolio_value - 1e-4 * entropy)
 
     def gradient(self, features, future_prices):
         """
@@ -690,7 +690,7 @@ class LstmContextTrader(Trader):
                     print(f'No progress since {patience} epochs, early stopping')
                     break
 
-        if best_epoch != self.epochs-1:
+        if patience is not None and best_epoch != self.epochs-1:
             print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
             self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
@@ -752,16 +752,18 @@ class LstmContextTrader(Trader):
             ref_history.append(ref_balance), aapl_history.append(aapl_balance)
             portfolio_history.append(omega)
 
-        nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
-                  title=f'Portfolio balance evolution')
-        from utils.constants import PERFORMERS
-        pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS).plot()
-        plt.show()
+        if plot:
+            nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
+                      title=f'Portfolio balance evolution')
+            from utils.constants import PERFORMERS
+            pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS).plot()
+            plt.show()
 
         ret, _ret = pd.Series(history).diff(), pd.Series(ref_history).diff()
         prc_ret, _prc_ret = 100*(ret/pd.Series(history)).dropna(), 100*(_ret/pd.Series(ref_history)).dropna()
         print(f"PORTFO - Positive days: {100 * (ret>0).mean():.2f}%. Average daily return: {prc_ret.mean():.4f}%.")
         print(f"MARKET - Positive days: {100 * (_ret>0).mean():.2f}%. Average daily return: {_prc_ret.mean():.4f}%.")
+        return balance
 
     def save(self, model_name):
         """

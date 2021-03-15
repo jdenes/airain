@@ -196,3 +196,17 @@ def fetch_yahoo_data(companies):
         fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
         fetch_yahoo_intraday(f'../data/yahoo_intraday/{company.lower()}_prices.csv', company=company)
     fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')
+
+
+def get_current_price(company):
+    """
+    Provides immediate asset price.
+
+    :param str company: company's symbol (e.g. AAPL, MSFT)
+    :rtype: None
+    """
+
+    ticker = yahooquery.Ticker(company)
+    df = ticker.history(interval='1m', period='1d')
+    df.index = df.index.droplevel('symbol')
+    return df
