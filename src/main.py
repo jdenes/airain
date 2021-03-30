@@ -3,10 +3,10 @@ import configparser
 import pandas as pd
 from datetime import datetime as dt
 
-from traders import LGBMTrader, LstmContextTrader
+from traders import LstmContextTrader
 from api_emulator import Emulator
 from utils.plots import nice_plot
-from utils.basics import write_data, safe_try
+from utils.basics import write_data, safe_try, omega2assets, evaluate_portfolio
 from utils.logging import get_logger
 from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
 from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
@@ -26,10 +26,10 @@ TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
 VERSION = 5
 H = 10
-EPOCHS = 425
+EPOCHS = 5400
 T0 = '2010-01-01'
-T1 = '2016-01-01'
-T2 = '2017-01-01'
+T1 = '2019-01-01'
+T2 = '2021-01-01'
 
 
 def train_model(plot=True):
@@ -41,13 +41,13 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    df, labels = load_data(folder, T0, T1)
-    trader.ingest_data(df, labels, duplicate=False)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.train(epochs=EPOCHS, patience=100)
-    trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # df, labels = load_data(folder, T0, T1)
+    # trader.ingest_data(df, labels, duplicate=False)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.train(epochs=EPOCHS, patience=100)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(test_on='test', plot=plot)
 
 
@@ -87,27 +87,21 @@ def yesterday_perf():
 
 
 def get_recommendations():
+    import numpy as np
     now = dt.now()
     folder = '../data/yahoo/'
-    trader = LGBMTrader(load_from=f'Huorn_v{VERSION}')
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=True)
     df, labels = load_data(folder, T0, T1)
-    yesterday = df.index.max()
-    df = df.loc[yesterday].reset_index(drop=True)
-    # pd.DataFrame(df.loc[7]).T.to_csv('../outputs/report.csv', encoding='utf-8', mode='a')
     X, P, _, ind = trader.transform_data(df, labels)
-    preds = trader.predict(X, P)
-    reco, order_book = {'date': yesterday}, []
-    lev = pd.Series([LEVERAGES[co] for co in COMPANIES])
-    quantity = (INITIAL_GAMBLE * (lev / df['close'])).astype(int)
-    for i, pred in enumerate(preds):
-        if COMPANIES[i] in PERFORMERS:
-            reco[COMPANIES[i]] = pred
-            order = {'asset': COMPANIES[i], 'is_buy': pred, 'quantity': int(quantity[i]),
-                     'data_date': yesterday, 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
+    omega = trader.predict(X, P)[-1]
+    open_price = np.concatenate(([1.0], P[-1][:, 2]))
+    portfolio = omega2assets(INITIAL_GAMBLE, omega, open_price)
+    order_book = []
+    for i, quantity in enumerate(portfolio[1:]):
+        if quantity > 0:
+            order = {'asset': PERFORMERS[i], 'is_buy': 1, 'quantity': int(quantity),
+                     'data_date': ind[-1], 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
             order_book.append(order)
-    path = '../outputs/recommendations.csv'
-    reco = pd.DataFrame([reco]).set_index('date', drop=True)
-    write_data(path, reco)
     logger.info(f'recommendations inference took {round((dt.now() - now).total_seconds())} seconds')
     return order_book
 
@@ -179,7 +173,8 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=COMPANIES)
     train_model()
 
-    # o = get_recommendations()
+    o = get_recommendations()
+    print(o)
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()

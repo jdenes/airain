@@ -83,7 +83,7 @@ def omega2assets(value, omega, prices):
     :rtype: np.array
     """
     import numpy as np
-    return np.floor(np.array(value * omega).round(2) / prices)
+    return np.round(np.array(value * omega) / prices)
 
 
 def evaluate_portfolio(portfolio, prices):
