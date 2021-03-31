@@ -12,7 +12,7 @@ from utils.logging import get_logger
 logger = get_logger()
 
 
-def load_data(folder, t0, t1, start_from=None, update_embed=False):
+def load_data(folder, t0, t1, start_from=None, keep_last=False):
     """
     Loads, data-engineers and concatenates each assets' data into a large machine-usable dataframe.
 
@@ -20,7 +20,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     :param str t0: starting date of the data, formatted YYYY-MM-DD.
     :param str t1: date before which aggregated features must be computed, formatted YYYY-MM-DD.
     :param None|str start_from: a starting date for truncation, formatted YYYY-MM-DD. If None, no truncation is made.
-    :param bool update_embed: whether new news have been obtained and embeddings should be re-computed.
+    :param bool keep_last: whether new news have been obtained and embeddings should be re-computed.
     :return: a rich dataframe.
     :rtype: pd.DataFrame
     """
@@ -38,12 +38,12 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
         df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
         df['ratio'] = (df['close'] / df['open']) - 1
+        df_index = df.index
 
         # Really basic
         df['asset'] = number
         # df['labels'] = ((df[askcol].shift(-1) - df[bidcol].shift(-1)) > 0).astype(int)
         df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
-        df.dropna(inplace=True)
 
         """ Add today results of Nikkei225 """
         jpn = pd.read_csv('../data/yahoo/^n225_prices.csv', encoding='utf-8', index_col=0)
@@ -52,10 +52,10 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         jpn.columns = ['jpn_open', 'jpn_high', 'jpn_low', 'jpn_close']
         jpn['jpn_labels'] = ((jpn['jpn_close'] - jpn['jpn_open']) > 0).astype(int)
         jpn = jpn.loc[~jpn.index.duplicated(keep='last')].sort_index()
-        jpn = jpn.shift(-1)
+        jpn = jpn.shift(-1).drop(jpn.tail(1).index)
         df = pd.concat([df, jpn], axis=1)
-        df = df.loc[~df.index.duplicated(keep='last')].sort_index()
-        df.dropna(inplace=True)
+        df[[c for c in jpn]] = df[[c for c in jpn]].fillna(method='bfill')
+        df = df.loc[df_index].sort_index()
 
         """ Time features """
         try:
@@ -92,8 +92,6 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
                 df[col + '_bid'] = df[lag_col + '_bid'].transform(lambda x: x.rolling(win).mean())
                 df[col + '_labels'] = df[lag_col + '_labels'].transform(lambda x: x.rolling(win).mean())
 
-        df.dropna(inplace=True)
-
         """ Asset features """
         # df['asset_mean'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].mean())
         # df['asset_std'] = df.groupby('asset')['labels'].transform(lambda x: x[x.index < t1].std())
@@ -111,7 +109,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         #     embed.to_csv(path, encoding='utf-8')
         # else:
         #     embed = pd.read_csv(path, encoding='utf-8', index_col=0)
-        #     if update_embed:
+        #     if keep_last:
         #         last_embed = embed.index.max()
         #         embed = load_news(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
         #         write_data(path, embed)
@@ -132,7 +130,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
         #     sentiment.to_csv(path, encoding='utf-8')
         # else:
         #     sentiment = pd.read_csv(path, encoding='utf-8', index_col=0)
-        #     if update_embed:
+        #     if keep_last:
         #         last_embed = sentiment.index.max()
         #         sentiment = sentiment_analysis(asset, folder, COMPANIES_KEYWORDS[asset], last_day=last_embed)
         #         write_data(path, sentiment)
@@ -175,7 +173,7 @@ def load_data(folder, t0, t1, start_from=None, update_embed=False):
     labels = res['labels']
     res = res.drop(['labels'], axis=1)
 
-    if update_embed:
+    if keep_last:
         index = pd.notnull(res).all(axis=1)
     else:
         index = pd.notnull(res).all(axis=1) & pd.notnull(labels)

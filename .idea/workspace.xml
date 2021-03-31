@@ -19,12 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Yes about as good as market on the long run">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed recommendations, used log in loss">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/basics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/basics.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -614,7 +613,14 @@
       <option name="project" value="LOCAL" />
       <updated>1615845051069</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="Fixed recommendations, used log in loss">
+      <created>1617133412806</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1617133412806</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -633,7 +639,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Changed .format for f-strings" />
     <MESSAGE value="Started to work with yahoo finance data" />
     <MESSAGE value="Adapted code to work with yahoo data" />
     <MESSAGE value="Trying to train BERT on detecting pos/neg days" />
@@ -658,6 +663,7 @@
     <MESSAGE value="Settings are good, file reformatting" />
     <MESSAGE value="Clean, working code + experiments notes" />
     <MESSAGE value="Yes about as good as market on the long run" />
-    <option name="LAST_COMMIT_MESSAGE" value="Yes about as good as market on the long run" />
+    <MESSAGE value="Fixed recommendations, used log in loss" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed recommendations, used log in loss" />
   </component>
 </project>

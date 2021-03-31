@@ -587,7 +587,7 @@ class LstmContextTrader(Trader):
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
         baseline = tf.nn.relu(tf.math.reduce_mean(future_prices, axis=1) - 1) + 1  # max(return, 1)
         norm_portfolio_value = tf.math.reduce_mean(tf.math.log(portfolio_value / baseline))
-        return tf.math.reduce_mean(-norm_portfolio_value - 2e-4 * entropy)
+        return tf.math.reduce_mean(-norm_portfolio_value - 1e-4 * entropy)
 
     def gradient(self, features, future_prices):
         """

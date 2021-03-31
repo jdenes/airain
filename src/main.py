@@ -5,10 +5,8 @@ from datetime import datetime as dt
 
 from traders import LstmContextTrader
 from api_emulator import Emulator
-from utils.plots import nice_plot
-from utils.basics import write_data, safe_try, omega2assets, evaluate_portfolio
+from utils.basics import write_data, safe_try, omega2assets
 from utils.logging import get_logger
-from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
 from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
 
 from data_preparation import load_data
@@ -24,9 +22,10 @@ pwd = config['TRADING212']['password']
 TARGET_COL = 'close'
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
-VERSION = 5
+VERSION = 4
 H = 10
 EPOCHS = 5400
+PATIENCE = 300
 T0 = '2010-01-01'
 T1 = '2019-01-01'
 T2 = '2021-01-01'
@@ -46,9 +45,9 @@ def train_model(plot=True):
     # df, labels = load_data(folder, T0, T1)
     # trader.ingest_data(df, labels, duplicate=False)
     # trader.save(model_name=f'Huorn_v{VERSION}')
-    # trader.train(epochs=EPOCHS, patience=100)
+    # trader.train(epochs=EPOCHS, patience=PATIENCE)
     # trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(test_on='test', plot=plot)
+    trader.test(test_on='val', plot=plot)
 
 
 def yesterday_perf():
@@ -91,7 +90,7 @@ def get_recommendations():
     now = dt.now()
     folder = '../data/yahoo/'
     trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=True)
-    df, labels = load_data(folder, T0, T1)
+    df, labels = load_data(folder, T0, T1, keep_last=True)
     X, P, _, ind = trader.transform_data(df, labels)
     omega = trader.predict(X, P)[-1]
     open_price = np.concatenate(([1.0], P[-1][:, 2]))
@@ -173,8 +172,8 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=COMPANIES)
     train_model()
 
-    o = get_recommendations()
-    print(o)
+    # o = get_recommendations()
+    # print(o)
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()
