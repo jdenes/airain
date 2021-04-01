@@ -19,9 +19,8 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed recommendations, used log in loss">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed data preparation, new model is ok">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
@@ -620,7 +619,14 @@
       <option name="project" value="LOCAL" />
       <updated>1617133412806</updated>
     </task>
-    <option name="localTasksCounter" value="37" />
+    <task id="LOCAL-00037" summary="Fixed data preparation, new model is ok">
+      <created>1617209591898</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1617209591898</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -639,7 +645,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Started to work with yahoo finance data" />
     <MESSAGE value="Adapted code to work with yahoo data" />
     <MESSAGE value="Trying to train BERT on detecting pos/neg days" />
     <MESSAGE value="Reformatted to train on Yahoo only" />
@@ -664,6 +669,7 @@
     <MESSAGE value="Clean, working code + experiments notes" />
     <MESSAGE value="Yes about as good as market on the long run" />
     <MESSAGE value="Fixed recommendations, used log in loss" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed recommendations, used log in loss" />
+    <MESSAGE value="Fixed data preparation, new model is ok" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed data preparation, new model is ok" />
   </component>
 </project>

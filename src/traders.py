@@ -574,31 +574,31 @@ class LstmContextTrader(Trader):
         self.model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
 
-    def loss(self, features, future_prices):
+    def loss(self, features, returns):
         """
         Loss of the model is defined as minus the value of the portfolio (nb of asset times asset price).
 
         :param features:
-        :param future_prices:
+        :param returns:
         :return:
         """
         portfolio = self.model(features)
-        portfolio_value = tf.math.reduce_sum(portfolio * future_prices, axis=1)
+        portfolio_value = tf.math.reduce_sum(portfolio * returns, axis=1)
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
-        baseline = tf.nn.relu(tf.math.reduce_mean(future_prices, axis=1) - 1) + 1  # max(return, 1)
+        baseline = tf.nn.relu(tf.math.reduce_mean(returns, axis=1) - 1) + 1  # max(return, 1)
         norm_portfolio_value = tf.math.reduce_mean(tf.math.log(portfolio_value / baseline))
-        return tf.math.reduce_mean(-norm_portfolio_value - 1e-4 * entropy)
+        return tf.math.reduce_mean(-portfolio_value - 1e-4 * entropy)
 
-    def gradient(self, features, future_prices):
+    def gradient(self, features, returns):
         """
         Gradient definition or TF gradient descent.
 
         :param features:
-        :param future_prices:
+        :param returns:
         :return:
         """
         with tf.GradientTape() as tape:
-            loss_value = self.loss(features, future_prices)
+            loss_value = self.loss(features, returns)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
     def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, gpu=True):
@@ -648,8 +648,8 @@ class LstmContextTrader(Trader):
         @tf.function
         def train_step(X, y):
             cash_price = tf.ones((y.shape[0], 1))  # for cash, price change is always zero
-            future_prices = tf.concat((cash_price, y), axis=1)
-            loss_value, grads = self.gradient(X, future_prices)
+            returns = tf.concat((cash_price, y), axis=1)
+            loss_value, grads = self.gradient(X, returns)
             self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
             epoch_loss_avg.update_state(loss_value)
             return loss_value
