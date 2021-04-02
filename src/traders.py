@@ -585,8 +585,8 @@ class LstmContextTrader(Trader):
         portfolio = self.model(features)
         portfolio_value = tf.math.reduce_sum(portfolio * returns, axis=1)
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
-        baseline = tf.nn.relu(tf.math.reduce_mean(returns, axis=1) - 1) + 1  # max(return, 1)
-        norm_portfolio_value = tf.math.reduce_mean(tf.math.log(portfolio_value / baseline))
+        # baseline = tf.nn.relu(tf.math.reduce_mean(returns, axis=1) - 1) + 1  # max(return, 1)
+        # norm_portfolio_value = tf.math.reduce_mean(tf.math.log(portfolio_value / baseline))
         return tf.math.reduce_mean(-portfolio_value - 1e-4 * entropy)
 
     def gradient(self, features, returns):
@@ -732,6 +732,7 @@ class LstmContextTrader(Trader):
             ref_omega = np.ones((len(omega))) / len(omega)
             aapl_omega = np.zeros((len(omega)))
             aapl_omega[1] = 1.0
+            # aapl_omega = np.array([0.0, 0.0, 0.11, 0.02, 0.42, 0.21, 0.24, 0.0, 0.01, 0.0, 0.0])
 
             # Omega gives me proportions, I need to make a number of assets out of that
             portfolio = omega2assets(gamble, omega, open_price)
@@ -756,7 +757,10 @@ class LstmContextTrader(Trader):
             nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
                       title=f'Portfolio balance evolution')
             from utils.constants import PERFORMERS
-            pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS).plot()
+            df = pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS)
+            df.plot()
+            plt.show()
+            df.mean(axis=0).plot.bar()
             plt.show()
 
         ret, _ret = pd.Series(history).diff(), pd.Series(ref_history).diff()

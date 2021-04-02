@@ -18,9 +18,9 @@ class Emulator:
         self.driver.get("https://demo.trading212.com/")
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
-        time.sleep(0.5)
+        time.sleep(1)
         self.driver.find_element_by_xpath("//input[@class='button-login']").click()
-        time.sleep(20)
+        time.sleep(15)
 
     def open_trade(self, order):
 
@@ -28,12 +28,14 @@ class Emulator:
             if order['is_buy'] is None or not order['is_buy']:
                 time.sleep(0.5)
                 return self
-            xpath = f"//div[@data-code='{order['asset']}_US_EQ']//div[@class='buy-button']"
+            asset = f"{order['asset']}_US_EQ"
+            xpath = f"//div[@data-rbd-draggable-id='{asset}']//span[@data-qa-trading-btn='btn-buy']"
             self.driver.find_element_by_xpath(xpath).click()
-            self.driver.find_element_by_xpath("//div[@class='visible-input']").click()
+            self.driver.find_element_by_xpath("//input[@class='input css-jjd680']").click()
             ActionChains(self.driver).send_keys(order['quantity']).perform()
             time.sleep(0.5)
-            self.driver.find_element_by_xpath("//div[@class='button-container']").click()
+            xpath = f"//div[@data-qa-ticker='{asset}']//div[@class='button accent-button']"
+            self.driver.find_element_by_xpath(xpath).click()
             self.driver.find_element_by_xpath("//div[@class='custom-button send-order-button']").click()
 
         else:

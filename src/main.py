@@ -40,14 +40,14 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    df, labels = load_data(folder, T0, T1)
-    trader.ingest_data(df, labels, duplicate=False)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.train(epochs=EPOCHS, patience=PATIENCE)
-    trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(test_on='val', plot=plot)
+    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # df, labels = load_data(folder, T0, T1)
+    # trader.ingest_data(df, labels, duplicate=False)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.train(epochs=EPOCHS, patience=PATIENCE)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.test(test_on='test', plot=plot)
 
 
 def yesterday_perf():

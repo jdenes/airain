@@ -19,8 +19,9 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed data preparation, new model is ok">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Current settings are great!!">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
@@ -626,7 +627,14 @@
       <option name="project" value="LOCAL" />
       <updated>1617209591898</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="Current settings are great!!">
+      <created>1617312385361</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1617312385361</updated>
+    </task>
+    <option name="localTasksCounter" value="39" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -645,7 +653,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Adapted code to work with yahoo data" />
     <MESSAGE value="Trying to train BERT on detecting pos/neg days" />
     <MESSAGE value="Reformatted to train on Yahoo only" />
     <MESSAGE value="Worked on backtest metrics + adapted to T212 Invest interface" />
@@ -670,6 +677,7 @@
     <MESSAGE value="Yes about as good as market on the long run" />
     <MESSAGE value="Fixed recommendations, used log in loss" />
     <MESSAGE value="Fixed data preparation, new model is ok" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed data preparation, new model is ok" />
+    <MESSAGE value="Current settings are great!!" />
+    <option name="LAST_COMMIT_MESSAGE" value="Current settings are great!!" />
   </component>
 </project>
