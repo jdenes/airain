@@ -107,9 +107,11 @@ class Trader(object):
         print(f'Baseline for change accuracy is {round(max(y_mean, 1 - y_mean), 4)}.')
         print('_' * 100, '\n')
 
-    def test(self, plot=False):
+    def test(self, companies, test_on='test', plot=False):
         """
         Once model is trained, uses test data to output performance metrics.
+        :param companies:
+        :param test_on:
         """
         y_train, y_val, y_test = self.y_train, self.y_val, self.y_test
 
@@ -288,12 +290,14 @@ class LGBMTrader(Trader):
 
         print('_' * 100, '\n')
 
-    def test(self, plot=False):
+    def test(self, companies, test_on='test', plot=False):
         """
         Once model is trained, uses test data to output performance metrics.
+        :param companies:
+        :param test_on:
         """
 
-        super().test()
+        super().test(companies=companies, test_on=test_on, plot=plot)
 
         if plot:
             fig, ax = plt.subplots(1, 2, figsize=(14, 14))
@@ -447,11 +451,13 @@ class LstmTrader(Trader):
         y_pred = np.argmax(y_pred, axis=1)
         return y_pred
 
-    def test(self, plot=False):
+    def test(self, companies, test_on='test', plot=False):
         """
         Once model is trained, uses test data to output performance metrics.
+        :param companies:
+        :param test_on:
         """
-        super().test()
+        super().test(companies=companies, test_on=test_on, plot=plot)
 
     def save(self, model_name):
         """
@@ -705,9 +711,11 @@ class LstmContextTrader(Trader):
         """
         return self.model(X)
 
-    def test(self, test_on='test', plot=False):
+    def test(self, companies, test_on='test', plot=False):
         """
         Once model is trained, uses test data to output performance metrics.
+        :param companies:
+        :param test_on:
         """
 
         # Prediction at day t is computed at day t-1
@@ -756,8 +764,7 @@ class LstmContextTrader(Trader):
         if plot:
             nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
                       title=f'Portfolio balance evolution')
-            from utils.constants import DJIA_PERFORMERS
-            df = pd.DataFrame(np.array(portfolio_history), columns=['CASH'] + DJIA_PERFORMERS)
+            df = pd.DataFrame(np.array(portfolio_history), columns=['CASH'] + companies)
             df.plot()
             plt.show()
             df.mean(axis=0).plot.bar()

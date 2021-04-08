@@ -68,4 +68,4 @@ Subset of CAC 40 components
 
 CAC40 = ["BNP.PA", "FP.PA", "EN.PA", "CA.PA", "SAN.PA", "ACA.PA", "VIE.PA", "DG.PA", "ORA.PA", "WLN.PA", "VIV.PA",
          "GLE.PA", "HO.PA", "ML.PA", "RI.PA", "CAP.PA", "AI.PA", "SW.PA", "SGO.PA", "OR.PA", "ATO.PA", "KER.PA",
-         "SU.PA", "AC.PA", "MC.PA", "UG.PA", "ENGI.PA", "AIR.PA", "BN.PA", "LR.PA"]
+         "SU.PA", "AC.PA", "MC.PA", "ENGI.PA", "AIR.PA", "BN.PA", "LR.PA"]

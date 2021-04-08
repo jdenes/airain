@@ -20,6 +20,7 @@ pwd = config['TRADING212']['password']
 
 # Setting constant values
 TARGET_COL = 'close'
+COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
 VERSION = 1
@@ -42,19 +43,18 @@ def train_model(plot=True):
     folder = '../data/yahoo/'
     trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
     # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    df, labels = load_data(folder, T0, T1)
+    df, labels = load_data(folder, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
-    trader.save(model_name=f'Huorn_v{VERSION}')
     trader.train(epochs=EPOCHS, patience=PATIENCE)
     trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(test_on='test', plot=plot)
+    trader.test(companies=COMPANIES, test_on='test', plot=plot)
 
 
 def yesterday_perf():
     print("Correctness of yesterday's predictions")
 
     folder = '../data/intrinio/'
-    df, _ = load_data(folder, T0, T1)
+    df, _ = load_data(folder, COMPANIES, T0, T1)
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
     prices = pd.read_csv('../outputs/trade_data.csv', encoding='utf-8', index_col=0)
 
@@ -90,7 +90,7 @@ def get_recommendations():
     now = dt.now()
     folder = '../data/yahoo/'
     trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=True)
-    df, labels = load_data(folder, T0, T1, keep_last=True)
+    df, labels = load_data(folder, COMPANIES, T0, T1, keep_last=True)
     X, P, _, ind = trader.transform_data(df, labels)
     omega = trader.predict(X, P)[-1]
     open_price = np.concatenate(([1.0], P[-1][:, 2]))
@@ -98,7 +98,7 @@ def get_recommendations():
     order_book = []
     for i, quantity in enumerate(portfolio[1:]):
         if quantity > 0:
-            order = {'asset': DJIA_PERFORMERS[i], 'is_buy': 1, 'quantity': int(quantity),
+            order = {'asset': COMPANIES[i], 'is_buy': 1, 'quantity': int(quantity),
                      'data_date': ind[-1], 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
             order_book.append(order)
     logger.info(f'recommendations inference took {round((dt.now() - now).total_seconds())} seconds')
@@ -169,8 +169,8 @@ def heartbeat():
 
 if __name__ == "__main__":
 
-    fetch_yahoo_data(companies=DJIA)
-    fetch_yahoo_data(companies=CAC40)
+    # fetch_yahoo_data(companies=DJIA)
+    # fetch_yahoo_data(companies=CAC40)
     train_model()
 
     # o = get_recommendations()

@@ -6,17 +6,18 @@ from datetime import datetime
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
-from utils.constants import DJIA, DJIA_PERFORMERS, COMPANIES_KEYWORDS, PAIRS
+from utils.constants import COMPANIES_KEYWORDS
 from utils.logging import get_logger
 
 logger = get_logger()
 
 
-def load_data(folder, t0, t1, start_from=None, keep_last=False):
+def load_data(folder, companies, t0, t1, start_from=None, keep_last=False):
     """
     Loads, data-engineers and concatenates each assets' data into a large machine-usable dataframe.
 
     :param str folder: a folder where to find the dataset.
+    :param list[str] companies: list of companies to use (refer to utils.constants).
     :param str t0: starting date of the data, formatted YYYY-MM-DD.
     :param str t1: date before which aggregated features must be computed, formatted YYYY-MM-DD.
     :param None|str start_from: a starting date for truncation, formatted YYYY-MM-DD. If None, no truncation is made.
@@ -28,7 +29,7 @@ def load_data(folder, t0, t1, start_from=None, keep_last=False):
     res = pd.DataFrame()
     askcol, bidcol = 'close', 'open'
 
-    for number, asset in enumerate(DJIA_PERFORMERS):
+    for number, asset in enumerate(companies):
 
         file = f'{folder}{asset.lower()}_prices.csv'
 
