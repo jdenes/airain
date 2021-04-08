@@ -6,7 +6,7 @@ from datetime import datetime
 
 from utils.basics import write_data, clean_string
 from utils.dates import week_of_month, previous_day
-from utils.constants import COMPANIES, PERFORMERS, COMPANIES_KEYWORDS, PAIRS
+from utils.constants import DJIA, DJIA_PERFORMERS, COMPANIES_KEYWORDS, PAIRS
 from utils.logging import get_logger
 
 logger = get_logger()
@@ -28,7 +28,7 @@ def load_data(folder, t0, t1, start_from=None, keep_last=False):
     res = pd.DataFrame()
     askcol, bidcol = 'close', 'open'
 
-    for number, asset in enumerate(PERFORMERS):
+    for number, asset in enumerate(DJIA_PERFORMERS):
 
         file = f'{folder}{asset.lower()}_prices.csv'
 

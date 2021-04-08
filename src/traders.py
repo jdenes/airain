@@ -556,7 +556,7 @@ class LstmContextTrader(Trader):
         lstm_layers = []
         for i in range(self.X_train.shape[-2]):
             feature_tensor = input_layer[:, :, i, :]
-            lstm_layer = tf.keras.layers.SimpleRNN(self.num_assets+1, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(int(1.5*self.num_assets), name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -756,8 +756,8 @@ class LstmContextTrader(Trader):
         if plot:
             nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
                       title=f'Portfolio balance evolution')
-            from utils.constants import PERFORMERS
-            df = pd.DataFrame(np.array(portfolio_history), columns=['CASH']+PERFORMERS)
+            from utils.constants import DJIA_PERFORMERS
+            df = pd.DataFrame(np.array(portfolio_history), columns=['CASH'] + DJIA_PERFORMERS)
             df.plot()
             plt.show()
             df.mean(axis=0).plot.bar()

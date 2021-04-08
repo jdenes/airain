@@ -32,10 +32,10 @@ COMPANIES_KEYWORDS = {'AAPL': ['aap', 'apple', 'phone', 'mac', 'microsoft'],
                       }
 
 """
-List of companies used in this project (subset of DOW).
+List of companies used in this project (subset of Dow Jones Industrial Average).
 """
-COMPANIES = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
-             'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'JPM', 'AXP', 'GS', 'UNH', 'V', 'TRV']
+DJIA = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'IBM', 'CVX', 'JNJ', 'PG', 'PFE', 'VZ', 'BA', 'MRK',
+        'CSCO', 'HD', 'MCD', 'MMM', 'GE', 'NKE', 'CAT', 'JPM', 'AXP', 'GS', 'UNH', 'V', 'TRV']
 
 """
 Leverages on Trading 212 CFD.
@@ -45,12 +45,12 @@ LEVERAGES = {'AAPL': 1, 'XOM': 1, 'KO': 1, 'INTC': 1, 'WMT': 1, 'MSFT': 1, 'IBM'
              'GE': 1, 'NKE': 1, 'CAT': 1, 'V': 1, 'JPM': 1, 'AXP': 1, 'GS': 1, 'UNH': 1, 'TRV': 1}
 
 """
-Subset of companies identifies as performers.
+Subset of DJIA companies identifies as performers.
 """
-PERFORMERS = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS']
+DJIA_PERFORMERS = ['AAPL', 'XOM', 'KO', 'INTC', 'WMT', 'MSFT', 'CVX', 'MMM', 'V', 'GS']
 
 """
-Full list of DOW companies.
+Full list of Dow Jones companies.
 """
 DOW = ['AXP', 'AMGN', 'AAPL', 'BA', 'CAT', 'CSCO', 'CVX', 'GS', 'HD', 'HON', 'IBM', 'INTC', 'JNJ', 'KO', 'JPM', 'MCD',
        'MMM', 'MRK', 'MSFT', 'NLE', 'PG', 'TRV', 'UNH', 'CRM', 'VZ', 'V', 'WBA', 'WMT', 'DIS', 'DOW']
@@ -61,3 +61,11 @@ List of main Poloniex currency pairs.
 
 PAIRS = ["USDC_ATOM", "USDC_BTC", "USDC_DASH", "USDC_DOGE", "USDC_EOS", "USDC_ETC", "USDC_ETH",
          "USDC_LTC", "USDC_STR", "USDC_TRX", "USDC_USDT", "USDC_XMR", "USDC_XRP", "USDC_ZEC"]
+
+"""
+Subset of CAC 40 components
+"""
+
+CAC40 = ["BNP.PA", "FP.PA", "EN.PA", "CA.PA", "SAN.PA", "ACA.PA", "VIE.PA", "DG.PA", "ORA.PA", "WLN.PA", "VIV.PA",
+         "GLE.PA", "HO.PA", "ML.PA", "RI.PA", "CAP.PA", "AI.PA", "SW.PA", "SGO.PA", "OR.PA", "ATO.PA", "KER.PA",
+         "SU.PA", "AC.PA", "MC.PA", "UG.PA", "ENGI.PA", "AIR.PA", "BN.PA", "LR.PA"]

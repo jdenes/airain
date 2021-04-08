@@ -10,7 +10,7 @@ from utils.logging import get_logger
 from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
 
 from data_preparation import load_data
-from utils.constants import COMPANIES, PERFORMERS, LEVERAGES
+from utils.constants import DJIA, DJIA_PERFORMERS, CAC40, LEVERAGES
 
 logger = get_logger()
 config = configparser.ConfigParser()
@@ -22,13 +22,13 @@ pwd = config['TRADING212']['password']
 TARGET_COL = 'close'
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
-VERSION = 2
+VERSION = 1
 H = 10
-EPOCHS = 5400
+EPOCHS = 12500
 PATIENCE = 300
 T0 = '2010-01-01'
 T1 = '2019-01-01'
-T2 = '2021-01-01'
+T2 = '2020-01-01'
 
 
 def train_model(plot=True):
@@ -40,13 +40,13 @@ def train_model(plot=True):
     """
     print('Training model...')
     folder = '../data/yahoo/'
-    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    # df, labels = load_data(folder, T0, T1)
-    # trader.ingest_data(df, labels, duplicate=False)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
-    # trader.train(epochs=EPOCHS, patience=PATIENCE)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
+    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    df, labels = load_data(folder, T0, T1)
+    trader.ingest_data(df, labels, duplicate=False)
+    trader.save(model_name=f'Huorn_v{VERSION}')
+    trader.train(epochs=EPOCHS, patience=PATIENCE)
+    trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(test_on='test', plot=plot)
 
 
@@ -66,7 +66,7 @@ def yesterday_perf():
     print('_' * 100, '\n')
     print('Asset | Quantity | Reco | Order | Exp P/L | True P/L | Exp Open | True Open | Exp Close | True Close')
     print('-' * 100)
-    for i, asset in enumerate(COMPANIES):
+    for i, asset in enumerate(DJIA):
         if asset in traded_assets:
             df_row, prices_row = df[df['asset'] == i], prices[prices['asset'] == asset]
             exp_open, exp_close = df_row['open'].values[0], df_row['close'].values[0]
@@ -98,7 +98,7 @@ def get_recommendations():
     order_book = []
     for i, quantity in enumerate(portfolio[1:]):
         if quantity > 0:
-            order = {'asset': PERFORMERS[i], 'is_buy': 1, 'quantity': int(quantity),
+            order = {'asset': DJIA_PERFORMERS[i], 'is_buy': 1, 'quantity': int(quantity),
                      'data_date': ind[-1], 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
             order_book.append(order)
     logger.info(f'recommendations inference took {round((dt.now() - now).total_seconds())} seconds')
@@ -169,7 +169,8 @@ def heartbeat():
 
 if __name__ == "__main__":
 
-    # fetch_yahoo_data(companies=COMPANIES)
+    fetch_yahoo_data(companies=DJIA)
+    fetch_yahoo_data(companies=CAC40)
     train_model()
 
     # o = get_recommendations()

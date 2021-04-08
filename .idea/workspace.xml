@@ -19,11 +19,14 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Current settings are great!!">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed emulator with new T212, added overall assets share plot on test">
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/drafts/roberta_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/drafts/roberta_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/constants.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -634,7 +637,14 @@
       <option name="project" value="LOCAL" />
       <updated>1617312385361</updated>
     </task>
-    <option name="localTasksCounter" value="39" />
+    <task id="LOCAL-00039" summary="Fixed emulator with new T212, added overall assets share plot on test">
+      <created>1617373926136</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1617373926136</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -653,7 +663,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Trying to train BERT on detecting pos/neg days" />
     <MESSAGE value="Reformatted to train on Yahoo only" />
     <MESSAGE value="Worked on backtest metrics + adapted to T212 Invest interface" />
     <MESSAGE value="Updated project dictionary" />
@@ -678,6 +687,7 @@
     <MESSAGE value="Fixed recommendations, used log in loss" />
     <MESSAGE value="Fixed data preparation, new model is ok" />
     <MESSAGE value="Current settings are great!!" />
-    <option name="LAST_COMMIT_MESSAGE" value="Current settings are great!!" />
+    <MESSAGE value="Fixed emulator with new T212, added overall assets share plot on test" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed emulator with new T212, added overall assets share plot on test" />
   </component>
 </project>

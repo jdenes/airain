@@ -9,7 +9,7 @@ import tensorflow as tf
 from transformers import AutoTokenizer, TFAutoModelForSequenceClassification
 from sklearn import metrics
 
-from main import decide_order, PERFORMERS
+from main import decide_order, DJIA_PERFORMERS
 from utils.metrics import benchmark_metrics, benchmark_portfolio_metric
 from data_preparation import KEYWORDS
 from utils.basics import clean_string
