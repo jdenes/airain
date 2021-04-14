@@ -19,12 +19,13 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Ready for attempts on CAC40">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Refactored to be companies-agnostic, no regression verified">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/utils/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/constants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -649,7 +650,14 @@
       <option name="project" value="LOCAL" />
       <updated>1617869862858</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00041" summary="Refactored to be companies-agnostic, no regression verified">
+      <created>1617875227671</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1617875227671</updated>
+    </task>
+    <option name="localTasksCounter" value="42" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -668,7 +676,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Worked on backtest metrics + adapted to T212 Invest interface" />
     <MESSAGE value="Updated project dictionary" />
     <MESSAGE value="Minor modif on parameters and data preparation" />
     <MESSAGE value="Added statistics about opening/closing times" />
@@ -693,6 +700,7 @@
     <MESSAGE value="Current settings are great!!" />
     <MESSAGE value="Fixed emulator with new T212, added overall assets share plot on test" />
     <MESSAGE value="Ready for attempts on CAC40" />
-    <option name="LAST_COMMIT_MESSAGE" value="Ready for attempts on CAC40" />
+    <MESSAGE value="Refactored to be companies-agnostic, no regression verified" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactored to be companies-agnostic, no regression verified" />
   </component>
 </project>

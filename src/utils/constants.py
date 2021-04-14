@@ -68,4 +68,19 @@ Subset of CAC 40 components
 
 CAC40 = ["BNP.PA", "FP.PA", "EN.PA", "CA.PA", "SAN.PA", "ACA.PA", "VIE.PA", "DG.PA", "ORA.PA", "WLN.PA", "VIV.PA",
          "GLE.PA", "HO.PA", "ML.PA", "RI.PA", "CAP.PA", "AI.PA", "SW.PA", "SGO.PA", "OR.PA", "ATO.PA", "KER.PA",
-         "SU.PA", "AC.PA", "MC.PA", "ENGI.PA", "AIR.PA", "BN.PA", "LR.PA"]
+         "SU.PA", "AC.PA", "MC.PA", "ENGI.PA", "AIR.PA", "BN.PA", "LR.PA", "CS.PA"]
+
+"""
+Subset of CAC40
+"""
+CAC40_PERFORMERS = ["FP.PA", "SAN.PA", "ACA.PA", "DG.PA", "RI.PA", "SW.PA", "OR.PA", "AIR.PA", "BNP.PA", "MC.PA"]
+
+"""
+DAX
+"""
+
+DAX = ["DBK.DE", "HEN3.DE", "EOAN.DE", "DB1.DE", "MRK.DE", "VNA.DE", "DWNI.DE", "RWE.DE", "DHER.DE", "FRE.DE",
+       "VOW3.DE", "ALV.DE", "BAYN.DE", "DAI.DE", "BMW.DE", "SIE.DE", "BAS.DE", "FME.DE", "MTX.DE", "MUV2.DE", "HEI.DE",
+       "CON.DE", "LIN.DE", "ENR.DE", "DTE.DE", "ADS.DE", "IFX.DE", "DPW.DE", "1COV.DE", "SAP.DE"]
+
+DAX = ["VOW3.DE", "SAP", "LIN", "SIEGY", "ALIZF", "DAI.DE", "DTE.DE", "BFFAF", "MRK.DE", "DPW.DE", "ADDDF", "BAYZF"]

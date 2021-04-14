@@ -37,7 +37,7 @@ def load_data(folder, companies, t0, t1, start_from=None, keep_last=False):
         df = pd.read_csv(file, encoding='utf-8', index_col=0)
         df.index = df.index.rename('date')
         df = df.loc[~df.index.duplicated(keep='last')].sort_index()
-        df.drop([col for col in df if col not in ['open', 'high', 'low', 'close', 'volume']], axis=1, inplace=True)
+        df = df[['open', 'high', 'low', 'close', 'volume']].copy()
         df['ratio'] = (df['close'] / df['open']) - 1
         df_index = df.index
 

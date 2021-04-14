@@ -10,7 +10,7 @@ from utils.logging import get_logger
 from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
 
 from data_preparation import load_data
-from utils.constants import DJIA, DJIA_PERFORMERS, CAC40, LEVERAGES
+from utils.constants import DJIA, DJIA_PERFORMERS, CAC40, CAC40_PERFORMERS, DAX, LEVERAGES
 
 logger = get_logger()
 config = configparser.ConfigParser()
@@ -20,7 +20,7 @@ pwd = config['TRADING212']['password']
 
 # Setting constant values
 TARGET_COL = 'close'
-COMPANIES = DJIA_PERFORMERS
+COMPANIES = DAX
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
 VERSION = 1
@@ -28,8 +28,8 @@ H = 10
 EPOCHS = 12500
 PATIENCE = 300
 T0 = '2010-01-01'
-T1 = '2019-01-01'
-T2 = '2020-01-01'
+T1 = '2018-01-01'
+T2 = '2019-01-01'
 
 
 def train_model(plot=True):
@@ -169,8 +169,9 @@ def heartbeat():
 
 if __name__ == "__main__":
 
-    # fetch_yahoo_data(companies=DJIA)
-    # fetch_yahoo_data(companies=CAC40)
+    fetch_yahoo_data(companies=DAX)
+    fetch_yahoo_data(companies=DJIA)
+    fetch_yahoo_data(companies=CAC40)
     train_model()
 
     # o = get_recommendations()

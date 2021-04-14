@@ -734,7 +734,7 @@ class LstmContextTrader(Trader):
 
         for i in range(1, len(ind)):
             today = ind[i]
-            open_price, close_price = P[i-1][:, 2], P[i][:, 2]
+            open_price, close_price = P[i][:, 0], P[i][:, 3]
             open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
             omega = omegas[i - 1]
             ref_omega = np.ones((len(omega))) / len(omega)
@@ -762,7 +762,7 @@ class LstmContextTrader(Trader):
             portfolio_history.append(omega)
 
         if plot:
-            nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', 'AAPL'],
+            nice_plot(index, [history, ref_history, aapl_history], ['Portfolio', 'Benchmark', companies[0]],
                       title=f'Portfolio balance evolution')
             df = pd.DataFrame(np.array(portfolio_history), columns=['CASH'] + companies)
             df.plot()

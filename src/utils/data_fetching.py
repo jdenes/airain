@@ -192,7 +192,7 @@ def fetch_yahoo_data(companies):
     for company in companies:
         print(f'Fetching {company} data...')
         path = folder + company.lower()
-        fetch_yahoo_news(filename=path + '_news.csv', company=company)
+        # fetch_yahoo_news(filename=path + '_news.csv', company=company)
         fetch_yahoo_prices(filename=path + '_prices.csv', company=company)
         fetch_yahoo_intraday(f'../data/yahoo_intraday/{company.lower()}_prices.csv', company=company)
     fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')
