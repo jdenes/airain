@@ -44,7 +44,7 @@ def load_data(folder, companies, t0, t1, start_from=None, keep_last=False):
         # Really basic
         df['asset'] = number
         # df['labels'] = ((df[askcol].shift(-1) - df[bidcol].shift(-1)) > 0).astype(int)
-        df['labels'] = df['close'].shift(-1) / df['open'].shift(-1)  # relative change
+        df['labels'] = df['close'].shift(-1) / df['close'].shift(0)  # relative change
 
         """ Add today results of Nikkei225 """
         jpn = pd.read_csv('../data/yahoo/^n225_prices.csv', encoding='utf-8', index_col=0)

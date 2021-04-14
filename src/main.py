@@ -26,7 +26,7 @@ INITIAL_GAMBLE = 1000
 VERSION = 1
 H = 10
 EPOCHS = 12500
-PATIENCE = 300
+PATIENCE = 100
 T0 = '2010-01-01'
 T1 = '2018-01-01'
 T2 = '2019-01-01'
@@ -169,9 +169,9 @@ def heartbeat():
 
 if __name__ == "__main__":
 
-    fetch_yahoo_data(companies=DAX)
-    fetch_yahoo_data(companies=DJIA)
-    fetch_yahoo_data(companies=CAC40)
+    # fetch_yahoo_data(companies=DAX)
+    # fetch_yahoo_data(companies=DJIA)
+    # fetch_yahoo_data(companies=CAC40)
     train_model()
 
     # o = get_recommendations()
