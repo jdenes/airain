@@ -19,11 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed bad practice on data prep columns selection + added DAX">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Shifting to close-to-close">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/constants.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -662,7 +662,14 @@
       <option name="project" value="LOCAL" />
       <updated>1618390539189</updated>
     </task>
-    <option name="localTasksCounter" value="43" />
+    <task id="LOCAL-00043" summary="Shifting to close-to-close">
+      <created>1618435052180</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1618435052180</updated>
+    </task>
+    <option name="localTasksCounter" value="44" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -681,7 +688,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Minor modif on parameters and data preparation" />
     <MESSAGE value="Added statistics about opening/closing times" />
     <MESSAGE value="Created PGPortofolio-like model" />
     <MESSAGE value="Improved model and adapted Trader object" />
@@ -706,6 +712,7 @@
     <MESSAGE value="Ready for attempts on CAC40" />
     <MESSAGE value="Refactored to be companies-agnostic, no regression verified" />
     <MESSAGE value="Fixed bad practice on data prep columns selection + added DAX" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed bad practice on data prep columns selection + added DAX" />
+    <MESSAGE value="Shifting to close-to-close" />
+    <option name="LAST_COMMIT_MESSAGE" value="Shifting to close-to-close" />
   </component>
 </project>

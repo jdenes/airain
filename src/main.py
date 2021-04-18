@@ -10,7 +10,7 @@ from utils.logging import get_logger
 from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
 
 from data_preparation import load_data
-from utils.constants import DJIA, DJIA_PERFORMERS, CAC40, CAC40_PERFORMERS, DAX, LEVERAGES
+from utils.constants import DJIA, DJIA_PERFORMERS, CAC40, CAC40_PERFORMERS, DAX, LEVERAGES, PAIRS
 
 logger = get_logger()
 config = configparser.ConfigParser()
@@ -20,16 +20,17 @@ pwd = config['TRADING212']['password']
 
 # Setting constant values
 TARGET_COL = 'close'
-COMPANIES = DAX
+FOLDER = '../data/yahoo/'
+COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
 INITIAL_GAMBLE = 1000
-VERSION = 1
+VERSION = 3
 H = 10
 EPOCHS = 12500
 PATIENCE = 100
 T0 = '2010-01-01'
-T1 = '2018-01-01'
-T2 = '2019-01-01'
+T1 = '2019-01-01'
+T2 = '2020-01-01'
 
 
 def train_model(plot=True):
@@ -40,10 +41,9 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
-    folder = '../data/yahoo/'
     trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
     # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
-    df, labels = load_data(folder, COMPANIES, T0, T1)
+    df, labels = load_data(FOLDER, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
     trader.train(epochs=EPOCHS, patience=PATIENCE)
     trader.save(model_name=f'Huorn_v{VERSION}')
@@ -53,8 +53,7 @@ def train_model(plot=True):
 def yesterday_perf():
     print("Correctness of yesterday's predictions")
 
-    folder = '../data/intrinio/'
-    df, _ = load_data(folder, COMPANIES, T0, T1)
+    df, _ = load_data(FOLDER, COMPANIES, T0, T1)
     reco = pd.read_csv('../outputs/recommendations.csv', encoding='utf-8', index_col=0)
     prices = pd.read_csv('../outputs/trade_data.csv', encoding='utf-8', index_col=0)
 
@@ -88,9 +87,8 @@ def yesterday_perf():
 def get_recommendations():
     import numpy as np
     now = dt.now()
-    folder = '../data/yahoo/'
     trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=True)
-    df, labels = load_data(folder, COMPANIES, T0, T1, keep_last=True)
+    df, labels = load_data(FOLDER, COMPANIES, T0, T1, keep_last=True)
     X, P, _, ind = trader.transform_data(df, labels)
     omega = trader.predict(X, P)[-1]
     open_price = np.concatenate(([1.0], P[-1][:, 2]))
@@ -184,6 +182,6 @@ if __name__ == "__main__":
     # for pair in PAIRS:
     #     folder = '../data/poloniex/'
     #     path = folder + pair.lower()
-    #     df = pd.read_csv(f'{path}.csv', index_col=0)
+    #     df = pd.read_csv(f'{path}_prices.csv', index_col=0)
     #     df = df[df.index > '2000']
     #     print(pair, df.index.min())
