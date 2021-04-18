@@ -36,7 +36,8 @@ class Emulator:
             time.sleep(0.5)
             xpath = f"//div[@data-qa-ticker='{asset}']//div[@class='button accent-button']"
             self.driver.find_element_by_xpath(xpath).click()
-            self.driver.find_element_by_xpath("//div[@class='custom-button send-order-button']").click()
+            xpath = "//div[@class='review-order']//div[@class='button accent-button']"
+            self.driver.find_element_by_xpath(xpath).click()
 
         else:
             if order['is_buy'] is None:

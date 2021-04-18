@@ -23,7 +23,7 @@ TARGET_COL = 'close'
 FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
-INITIAL_GAMBLE = 1000
+INITIAL_GAMBLE = 50000
 VERSION = 3
 H = 10
 EPOCHS = 12500
@@ -170,11 +170,11 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=DAX)
     # fetch_yahoo_data(companies=DJIA)
     # fetch_yahoo_data(companies=CAC40)
-    train_model()
+    # train_model()
 
-    # o = get_recommendations()
-    # print(o)
-    # place_orders(o)
+    o = get_recommendations()
+    print(o)
+    place_orders(o)
     # get_trades_results()
     # yesterday_perf()
     # heartbeat()
