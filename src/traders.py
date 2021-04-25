@@ -557,11 +557,12 @@ class LstmContextTrader(Trader):
         """
         # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
+        noise_layer = tf.keras.layers.GaussianNoise(0.01)(input_layer, training=True)
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
         """ Step 1: one LSTM per feature, taking an (asset, window) matrix as input """
         lstm_layers = []
         for i in range(self.X_train.shape[-2]):
-            feature_tensor = input_layer[:, :, i, :]
+            feature_tensor = noise_layer[:, :, i, :]
             lstm_layer = tf.keras.layers.SimpleRNN(int(1.5*self.num_assets), name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
@@ -580,15 +581,16 @@ class LstmContextTrader(Trader):
         self.model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
         self.model.summary()
 
-    def loss(self, features, returns):
+    def loss(self, features, returns, training):
         """
         Loss of the model is defined as minus the value of the portfolio (nb of asset times asset price).
 
         :param features:
         :param returns:
+        :param training:
         :return:
         """
-        portfolio = self.model(features)
+        portfolio = self.model(features, training=training)
         portfolio_value = tf.math.reduce_sum(portfolio * returns, axis=1)
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
         # baseline = tf.nn.relu(tf.math.reduce_mean(returns, axis=1) - 1) + 1  # max(return, 1)
@@ -604,7 +606,7 @@ class LstmContextTrader(Trader):
         :return:
         """
         with tf.GradientTape() as tape:
-            loss_value = self.loss(features, returns)
+            loss_value = self.loss(features, returns, training=True)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
     def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, gpu=True):
@@ -664,7 +666,7 @@ class LstmContextTrader(Trader):
         def val_step(X, y):
             cash_price = tf.zeros((y.shape[0], 1))
             future_prices = tf.concat((cash_price, y), axis=1)
-            loss_value = self.loss(X, future_prices)
+            loss_value = self.loss(X, future_prices, training=True)
             epoch_val_loss_avg.update_state(loss_value)
             return loss_value
 
@@ -701,15 +703,15 @@ class LstmContextTrader(Trader):
             self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
         print('_' * 100, '\n')
-        print(self.model(features)[-1].numpy())
-        print(self.model(features)[0].numpy())
-        print(np.argmax(self.model(features).numpy(), axis=1))
+        print(self.model(features, training=False)[-1].numpy())
+        print(self.model(features, training=False)[0].numpy())
+        print(np.argmax(self.model(features, training=False).numpy(), axis=1))
 
     def predict(self, X, P):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
         """
-        return self.model(X)
+        return self.model(X, training=False)
 
     def test(self, companies, test_on='test', plot=False):
         """
@@ -726,8 +728,7 @@ class LstmContextTrader(Trader):
         else:
             X, P, ind = self.X_test, self.P_test, self.ind_test
 
-        # omegas = self.model((X, P))
-        omegas = self.model(X)
+        omegas = self.predict(X, P)
         gamble = balance = ref_balance = aapl_balance = 100000
         history, ref_history, aapl_history, index = [balance], [ref_balance], [aapl_balance], [ind[0]]
         portfolio_history = []
