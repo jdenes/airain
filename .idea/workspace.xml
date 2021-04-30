@@ -19,8 +19,9 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed API emulator">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Added gaussian noise to model, very good results">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
@@ -682,7 +683,14 @@
       <option name="project" value="LOCAL" />
       <updated>1618768931307</updated>
     </task>
-    <option name="localTasksCounter" value="46" />
+    <task id="LOCAL-00046" summary="Added gaussian noise to model, very good results">
+      <created>1619385352649</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1619385352649</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -701,7 +709,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Improved model and adapted Trader object" />
     <MESSAGE value="Tried to improved model according to paper" />
     <MESSAGE value="Those settings are nearly working" />
     <MESSAGE value="More than 40% with current settings" />
@@ -726,6 +733,7 @@
     <MESSAGE value="Shifting to close-to-close" />
     <MESSAGE value="Increased entropy coefficient for more stability" />
     <MESSAGE value="Fixed API emulator" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed API emulator" />
+    <MESSAGE value="Added gaussian noise to model, very good results" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added gaussian noise to model, very good results" />
   </component>
 </project>

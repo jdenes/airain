@@ -16,6 +16,7 @@ class Emulator:
         self.mode = mode
         self.driver = webdriver.Firefox(log_path='../logs/geckodriver.log')
         self.driver.get("https://demo.trading212.com/")
+        time.sleep(3)
         self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
         time.sleep(1)

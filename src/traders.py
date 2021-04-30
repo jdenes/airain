@@ -380,7 +380,6 @@ class LstmTrader(Trader):
 
         if self.normalize:
             df = normalize_data(df, self.x_max, self.x_min)
-            # labels = normalize_data(labels, self.y_max, self.y_min)
 
         columns = df.columns
         df, labels = df.to_numpy(), labels.to_numpy()
@@ -506,6 +505,11 @@ class LstmContextTrader(Trader):
         self.gpu = None
         self.model = None
         self.optimizer = None
+        self.verbose = None
+
+        self.noise_level = 0.01
+        self.layer_coefficient = 1.5
+        self.entropy_lambda = 2e-4
 
         if load_from is not None:
             self.load(model_name=load_from, fast=fast_load)
@@ -557,13 +561,14 @@ class LstmContextTrader(Trader):
         """
         # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
-        noise_layer = tf.keras.layers.GaussianNoise(0.01)(input_layer, training=True)
+        noise_layer = tf.keras.layers.GaussianNoise(self.noise_level)(input_layer, training=True)
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
         """ Step 1: one LSTM per feature, taking an (asset, window) matrix as input """
         lstm_layers = []
+        lstm_size = int(self.layer_coefficient * self.num_assets)
         for i in range(self.X_train.shape[-2]):
             feature_tensor = noise_layer[:, :, i, :]
-            lstm_layer = tf.keras.layers.SimpleRNN(int(1.5*self.num_assets), name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -579,7 +584,6 @@ class LstmContextTrader(Trader):
         """ Step 3: vote using softmax """
         output_layer = tf.keras.layers.Softmax(name='output')(conv)
         self.model = tf.keras.Model(inputs=input_layer, outputs=output_layer)
-        self.model.summary()
 
     def loss(self, features, returns, training):
         """
@@ -595,7 +599,7 @@ class LstmContextTrader(Trader):
         entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
         # baseline = tf.nn.relu(tf.math.reduce_mean(returns, axis=1) - 1) + 1  # max(return, 1)
         # norm_portfolio_value = tf.math.reduce_mean(tf.math.log(portfolio_value / baseline))
-        return tf.math.reduce_mean(-portfolio_value - 2e-4 * entropy)
+        return tf.math.reduce_mean(-portfolio_value - self.entropy_lambda * entropy)
 
     def gradient(self, features, returns):
         """
@@ -609,7 +613,7 @@ class LstmContextTrader(Trader):
             loss_value = self.loss(features, returns, training=True)
         return loss_value, tape.gradient(loss_value, self.model.trainable_variables)
 
-    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, gpu=True):
+    def train(self, batch_size=264, buffer_size=10000, epochs=10, patience=20, verbose=1, gpu=True):
         """
         Using prepared data, trains model depending on agent type.
         """
@@ -618,11 +622,10 @@ class LstmContextTrader(Trader):
         self.batch_size = batch_size
         self.buffer_size = buffer_size
         self.epochs = epochs
+        self.verbose = verbose
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
-
-        super().train()
 
         # self.y_train = np.append(np.zeros((len(self.y_train), 1)), self.y_train, axis=1)
         # self.y_test = np.append(np.zeros((len(self.y_test), 1)), self.y_test, axis=1)
@@ -631,15 +634,16 @@ class LstmContextTrader(Trader):
         # self.y_test = (self.y_test == self.y_test.max(axis=1)[:, None]).astype(int)
         # self.y_val = (self.y_val == self.y_val.max(axis=1)[:, None]).astype(int)
 
-        train_data = tf.data.Dataset.from_tensor_slices(
-            ({'input_X': self.X_train, 'input_P': self.P_train}, self.y_train))
+        train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train}, self.y_train))
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size)
-        valid_data = tf.data.Dataset.from_tensor_slices(
-            ({'input_X': self.X_val, 'input_P': self.P_val}, self.y_val))
+        valid_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_val}, self.y_val))
         valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
+        if self.verbose > 0:
+            super().train()
+            self.model.summary()
 
         # self.model.compile(loss='categorical_crossentropy',
         #                    optimizer=tf.keras.optimizers.Adam(lr=1e-9),
@@ -681,7 +685,8 @@ class LstmContextTrader(Trader):
             train_loss = epoch_loss_avg.result()
             val_loss = epoch_val_loss_avg.result()
             train_loss_results.append(train_loss)
-            print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
+            if self.verbose > 0:
+                print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
 
             if val_loss < best_loss:
                 no_progress = 0
@@ -695,17 +700,20 @@ class LstmContextTrader(Trader):
 
             if patience is not None:
                 if no_progress > patience:
-                    print(f'No progress since {patience} epochs, early stopping')
+                    if self.verbose > 0:
+                        print(f'No progress since {patience} epochs, early stopping')
                     break
 
         if patience is not None and best_epoch != self.epochs-1:
-            print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
+            if self.verbose > 0:
+                print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
             self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
-        print('_' * 100, '\n')
-        print(self.model(features, training=False)[-1].numpy())
-        print(self.model(features, training=False)[0].numpy())
-        print(np.argmax(self.model(features, training=False).numpy(), axis=1))
+        if self.verbose > 0:
+            print('_' * 100, '\n')
+            print(self.model(features, training=False)[-1].numpy())
+            print(self.model(features, training=False)[0].numpy())
+            print(np.argmax(self.model(features, training=False).numpy(), axis=1))
 
     def predict(self, X, P):
         """
@@ -713,13 +721,14 @@ class LstmContextTrader(Trader):
         """
         return self.model(X, training=False)
 
-    def test(self, companies, test_on='test', plot=False):
+    def test(self, companies, test_on='test', verbose=1, plot=False):
         """
         Once model is trained, uses test data to output performance metrics.
         :param companies:
         :param test_on:
         """
 
+        self.verbose = verbose
         # Prediction at day t is computed at day t-1
         if test_on == 'train':
             X, P, ind = self.X_train, self.P_train, self.ind_train
@@ -773,8 +782,9 @@ class LstmContextTrader(Trader):
 
         ret, _ret = pd.Series(history).diff(), pd.Series(ref_history).diff()
         prc_ret, _prc_ret = 100*(ret/pd.Series(history)).dropna(), 100*(_ret/pd.Series(ref_history)).dropna()
-        print(f"PORTFO - Positive days: {100 * (ret>0).mean():.2f}%. Average daily return: {prc_ret.mean():.4f}%.")
-        print(f"MARKET - Positive days: {100 * (_ret>0).mean():.2f}%. Average daily return: {_prc_ret.mean():.4f}%.")
+        if self.verbose > 0:
+            print(f"PORTFO - Positive days: {100 * (ret>0).mean():.2f}%. Average daily return: {prc_ret.mean():.4f}%.")
+            print(f"MARKET - Positive days: {100 * (_ret>0).mean():.2f}%. Average daily return: {_prc_ret.mean():.4f}%.")
         return balance
 
     def save(self, model_name):

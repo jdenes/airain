@@ -50,6 +50,27 @@ def train_model(plot=True):
     trader.test(companies=COMPANIES, test_on='test', plot=plot)
 
 
+def grid_search():
+    grid = []
+    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    df, labels = load_data(FOLDER, COMPANIES, T0, T1)
+    trader.ingest_data(df, labels, duplicate=False)
+    for coeff in [1.00, 1.25, 1.50, 1.75, 2.00, 2.50]:
+        for entropy in [1e-4, 2e-4, 3e-4]:
+            for noise in [0.010, 0.025, 0.050, 0.100, 0.250, 0.500]:
+                print(f"Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f}")
+                trader.layer_coefficient = coeff
+                trader.noise_level = noise
+                trader.entropy_lambda = entropy
+                trader.train(epochs=EPOCHS, patience=PATIENCE, verbose=0)
+                balance = trader.test(companies=COMPANIES, test_on='test', verbose=0, plot=False)
+                grid.append({'coeff': coeff, 'entropy': entropy, 'noise': noise, 'balance': balance})
+                print(f"Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f} - Balance: {balance:.2f}")
+    print(grid)
+    print(pd.DataFrame(grid))
+    pd.DataFrame(grid).to_csv('../outputs/gridsearch_2.csv')
+
+
 def yesterday_perf():
     print("Correctness of yesterday's predictions")
 
@@ -171,6 +192,7 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=DJIA)
     # fetch_yahoo_data(companies=CAC40)
     train_model()
+    # grid_search()
 
     # o = get_recommendations()
     # print(o)
