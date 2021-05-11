@@ -19,9 +19,8 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Added gaussian noise to model, very good results">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Made trader objet more modular + gridsearch">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
@@ -690,7 +689,14 @@
       <option name="project" value="LOCAL" />
       <updated>1619385352649</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="Made trader objet more modular + gridsearch">
+      <created>1619777530188</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1619777530188</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -709,7 +715,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Tried to improved model according to paper" />
     <MESSAGE value="Those settings are nearly working" />
     <MESSAGE value="More than 40% with current settings" />
     <MESSAGE value="Added constants.py" />
@@ -734,6 +739,7 @@
     <MESSAGE value="Increased entropy coefficient for more stability" />
     <MESSAGE value="Fixed API emulator" />
     <MESSAGE value="Added gaussian noise to model, very good results" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added gaussian noise to model, very good results" />
+    <MESSAGE value="Made trader objet more modular + gridsearch" />
+    <option name="LAST_COMMIT_MESSAGE" value="Made trader objet more modular + gridsearch" />
   </component>
 </project>

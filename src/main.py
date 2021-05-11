@@ -26,8 +26,8 @@ TRADEFREQ = 1
 INITIAL_GAMBLE = 50000
 VERSION = 3
 H = 10
-EPOCHS = 12500
-PATIENCE = 100
+EPOCHS = 2000
+PATIENCE = None
 T0 = '2010-01-01'
 T1 = '2019-01-01'
 T2 = '2020-01-01'
@@ -189,8 +189,8 @@ def heartbeat():
 if __name__ == "__main__":
 
     # fetch_yahoo_data(companies=DAX)
-    # fetch_yahoo_data(companies=DJIA)
     # fetch_yahoo_data(companies=CAC40)
+    # fetch_yahoo_data(companies=DJIA)
     train_model()
     # grid_search()
 

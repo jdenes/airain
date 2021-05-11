@@ -507,7 +507,7 @@ class LstmContextTrader(Trader):
         self.optimizer = None
         self.verbose = None
 
-        self.noise_level = 0.01
+        self.noise_level = 0.5
         self.layer_coefficient = 1.5
         self.entropy_lambda = 2e-4
 
@@ -561,7 +561,7 @@ class LstmContextTrader(Trader):
         """
         # Input layer shape is (batch, assets, window, features)
         input_layer = tf.keras.layers.Input(shape=self.X_train.shape[-3:], name='input_X')
-        noise_layer = tf.keras.layers.GaussianNoise(self.noise_level)(input_layer, training=True)
+        noise_layer = tf.keras.layers.GaussianNoise(self.noise_level)(input_layer)
         # price_layer = tf.keras.layers.Input(shape=self.P_train.shape[-2:], name='input_P')
         """ Step 1: one LSTM per feature, taking an (asset, window) matrix as input """
         lstm_layers = []
@@ -688,17 +688,16 @@ class LstmContextTrader(Trader):
             if self.verbose > 0:
                 print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
 
-            if val_loss < best_loss:
-                no_progress = 0
-                best_loss, best_epoch = val_loss, epoch
-                tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
-            else:
-                no_progress += 1
-
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
 
             if patience is not None:
+                if val_loss < best_loss:
+                    no_progress = 0
+                    best_loss, best_epoch = val_loss, epoch
+                    tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
+                else:
+                    no_progress += 1
                 if no_progress > patience:
                     if self.verbose > 0:
                         print(f'No progress since {patience} epochs, early stopping')
@@ -803,3 +802,4 @@ class LstmContextTrader(Trader):
         super().load(model_name=model_name, fast=fast)
         model_name = '../models/' + model_name
         self.model = tf.keras.models.load_model(f'{model_name}/model.h5', compile=False)
+        self.model.compile()
