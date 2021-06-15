@@ -720,7 +720,7 @@ class LstmContextTrader(Trader):
         """
         return self.model(X, training=False)
 
-    def test(self, companies, test_on='test', verbose=1, plot=False):
+    def test(self, companies, test_on='test', verbose=1, plot=False, noise=False):
         """
         Once model is trained, uses test data to output performance metrics.
         :param companies:
@@ -760,7 +760,11 @@ class LstmContextTrader(Trader):
             aapl_morning_value = evaluate_portfolio(aapl_portfolio, open_price)
 
             # Then days goes on and portfolio value changes
-            evening_value = evaluate_portfolio(portfolio, close_price)
+            noisy_price = close_price
+            if noise:
+                noise_coeff = 1 + np.random.normal(0.0, 0.01, len(close_price))
+                noisy_price = noise_coeff * noisy_price
+            evening_value = evaluate_portfolio(portfolio, noisy_price)
             ref_evening_value = evaluate_portfolio(ref_portfolio, close_price)
             aapl_evening_value = evaluate_portfolio(aapl_portfolio, close_price)
             balance += (evening_value - morning_value)

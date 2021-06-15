@@ -1,8 +1,8 @@
-import time
 import requests
 import configparser
 import pandas as pd
 import yahooquery
+from datetime import datetime
 from .basics import write_data, clean_string
 
 
@@ -77,7 +77,7 @@ def fetch_intrinio_prices(filename, api_key, company, update=False):
         df.to_csv(filename, encoding='utf-8')
 
 
-def fetch_poloniex_prices(filename, currency_pair, period=1800):
+def fetch_poloniex_prices(filename, currency_pair, period=7200):
     """
     Fetches and saves Poloniex API to get currency pair historical prices.
 
@@ -88,8 +88,8 @@ def fetch_poloniex_prices(filename, currency_pair, period=1800):
     """
 
     p = currency_pair.upper()
-    e = int(time.time())
-    s = 1546297200  # 2020-01-01
+    e = datetime.now().timestamp()
+    s = datetime(2019, 1, 1, 0, 0).timestamp()
     url = f"https://poloniex.com/public?command=returnChartData&currencyPair={p}&start={s}&end={e}&period={period}"
     data = requests.get(url).json()
     df = pd.DataFrame(data)
@@ -178,7 +178,7 @@ def fetch_poloniex_data(pairs):
     folder = '../data/poloniex/'
     for pair in pairs:
         path = folder + pair.lower()
-        fetch_poloniex_prices(filename=path+'.csv', currency_pair=pair)
+        fetch_poloniex_prices(filename=path+'_prices.csv', currency_pair=pair)
 
 
 def fetch_yahoo_data(companies):

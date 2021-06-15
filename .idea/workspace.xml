@@ -19,10 +19,13 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Made trader objet more modular + gridsearch">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed gaussian noise inconsistent behavior">
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,7 +77,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="Python" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src/stats.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
@@ -696,7 +699,14 @@
       <option name="project" value="LOCAL" />
       <updated>1619777530188</updated>
     </task>
-    <option name="localTasksCounter" value="48" />
+    <task id="LOCAL-00048" summary="Fixed gaussian noise inconsistent behavior">
+      <created>1620762518997</created>
+      <option name="number" value="00048" />
+      <option name="presentableId" value="LOCAL-00048" />
+      <option name="project" value="LOCAL" />
+      <updated>1620762518997</updated>
+    </task>
+    <option name="localTasksCounter" value="49" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -715,7 +725,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Those settings are nearly working" />
     <MESSAGE value="More than 40% with current settings" />
     <MESSAGE value="Added constants.py" />
     <MESSAGE value="Perf are nearly stable with these settings" />
@@ -740,6 +749,7 @@
     <MESSAGE value="Fixed API emulator" />
     <MESSAGE value="Added gaussian noise to model, very good results" />
     <MESSAGE value="Made trader objet more modular + gridsearch" />
-    <option name="LAST_COMMIT_MESSAGE" value="Made trader objet more modular + gridsearch" />
+    <MESSAGE value="Fixed gaussian noise inconsistent behavior" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed gaussian noise inconsistent behavior" />
   </component>
 </project>

@@ -24,13 +24,13 @@ FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
 INITIAL_GAMBLE = 50000
-VERSION = 3
+VERSION = 1
 H = 10
-EPOCHS = 2000
+EPOCHS = 1700
 PATIENCE = None
 T0 = '2010-01-01'
-T1 = '2019-01-01'
-T2 = '2020-01-01'
+T1 = '2020-10-01'
+T2 = '2021-01-01'
 
 
 def train_model(plot=True):
@@ -47,7 +47,7 @@ def train_model(plot=True):
     trader.ingest_data(df, labels, duplicate=False)
     trader.train(epochs=EPOCHS, patience=PATIENCE)
     trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(companies=COMPANIES, test_on='test', plot=plot)
+    trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=True)
 
 
 def grid_search():
@@ -55,17 +55,19 @@ def grid_search():
     trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
-    for coeff in [1.00, 1.25, 1.50, 1.75, 2.00, 2.50]:
-        for entropy in [1e-4, 2e-4, 3e-4]:
-            for noise in [0.010, 0.025, 0.050, 0.100, 0.250, 0.500]:
-                print(f"Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f}")
-                trader.layer_coefficient = coeff
-                trader.noise_level = noise
-                trader.entropy_lambda = entropy
-                trader.train(epochs=EPOCHS, patience=PATIENCE, verbose=0)
-                balance = trader.test(companies=COMPANIES, test_on='test', verbose=0, plot=False)
-                grid.append({'coeff': coeff, 'entropy': entropy, 'noise': noise, 'balance': balance})
-                print(f"Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f} - Balance: {balance:.2f}")
+    for epochs in [1900, 2000, 2100]:
+        for coeff in [1.50]:
+            for entropy in [2e-4]:
+                for noise in [0.500]:
+                    print(f"Epochs: {epochs} - Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f}")
+                    trader.layer_coefficient = coeff
+                    trader.noise_level = noise
+                    trader.entropy_lambda = entropy
+                    trader.train(epochs=epochs, patience=PATIENCE, verbose=0)
+                    balance = trader.test(companies=COMPANIES, test_on='test', verbose=0, plot=False)
+                    grid.append({'epochs': epochs, 'coeff': coeff, 'ent': entropy, 'noise': noise, 'balance': balance})
+                    print(f"Epochs: {epochs} - Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f} - "
+                          f"Balance: {balance:.2f}")
     print(grid)
     print(pd.DataFrame(grid))
     pd.DataFrame(grid).to_csv('../outputs/gridsearch_2.csv')
@@ -191,6 +193,7 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=DAX)
     # fetch_yahoo_data(companies=CAC40)
     # fetch_yahoo_data(companies=DJIA)
+    # fetch_poloniex_data(pairs=PAIRS)
     train_model()
     # grid_search()
 
