@@ -19,8 +19,8 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed gaussian noise inconsistent behavior">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Added noise to test prices to account for fluctuations">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
@@ -706,7 +706,14 @@
       <option name="project" value="LOCAL" />
       <updated>1620762518997</updated>
     </task>
-    <option name="localTasksCounter" value="49" />
+    <task id="LOCAL-00049" summary="Added noise to test prices to account for fluctuations">
+      <created>1623789435831</created>
+      <option name="number" value="00049" />
+      <option name="presentableId" value="LOCAL-00049" />
+      <option name="project" value="LOCAL" />
+      <updated>1623789435831</updated>
+    </task>
+    <option name="localTasksCounter" value="50" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -725,7 +732,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="More than 40% with current settings" />
     <MESSAGE value="Added constants.py" />
     <MESSAGE value="Perf are nearly stable with these settings" />
     <MESSAGE value="Good results with smaller model, slower training" />
@@ -750,6 +756,7 @@
     <MESSAGE value="Added gaussian noise to model, very good results" />
     <MESSAGE value="Made trader objet more modular + gridsearch" />
     <MESSAGE value="Fixed gaussian noise inconsistent behavior" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed gaussian noise inconsistent behavior" />
+    <MESSAGE value="Added noise to test prices to account for fluctuations" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added noise to test prices to account for fluctuations" />
   </component>
 </project>

@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import pandas as pd
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 import tensorflow as tf

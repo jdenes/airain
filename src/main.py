@@ -47,7 +47,7 @@ def train_model(plot=True):
     trader.ingest_data(df, labels, duplicate=False)
     trader.train(epochs=EPOCHS, patience=PATIENCE)
     trader.save(model_name=f'Huorn_v{VERSION}')
-    trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=True)
+    trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=False)
 
 
 def grid_search():
@@ -112,14 +112,16 @@ def get_recommendations():
     now = dt.now()
     trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=True)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1, keep_last=True)
+    bound = sorted(df.index.unique())[-H]
+    df, labels = df[df.index >= bound], labels[df.index >= bound]
     X, P, _, ind = trader.transform_data(df, labels)
     omega = trader.predict(X, P)[-1]
     open_price = np.concatenate(([1.0], P[-1][:, 2]))
     portfolio = omega2assets(INITIAL_GAMBLE, omega, open_price)
     order_book = []
-    for i, quantity in enumerate(portfolio[1:]):
+    for company, quantity in zip(COMPANIES, portfolio[1:]):
         if quantity > 0:
-            order = {'asset': COMPANIES[i], 'is_buy': 1, 'quantity': int(quantity),
+            order = {'asset': company, 'is_buy': 1, 'quantity': int(quantity),
                      'data_date': ind[-1], 'current_date': now.strftime("%Y-%m-%d %H:%M:%S")}
             order_book.append(order)
     logger.info(f'recommendations inference took {round((dt.now() - now).total_seconds())} seconds')
@@ -131,10 +133,10 @@ def place_orders(order_book):
     emulator.close_all_trades()
     for order in order_book:
         emulator.open_trade(order)
-    prices = emulator.get_current_prices()
-    prices = pd.DataFrame([prices]).set_index('date', drop=True)
-    path = '../outputs/open_prices.csv'
-    write_data(path, prices)
+    # prices = emulator.get_current_prices()
+    # prices = pd.DataFrame([prices]).set_index('date', drop=True)
+    # path = '../outputs/open_prices.csv'
+    # write_data(path, prices)
     emulator.quit()
 
 
@@ -169,22 +171,21 @@ def heartbeat():
         now = dt.now()
         if now.minute % 10 == 0 and now.second == 0:
             logger.info('still running')
-        if now.hour == 15 and now.minute == 15 and now.second == 0:
+        if now.hour == 21 and now.minute == 58 and now.second == 50:  # 17sec
             logger.info('updating data')
-            safe_try(fetch_yahoo_data)
+            safe_try(fetch_yahoo_data, DJIA)
             logger.info('updating was successful')
-        if now.hour == 15 and now.minute == 25 and now.second == 0:
             logger.info('computing orders')
             order_book = safe_try(get_recommendations)
             logger.info('computing was successful')
-        if now.hour == 15 and now.minute == 29 and now.second == 45:
+        if now.hour == 21 and now.minute == 59 and now.second == 15:  # 30sec
             logger.info('placing orders')
             safe_try(place_orders, order_book)
             logger.info('placing was successful')
-        if now.hour == 21 and now.minute == 50 and now.second == 0:
-            logger.info('closing all orders')
-            safe_try(close_orders)
-            logger.info('closing was successful')
+        # if now.hour == 21 and now.minute == 50 and now.second == 0:
+        #     logger.info('closing all orders')
+        #     safe_try(close_orders)
+        #     logger.info('closing was successful')
         time.sleep(1)
 
 
@@ -194,7 +195,7 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=CAC40)
     # fetch_yahoo_data(companies=DJIA)
     # fetch_poloniex_data(pairs=PAIRS)
-    train_model()
+    # train_model()
     # grid_search()
 
     # o = get_recommendations()
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()
-    # heartbeat()
+    heartbeat()
 
     # for pair in PAIRS:
     #     folder = '../data/poloniex/'
