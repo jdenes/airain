@@ -569,7 +569,8 @@ class LstmContextTrader(Trader):
         lstm_size = int(self.layer_coefficient * self.num_assets)
         for i in range(self.X_train.shape[-2]):
             feature_tensor = noise_layer[:, :, i, :]
-            lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(feature_tensor)
+            fourier_tensor = fftn(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(fourier_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -709,12 +710,6 @@ class LstmContextTrader(Trader):
                 print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
             self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
 
-        if self.verbose > 0:
-            print('_' * 100, '\n')
-            print(self.model(features, training=False)[-1].numpy())
-            print(self.model(features, training=False)[0].numpy())
-            print(np.argmax(self.model(features, training=False).numpy(), axis=1))
-
     def predict(self, X, P):
         """
         Once the model is trained, predicts output if given appropriate (transformed) data.
@@ -729,7 +724,7 @@ class LstmContextTrader(Trader):
         """
 
         self.verbose = verbose
-        # Prediction at day t is computed at day t-1
+        # Prediction for day t is computed at day t-1
         if test_on == 'train':
             X, P, ind = self.X_train, self.P_train, self.ind_train
         elif test_on == 'val':
@@ -787,8 +782,8 @@ class LstmContextTrader(Trader):
         ret, _ret = pd.Series(history).diff(), pd.Series(ref_history).diff()
         prc_ret, _prc_ret = 100*(ret/pd.Series(history)).dropna(), 100*(_ret/pd.Series(ref_history)).dropna()
         if self.verbose > 0:
-            print(f"PORTFO - Positive days: {100 * (ret>0).mean():.2f}%. Average daily return: {prc_ret.mean():.4f}%.")
-            print(f"MARKET - Positive days: {100 * (_ret>0).mean():.2f}%. Average daily return: {_prc_ret.mean():.4f}%.")
+            print(f"PORTFO - Positive days: {100*(ret>0).mean():.2f}%. Average daily return: {prc_ret.mean():.4f}%.")
+            print(f"MARKET - Positive days: {100*(_ret>0).mean():.2f}%. Average daily return: {_prc_ret.mean():.4f}%.")
         return balance
 
     def save(self, model_name):
@@ -808,3 +803,22 @@ class LstmContextTrader(Trader):
         model_name = '../models/' + model_name
         self.model = tf.keras.models.load_model(f'{model_name}/model.h5', compile=False)
         self.model.compile()
+
+
+def fftn(x):
+    """
+    Computes n-dimensional Fast Fourier Transform for Tensorflow.
+
+    :param tf.Tensor x: an n-dimensional Tensor (typically 3D).
+    :return: an n-dimensional Tensor with fftn applied.
+    :rtype: tf.Tensor
+    """
+    out = tf.cast(x, tf.complex64)
+    real_axis = list(range(len(x.shape)))
+    for axis in reversed(real_axis):
+        perm_axis = real_axis.copy()
+        perm_axis[-1], perm_axis[axis] = perm_axis[axis], perm_axis[-1]
+        out = tf.transpose(out, perm_axis)
+        out = tf.signal.fft(out)
+        out = tf.transpose(out, perm_axis)
+    return tf.math.real(out)

@@ -182,23 +182,27 @@ def fetch_poloniex_data(pairs):
         fetch_poloniex_prices(filename=path+'_prices.csv', currency_pair=pair)
 
 
-def fetch_yahoo_data(companies):
+def fetch_yahoo_data(companies, parallelize=True):
     """
     Fetches or updates news and prices data for all companies provided.
 
     :param list companies: list of companies symbol for which to get data (e.g ['AAPL', 'MSFT'])
+    :param bool parallelize: whether data fetching must be parallelized to save time.
     :rtype: None
     """
 
     def fetch_all(c):
         path = folder + c.lower()
-        # fetch_yahoo_news(filename=path + '_news.csv', company=company)
-        fetch_yahoo_prices(filename=path + '_prices.csv', company=c)
+        # fetch_yahoo_news(filename=f'{path}_news.csv', company=c)
+        fetch_yahoo_prices(filename=f'{path}_prices.csv', company=c)
         fetch_yahoo_intraday(f'../data/yahoo_intraday/{c.lower()}_prices.csv', company=c)
 
     folder = '../data/yahoo/'
     for company in companies:
-        threading.Thread(target=fetch_all, args=(company,)).start()
+        if parallelize:
+            threading.Thread(target=fetch_all, args=(company,)).start()
+        else:
+            fetch_all(company)
     fetch_yahoo_prices(filename=folder + '^n225_prices.csv', company='^n225')
 
 

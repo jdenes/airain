@@ -24,9 +24,9 @@ FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
 INITIAL_GAMBLE = 50000
-VERSION = 1
+VERSION = 3
 H = 10
-EPOCHS = 1700
+EPOCHS = 5000  # 1700
 PATIENCE = None
 T0 = '2010-01-01'
 T1 = '2020-10-01'
@@ -171,14 +171,14 @@ def heartbeat():
         now = dt.now()
         if now.minute % 10 == 0 and now.second == 0:
             logger.info('still running')
-        if now.hour == 21 and now.minute == 58 and now.second == 50:  # 17sec
+        if now.hour == 21 and now.minute == 58 and now.second == 0:  # 17sec
             logger.info('updating data')
             safe_try(fetch_yahoo_data, DJIA)
             logger.info('updating was successful')
             logger.info('computing orders')
             order_book = safe_try(get_recommendations)
             logger.info('computing was successful')
-        if now.hour == 21 and now.minute == 59 and now.second == 15:  # 30sec
+        if now.hour == 21 and now.minute == 59 and now.second == 0:  # 30sec
             logger.info('placing orders')
             safe_try(place_orders, order_book)
             logger.info('placing was successful')
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=CAC40)
     # fetch_yahoo_data(companies=DJIA)
     # fetch_poloniex_data(pairs=PAIRS)
-    # train_model()
+    train_model()
     # grid_search()
 
     # o = get_recommendations()
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()
-    heartbeat()
+    # heartbeat()
 
     # for pair in PAIRS:
     #     folder = '../data/poloniex/'
