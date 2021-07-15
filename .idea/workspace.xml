@@ -19,12 +19,10 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Achieved to speed up inference process by a lot">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Implementation of FFTN improve perf a bit">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/data_fetching.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/data_fetching.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -369,13 +367,6 @@
       <workItem from="1608215422661" duration="4686000" />
       <workItem from="1608221621736" duration="38796000" />
     </task>
-    <task id="LOCAL-00002" summary="Improved data fetching + test with EUR-GBP">
-      <created>1580838575846</created>
-      <option name="number" value="00002" />
-      <option name="presentableId" value="LOCAL-00002" />
-      <option name="project" value="LOCAL" />
-      <updated>1580838575846</updated>
-    </task>
     <task id="LOCAL-00003" summary="Added random simulation">
       <created>1580901446795</created>
       <option name="number" value="00003" />
@@ -712,7 +703,14 @@
       <option name="project" value="LOCAL" />
       <updated>1623863170083</updated>
     </task>
-    <option name="localTasksCounter" value="51" />
+    <task id="LOCAL-00051" summary="Implementation of FFTN improve perf a bit">
+      <created>1625733189477</created>
+      <option name="number" value="00051" />
+      <option name="presentableId" value="LOCAL-00051" />
+      <option name="project" value="LOCAL" />
+      <updated>1625733189478</updated>
+    </task>
+    <option name="localTasksCounter" value="52" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -731,7 +729,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Perf are nearly stable with these settings" />
     <MESSAGE value="Good results with smaller model, slower training" />
     <MESSAGE value="Reduced learning rate even more" />
     <MESSAGE value="Increasing RNN output to 5 sometimes gives good results" />
@@ -756,6 +753,7 @@
     <MESSAGE value="Fixed gaussian noise inconsistent behavior" />
     <MESSAGE value="Added noise to test prices to account for fluctuations" />
     <MESSAGE value="Achieved to speed up inference process by a lot" />
-    <option name="LAST_COMMIT_MESSAGE" value="Achieved to speed up inference process by a lot" />
+    <MESSAGE value="Implementation of FFTN improve perf a bit" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implementation of FFTN improve perf a bit" />
   </component>
 </project>

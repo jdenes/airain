@@ -511,6 +511,7 @@ class LstmContextTrader(Trader):
         self.noise_level = 0.5
         self.layer_coefficient = 1.5
         self.entropy_lambda = 2e-4
+        self.learning_rate = 1e-4
 
         if load_from is not None:
             self.load(model_name=load_from, fast=fast_load)
@@ -569,8 +570,8 @@ class LstmContextTrader(Trader):
         lstm_size = int(self.layer_coefficient * self.num_assets)
         for i in range(self.X_train.shape[-2]):
             feature_tensor = noise_layer[:, :, i, :]
-            fourier_tensor = fftn(feature_tensor)
-            lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(fourier_tensor)
+            # fourier_tensor = fftn(feature_tensor)
+            lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -642,7 +643,7 @@ class LstmContextTrader(Trader):
         valid_data = valid_data.shuffle(self.buffer_size).batch(self.batch_size)
 
         self.init_model()
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, amsgrad=False)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate, amsgrad=False)
         if self.verbose > 0:
             super().train()
             self.model.summary()
@@ -809,8 +810,8 @@ def fftn(x):
     """
     Computes n-dimensional Fast Fourier Transform for Tensorflow.
 
-    :param tf.Tensor x: an n-dimensional Tensor (typically 3D).
-    :return: an n-dimensional Tensor with fftn applied.
+    :param tf.Tensor x: a n-dimensional Tensor (typically 3D).
+    :return: a n-dimensional Tensor with fftn applied.
     :rtype: tf.Tensor
     """
     out = tf.cast(x, tf.complex64)
