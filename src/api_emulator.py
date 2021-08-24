@@ -16,12 +16,11 @@ class Emulator:
         self.mode = mode
         self.driver = webdriver.Firefox(log_path='../logs/geckodriver.log')
         self.driver.get("https://demo.trading212.com/")
-        time.sleep(2)
-        self.driver.find_element_by_xpath("//input[@id='username-real']").send_keys(self.user_name)
-        self.driver.find_element_by_xpath("//input[@id='pass-real']").send_keys(self.password)
-        time.sleep(2)
-        self.driver.find_element_by_xpath("//input[@class='button-login']").click()
         time.sleep(5)
+        self.driver.find_element_by_xpath("//input[@name='email']").send_keys(self.user_name)
+        self.driver.find_element_by_xpath("//input[@name='password']").send_keys(self.password)
+        self.driver.find_element_by_xpath("//input[@class='submit-button_input__3s_QD']").click()
+        time.sleep(10)
 
     def open_trade(self, order):
 
@@ -55,11 +54,44 @@ class Emulator:
         return self
 
     def close_all_trades(self):
-        try:
-            self.driver.find_element_by_xpath("//span[@class='account-panel-close-all svg-icon-holder']").click()
-            self.driver.find_element_by_xpath("//div[@class='close-all-positions-button button blue-button']").click()
-        except NoSuchElementException:
-            logger.info("API emulator found no position to close")
+
+        if self.mode == 'invest':
+
+            self.driver.find_element_by_xpath("//div[@data-qa-table='pending-orders']").click()
+            self.driver.find_element_by_xpath("//div[@data-qa-table='positions']").click()
+            time.sleep(1)
+            count = 0
+
+            while True:
+                try:
+                    self.driver.find_element_by_xpath("//div[@class='positions-table-item']").click()
+                    time.sleep(1)
+                    xpath = "//div[@class='investment web']//div[@class='label']"
+                    quantity = self.driver.find_element_by_xpath(xpath).text.split()[0]
+                    xpath = "//div[@class='invest-instrument-advanced-header']//span[@data-qa-trading-btn='btn-sell']"
+                    self.driver.find_element_by_xpath(xpath).click()
+                    self.driver.find_element_by_xpath("//input[@class='input css-jjd680']").click()
+                    ActionChains(self.driver).send_keys(quantity).perform()
+                    self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
+                    self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
+                    time.sleep(1)
+                    xpath = "//div[@class='svg-icon-holder close-button rectangular close-button-in-header']"
+                    self.driver.find_element_by_xpath(xpath).click()
+                    count += 1
+
+                except NoSuchElementException:
+                    break
+
+            if count == 0:
+                logger.warning("API emulator found no position to close")
+
+        else:
+            try:
+                self.driver.find_element_by_xpath("//span[@class='account-panel-close-all svg-icon-holder']").click()
+                self.driver.find_element_by_xpath("//div[@class='close-all-positions-button button blue-button']").click()
+            except NoSuchElementException:
+                logger.warning("API emulator found no position to close")
+
         time.sleep(3)
         return self
 

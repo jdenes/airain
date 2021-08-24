@@ -23,14 +23,14 @@ TARGET_COL = 'close'
 FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
-INITIAL_GAMBLE = 50000
-VERSION = 2
+INITIAL_GAMBLE = 40000
+VERSION = '0.1.0'
 H = 10
 EPOCHS = 1700  # 1700
 PATIENCE = None
 T0 = '2010-01-01'
-T1 = '2020-10-01'
-T2 = '2021-01-01'
+T1 = '2016-10-01'
+T2 = '2017-01-01'
 
 
 def train_model(plot=True):
@@ -41,12 +41,12 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
-    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    # trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
-    trader.train(epochs=EPOCHS, patience=PATIENCE)
-    trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.train(epochs=EPOCHS, patience=PATIENCE)
+    # trader.save(model_name=f'Huorn_v{VERSION}')
     trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=False)
 
 
@@ -130,23 +130,9 @@ def get_recommendations():
 
 def place_orders(order_book):
     emulator = Emulator(user_name, pwd)
-    emulator.close_all_trades()
+    # emulator.close_all_trades()
     for order in order_book:
         emulator.open_trade(order)
-    # prices = emulator.get_current_prices()
-    # prices = pd.DataFrame([prices]).set_index('date', drop=True)
-    # path = '../outputs/open_prices.csv'
-    # write_data(path, prices)
-    emulator.quit()
-
-
-def close_orders():
-    emulator = Emulator(user_name, pwd)
-    emulator.close_all_trades()
-    prices = emulator.get_trades_results()
-    prices = pd.DataFrame(prices).set_index('date', drop=True)
-    path = '../outputs/trade_data.csv'
-    write_data(path, prices, same_ids=True)
     emulator.quit()
 
 
@@ -182,10 +168,6 @@ def heartbeat():
             logger.info('placing orders')
             safe_try(place_orders, order_book)
             logger.info('placing was successful')
-        # if now.hour == 21 and now.minute == 50 and now.second == 0:
-        #     logger.info('closing all orders')
-        #     safe_try(close_orders)
-        #     logger.info('closing was successful')
         time.sleep(1)
 
 
@@ -195,7 +177,7 @@ if __name__ == "__main__":
     # fetch_yahoo_data(companies=CAC40)
     # fetch_yahoo_data(companies=DJIA)
     # fetch_poloniex_data(pairs=PAIRS)
-    train_model()
+    # train_model()
     # grid_search()
 
     # o = get_recommendations()
@@ -203,7 +185,7 @@ if __name__ == "__main__":
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()
-    # heartbeat()
+    heartbeat()
 
     # for pair in PAIRS:
     #     folder = '../data/poloniex/'
