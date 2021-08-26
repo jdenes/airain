@@ -16,7 +16,7 @@ class Emulator:
         self.mode = mode
         self.driver = webdriver.Firefox(log_path='../logs/geckodriver.log')
         self.driver.get("https://demo.trading212.com/")
-        time.sleep(5)
+        time.sleep(6)
         self.driver.find_element_by_xpath("//input[@name='email']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@name='password']").send_keys(self.password)
         self.driver.find_element_by_xpath("//input[@class='submit-button_input__3s_QD']").click()
@@ -60,30 +60,27 @@ class Emulator:
             self.driver.find_element_by_xpath("//div[@data-qa-table='pending-orders']").click()
             self.driver.find_element_by_xpath("//div[@data-qa-table='positions']").click()
             time.sleep(1)
-            count = 0
+            positions = self.driver.find_elements_by_xpath("//div[@class='positions-table-item']")
+            tickers = [a.get_attribute("data-qa-ticker") for a in positions]
 
-            while True:
-                try:
-                    self.driver.find_element_by_xpath("//div[@class='positions-table-item']").click()
-                    time.sleep(1)
-                    xpath = "//div[@class='investment web']//div[@class='label']"
-                    quantity = self.driver.find_element_by_xpath(xpath).text.split()[0]
-                    xpath = "//div[@class='invest-instrument-advanced-header']//span[@data-qa-trading-btn='btn-sell']"
-                    self.driver.find_element_by_xpath(xpath).click()
-                    self.driver.find_element_by_xpath("//input[@class='input css-jjd680']").click()
-                    ActionChains(self.driver).send_keys(quantity).perform()
-                    self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
-                    self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
-                    time.sleep(1)
-                    xpath = "//div[@class='svg-icon-holder close-button rectangular close-button-in-header']"
-                    self.driver.find_element_by_xpath(xpath).click()
-                    count += 1
-
-                except NoSuchElementException:
-                    break
-
-            if count == 0:
+            if len(tickers) == 0:
                 logger.warning("API emulator found no position to close")
+                return self
+
+            for ticker in tickers:
+                xpath = f"//div[(@class='positions-table-item') and (@data-qa-ticker='{ticker}')]"
+                self.driver.find_element_by_xpath(xpath).click()
+                time.sleep(1)
+                xpath = "//div[@class='investment web']//div[@class='label']"
+                quantity = self.driver.find_element_by_xpath(xpath).text.split()[0]
+                xpath = "//div[@class='invest-instrument-advanced-header']//span[@data-qa-trading-btn='btn-sell']"
+                self.driver.find_element_by_xpath(xpath).click()
+                self.driver.find_element_by_xpath("//input[@class='input css-jjd680']").click()
+                ActionChains(self.driver).send_keys(quantity).perform()
+                self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
+                self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
+                xpath = "//div[@class='svg-icon-holder close-button rectangular close-button-in-header']"
+                self.driver.find_element_by_xpath(xpath).click()
 
         else:
             try:

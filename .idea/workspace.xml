@@ -19,23 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Removed FFTN for stability of perf">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Updating emulator to fit new T212 UI">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Backtest FXCM real m1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Backtest FXCM real m15.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Backtest FXCM real m30.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Backtest FXCM real m5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Huorn 100-15 fees.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Huorn 100-15 nofees.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Huorn 100-5 nofees.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Test FXCM m1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Test FXCM m15.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Test FXCM m30.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/Test FXCM m5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/bench_ntrees_20_60.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/figures/bench_ntrees_60_100.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/basics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/basics.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -380,13 +368,6 @@
       <workItem from="1608215422661" duration="4686000" />
       <workItem from="1608221621736" duration="38796000" />
     </task>
-    <task id="LOCAL-00004" summary="Better recommendation interface">
-      <created>1594223516933</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1594223516933</updated>
-    </task>
     <task id="LOCAL-00005" summary="Added sentiment analysis addon, not convincing">
       <created>1606400955723</created>
       <option name="number" value="00005" />
@@ -723,7 +704,14 @@
       <option name="project" value="LOCAL" />
       <updated>1626339444158</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="Updating emulator to fit new T212 UI">
+      <created>1629828188751</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1629828188752</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -742,7 +730,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Reduced learning rate even more" />
     <MESSAGE value="Increasing RNN output to 5 sometimes gives good results" />
     <MESSAGE value="Experiments with news" />
     <MESSAGE value="Attempts with bad student project + cryptos =&gt; bad" />
@@ -767,6 +754,7 @@
     <MESSAGE value="Achieved to speed up inference process by a lot" />
     <MESSAGE value="Implementation of FFTN improve perf a bit" />
     <MESSAGE value="Removed FFTN for stability of perf" />
-    <option name="LAST_COMMIT_MESSAGE" value="Removed FFTN for stability of perf" />
+    <MESSAGE value="Updating emulator to fit new T212 UI" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updating emulator to fit new T212 UI" />
   </component>
 </project>

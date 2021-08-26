@@ -130,7 +130,7 @@ def get_recommendations():
 
 def place_orders(order_book):
     emulator = Emulator(user_name, pwd)
-    # emulator.close_all_trades()
+    emulator.close_all_trades()
     for order in order_book:
         emulator.open_trade(order)
     emulator.quit()
@@ -187,9 +187,5 @@ if __name__ == "__main__":
     # yesterday_perf()
     heartbeat()
 
-    # for pair in PAIRS:
-    #     folder = '../data/poloniex/'
-    #     path = folder + pair.lower()
-    #     df = pd.read_csv(f'{path}_prices.csv', index_col=0)
-    #     df = df[df.index > '2000']
-    #     print(pair, df.index.min())
+    # emulator = Emulator(user_name, pwd)
+    # emulator.close_all_trades()

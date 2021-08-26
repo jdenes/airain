@@ -99,7 +99,7 @@ def evaluate_portfolio(portfolio, prices):
     return np.sum(portfolio * prices).round(2)
 
 
-def safe_try(function, arg=None, max_attempts=999):
+def safe_try(function, arg=None, max_attempts=10):
     """
     A safe environment to execute functions likely to fail (e.g. webdriver, scrapping...).
 
