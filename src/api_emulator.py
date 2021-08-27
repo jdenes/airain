@@ -79,6 +79,7 @@ class Emulator:
                 ActionChains(self.driver).send_keys(quantity).perform()
                 self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
                 self.driver.find_element_by_xpath("//div[@class='button accent-button']").click()
+                time.sleep(1)
                 xpath = "//div[@class='svg-icon-holder close-button rectangular close-button-in-header']"
                 self.driver.find_element_by_xpath(xpath).click()
 

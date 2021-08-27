@@ -157,14 +157,14 @@ def heartbeat():
         now = dt.now()
         if now.minute % 10 == 0 and now.second == 0:
             logger.info('still running')
-        if now.hour == 21 and now.minute == 58 and now.second == 0:  # 17sec
+        if now.hour == 21 and now.minute == 57 and now.second == 30:  # 17sec
             logger.info('updating data')
             safe_try(fetch_yahoo_data, DJIA)
             logger.info('updating was successful')
             logger.info('computing orders')
             order_book = safe_try(get_recommendations)
             logger.info('computing was successful')
-        if now.hour == 21 and now.minute == 59 and now.second == 0:  # 30sec
+        if now.hour == 21 and now.minute == 58 and now.second == 30:  # 30sec
             logger.info('placing orders')
             safe_try(place_orders, order_book)
             logger.info('placing was successful')
