@@ -66,14 +66,14 @@ PAIRS = ["USDC_ATOM", "USDC_BTC", "USDC_DASH", "USDC_DOGE", "USDC_EOS", "USDC_ET
 Subset of CAC 40 components
 """
 
-CAC40 = ["BNP.PA", "FP.PA", "EN.PA", "CA.PA", "SAN.PA", "ACA.PA", "VIE.PA", "DG.PA", "ORA.PA", "WLN.PA", "VIV.PA",
+CAC40 = ["BNP.PA", "EN.PA", "CA.PA", "SAN.PA", "ACA.PA", "VIE.PA", "DG.PA", "ORA.PA", "WLN.PA", "VIV.PA",
          "GLE.PA", "HO.PA", "ML.PA", "RI.PA", "CAP.PA", "AI.PA", "SW.PA", "SGO.PA", "OR.PA", "ATO.PA", "KER.PA",
          "SU.PA", "AC.PA", "MC.PA", "ENGI.PA", "AIR.PA", "BN.PA", "LR.PA", "CS.PA"]
 
 """
 Subset of CAC40
 """
-CAC40_PERFORMERS = ["FP.PA", "SAN.PA", "ACA.PA", "DG.PA", "RI.PA", "SW.PA", "OR.PA", "AIR.PA", "BNP.PA", "MC.PA"]
+CAC40_PERFORMERS = ["SAN.PA", "ACA.PA", "DG.PA", "RI.PA", "SW.PA", "OR.PA", "AIR.PA", "BNP.PA", "MC.PA"]
 
 """
 DAX

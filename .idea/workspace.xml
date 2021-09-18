@@ -19,10 +19,10 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed the closing trades automation">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed timings for emulator closing positions">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/utils/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/constants.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -367,13 +367,6 @@
       <workItem from="1608215422661" duration="4686000" />
       <workItem from="1608221621736" duration="38796000" />
     </task>
-    <task id="LOCAL-00006" summary="Added grid search for hyperparameter optimization">
-      <created>1606594257653</created>
-      <option name="number" value="00006" />
-      <option name="presentableId" value="LOCAL-00006" />
-      <option name="project" value="LOCAL" />
-      <updated>1606594257653</updated>
-    </task>
     <task id="LOCAL-00007" summary="Finally took time to create distinct LGBM and LSTM classes">
       <created>1606605806023</created>
       <option name="number" value="00007" />
@@ -710,7 +703,14 @@
       <option name="project" value="LOCAL" />
       <updated>1629966406587</updated>
     </task>
-    <option name="localTasksCounter" value="55" />
+    <task id="LOCAL-00055" summary="Fixed timings for emulator closing positions">
+      <created>1630073486746</created>
+      <option name="number" value="00055" />
+      <option name="presentableId" value="LOCAL-00055" />
+      <option name="project" value="LOCAL" />
+      <updated>1630073486746</updated>
+    </task>
+    <option name="localTasksCounter" value="56" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -729,7 +729,6 @@
     <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Experiments with news" />
     <MESSAGE value="Attempts with bad student project + cryptos =&gt; bad" />
     <MESSAGE value="Good - saving nice settings using close-to-close" />
     <MESSAGE value="Settings are good, file reformatting" />
@@ -754,6 +753,7 @@
     <MESSAGE value="Removed FFTN for stability of perf" />
     <MESSAGE value="Updating emulator to fit new T212 UI" />
     <MESSAGE value="Fixed the closing trades automation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed the closing trades automation" />
+    <MESSAGE value="Fixed timings for emulator closing positions" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fixed timings for emulator closing positions" />
   </component>
 </project>

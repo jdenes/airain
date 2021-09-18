@@ -23,14 +23,14 @@ TARGET_COL = 'close'
 FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
-INITIAL_GAMBLE = 40000
-VERSION = '0.1.0'
+INITIAL_GAMBLE = 45000
+VERSION = 'test'
 H = 10
 EPOCHS = 1700  # 1700
 PATIENCE = None
 T0 = '2010-01-01'
-T1 = '2016-10-01'
-T2 = '2017-01-01'
+T1 = '2020-10-01'
+T2 = '2021-01-01'
 
 
 def train_model(plot=True):
@@ -42,11 +42,11 @@ def train_model(plot=True):
     """
     print('Training model...')
     # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=False)
+    trader = LstmContextTrader(load_from=f'Huorn_{VERSION}', fast_load=False)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
     # trader.train(epochs=EPOCHS, patience=PATIENCE)
-    # trader.save(model_name=f'Huorn_v{VERSION}')
+    # trader.save(model_name=f'Huorn_{VERSION}')
     trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=False)
 
 
@@ -110,7 +110,7 @@ def yesterday_perf():
 def get_recommendations():
     import numpy as np
     now = dt.now()
-    trader = LstmContextTrader(load_from=f'Huorn_v{VERSION}', fast_load=True)
+    trader = LstmContextTrader(load_from=f'Huorn_{VERSION}', fast_load=True)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1, keep_last=True)
     bound = sorted(df.index.unique())[-H]
     df, labels = df[df.index >= bound], labels[df.index >= bound]
@@ -173,8 +173,8 @@ def heartbeat():
 
 if __name__ == "__main__":
 
-    # fetch_yahoo_data(companies=DAX)
-    # fetch_yahoo_data(companies=CAC40)
+    # fetch_yahoo_data(companies=DAX, parallelize=False)
+    # fetch_yahoo_data(companies=CAC40, parallelize=False)
     # fetch_yahoo_data(companies=DJIA)
     # fetch_poloniex_data(pairs=PAIRS)
     # train_model()
