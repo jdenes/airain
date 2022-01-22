@@ -27,10 +27,10 @@ INITIAL_GAMBLE = 45000
 VERSION = 'test'
 H = 10
 EPOCHS = 1700  # 1700
-PATIENCE = None
+PATIENCE = 1000
 T0 = '2010-01-01'
-T1 = '2020-10-01'
-T2 = '2021-01-01'
+T1 = '2021-01-01'
+T2 = '2021-02-01'
 
 
 def train_model(plot=True):
@@ -41,12 +41,12 @@ def train_model(plot=True):
     :rtype: None
     """
     print('Training model...')
-    # trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
-    trader = LstmContextTrader(load_from=f'Huorn_{VERSION}', fast_load=False)
+    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
+    # trader = LstmContextTrader(load_from=f'Huorn_{VERSION}', fast_load=False)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
-    # trader.train(epochs=EPOCHS, patience=PATIENCE)
-    # trader.save(model_name=f'Huorn_{VERSION}')
+    trader.train(epochs=EPOCHS, patience=PATIENCE)
+    trader.save(model_name=f'Huorn_{VERSION}')
     trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=False)
 
 
@@ -173,11 +173,11 @@ def heartbeat():
 
 if __name__ == "__main__":
 
-    # fetch_yahoo_data(companies=DAX, parallelize=False)
-    # fetch_yahoo_data(companies=CAC40, parallelize=False)
-    # fetch_yahoo_data(companies=DJIA)
+    # fetch_yahoo_data(companies=DAX)
+    # fetch_yahoo_data(companies=CAC40)
+    fetch_yahoo_data(companies=DJIA)
     # fetch_poloniex_data(pairs=PAIRS)
-    # train_model()
+    train_model()
     # grid_search()
 
     # o = get_recommendations()
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     # place_orders(o)
     # get_trades_results()
     # yesterday_perf()
-    heartbeat()
+    # heartbeat()
 
     # emulator = Emulator(user_name, pwd)
     # emulator.close_all_trades()

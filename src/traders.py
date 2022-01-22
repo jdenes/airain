@@ -79,13 +79,14 @@ class Trader(object):
         test_ind = (df.index >= self.t2)
 
         df_train, labels_train = df[train_ind], labels[train_ind]
-        if duplicate:
-            df_train, labels_train = pd.concat([df_train] * 10, axis=0), pd.concat([labels_train] * 10, axis=0)
         self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
         X, P, y, ind = self.transform_data(df_train, labels_train)
+        if duplicate:
+            X, P = np.concatenate([X] * 10, axis=0), np.concatenate([P] * 10, axis=0)
+            y, ind = np.concatenate([y] * 10, axis=0), np.concatenate([ind] * 10, axis=0)
         self.X_train, self.P_train, self.y_train, self.ind_train = X, P, y, ind
 
         df_val, labels_val = df[val_ind], labels[val_ind]
@@ -738,22 +739,25 @@ class LstmContextTrader(Trader):
         history, ref_history, aapl_history, index = [balance], [ref_balance], [aapl_balance], [ind[0]]
         portfolio_history = []
 
-        for i in range(1, len(ind)):
-            today = ind[i]
-            open_price, close_price = P[i-1][:, 3], P[i][:, 3]
+        for day in range(1, len(ind)):
+
+            open_price, close_price = P[day-1][:, 3], P[day][:, 3]
             open_price, close_price = np.concatenate(([1.0], open_price)), np.concatenate(([1.0], close_price))
-            omega = omegas[i - 1]
+
+            # First we compute new portfolio, place order
+            omega = omegas[day - 1]
+            portfolio = omega2assets(gamble, omega, open_price)
+            morning_value = evaluate_portfolio(portfolio, open_price)
+
+            # Same for uniform portfolio
             ref_omega = np.ones((len(omega))) / len(omega)
+            ref_portfolio = omega2assets(gamble, ref_omega, open_price)
+            ref_morning_value = evaluate_portfolio(ref_portfolio, open_price)
+
+            # Same for only AAPL portfolio
             aapl_omega = np.zeros((len(omega)))
             aapl_omega[1] = 1.0
-            # aapl_omega = np.array([0.0, 0.0, 0.11, 0.02, 0.42, 0.21, 0.24, 0.0, 0.01, 0.0, 0.0])
-
-            # Omega gives me proportions, I need to make a number of assets out of that
-            portfolio = omega2assets(gamble, omega, open_price)
-            ref_portfolio = omega2assets(gamble, ref_omega, open_price)
             aapl_portfolio = omega2assets(gamble, aapl_omega, open_price)
-            morning_value = evaluate_portfolio(portfolio, open_price)
-            ref_morning_value = evaluate_portfolio(ref_portfolio, open_price)
             aapl_morning_value = evaluate_portfolio(aapl_portfolio, open_price)
 
             # Then days goes on and portfolio value changes
@@ -764,10 +768,14 @@ class LstmContextTrader(Trader):
             evening_value = evaluate_portfolio(portfolio, noisy_price)
             ref_evening_value = evaluate_portfolio(ref_portfolio, close_price)
             aapl_evening_value = evaluate_portfolio(aapl_portfolio, close_price)
-            balance += (evening_value - morning_value)
+
+            # Finally we can compute profit/loss
+            profit_loss = (evening_value - morning_value)
+            balance += profit_loss
             ref_balance += (ref_evening_value - ref_morning_value)
             aapl_balance += (aapl_evening_value - aapl_morning_value)
-            history.append(balance), index.append(today)
+
+            history.append(balance), index.append(ind[day])
             ref_history.append(ref_balance), aapl_history.append(aapl_balance)
             portfolio_history.append(omega)
 
