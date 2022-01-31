@@ -24,13 +24,13 @@ FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
 INITIAL_GAMBLE = 45000
-VERSION = 'test'
+VERSION = '0.1.0'
 H = 10
-EPOCHS = 1700  # 1700
+EPOCHS = 3000  # 1700
 PATIENCE = 1000
 T0 = '2010-01-01'
-T1 = '2021-01-01'
-T2 = '2021-02-01'
+T1 = '2020-10-01'
+T2 = '2021-01-01'
 
 
 def train_model(plot=True):
@@ -48,6 +48,7 @@ def train_model(plot=True):
     trader.train(epochs=EPOCHS, patience=PATIENCE)
     trader.save(model_name=f'Huorn_{VERSION}')
     trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=False)
+    trader.test(companies=COMPANIES, test_on='train', plot=plot, noise=False)
 
 
 def grid_search():
@@ -175,7 +176,7 @@ if __name__ == "__main__":
 
     # fetch_yahoo_data(companies=DAX)
     # fetch_yahoo_data(companies=CAC40)
-    fetch_yahoo_data(companies=DJIA)
+    # fetch_yahoo_data(companies=DJIA)
     # fetch_poloniex_data(pairs=PAIRS)
     train_model()
     # grid_search()

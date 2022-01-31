@@ -572,7 +572,8 @@ class LstmContextTrader(Trader):
         for i in range(self.X_train.shape[-2]):
             feature_tensor = noise_layer[:, :, i, :]
             # fourier_tensor = fftn(feature_tensor)
-            lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.Flatten()(tf.keras.layers.Dense(10, name=f'lstm_{i}')(feature_tensor))
+            # lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []

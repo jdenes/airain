@@ -63,7 +63,7 @@ def load_data(folder, companies, t0, t1, start_from=None, keep_last=False):
             time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d', utc=True)
         except ValueError:
             time_index = pd.to_datetime(df.index.to_list(), format='%Y-%m-%d %H:%M:%S', utc=True)
-        df['year'] = time_index.year
+        # df['year'] = time_index.year
         df['month'] = time_index.month
         df['quarter'] = time_index.quarter
         df['day'] = time_index.day

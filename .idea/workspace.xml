@@ -19,9 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Minor modif on assets lists and versions name">
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Minor code rewriting">
+      <change afterPath="$PROJECT_DIR$/src/drafts/autoencoder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
@@ -371,13 +373,6 @@
       <workItem from="1608215422661" duration="4686000" />
       <workItem from="1608221621736" duration="38796000" />
     </task>
-    <task id="LOCAL-00008" summary="A bit of research on LSTM, not working">
-      <created>1606682949991</created>
-      <option name="number" value="00008" />
-      <option name="presentableId" value="LOCAL-00008" />
-      <option name="project" value="LOCAL" />
-      <updated>1606682949991</updated>
-    </task>
     <task id="LOCAL-00009" summary="Split utils into subfiles + changed daily news aggregation">
       <created>1606756115628</created>
       <option name="number" value="00009" />
@@ -714,7 +709,14 @@
       <option name="project" value="LOCAL" />
       <updated>1631982631969</updated>
     </task>
-    <option name="localTasksCounter" value="57" />
+    <task id="LOCAL-00057" summary="Minor code rewriting">
+      <created>1642882354186</created>
+      <option name="number" value="00057" />
+      <option name="presentableId" value="LOCAL-00057" />
+      <option name="project" value="LOCAL" />
+      <updated>1642882354186</updated>
+    </task>
+    <option name="localTasksCounter" value="58" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -732,7 +734,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Good - saving nice settings using close-to-close" />
     <MESSAGE value="Settings are good, file reformatting" />
     <MESSAGE value="Clean, working code + experiments notes" />
     <MESSAGE value="Yes about as good as market on the long run" />
@@ -757,6 +758,7 @@
     <MESSAGE value="Fixed the closing trades automation" />
     <MESSAGE value="Fixed timings for emulator closing positions" />
     <MESSAGE value="Minor modif on assets lists and versions name" />
-    <option name="LAST_COMMIT_MESSAGE" value="Minor modif on assets lists and versions name" />
+    <MESSAGE value="Minor code rewriting" />
+    <option name="LAST_COMMIT_MESSAGE" value="Minor code rewriting" />
   </component>
 </project>
