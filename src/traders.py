@@ -8,6 +8,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 import tensorflow as tf
+from tqdm import tqdm
 
 from utils.basics import omega2assets, evaluate_portfolio, normalize_data
 from utils.metrics import classification_perf
@@ -60,13 +61,13 @@ class Trader(object):
 
         self.t0, self.t1, self.t2 = t0, t1, t2
 
-    def transform_data(self, df, labels, keep_last=False):
+    def transform_data(self, df, labels, keep_last=False, verbose=1):
         """
         Converts dataframe file to appropriate data format for this agent type.
         """
         return None, None, None, np.array(0)
 
-    def ingest_data(self, df, labels, duplicate=False, testsize=0.1, valsize=0.1):
+    def ingest_data(self, df, labels, duplicate=False, testsize=0.1, valsize=0.1, verbose=1):
         """
         Loads data from csv file depending on data type.
         """
@@ -83,19 +84,19 @@ class Trader(object):
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
-        X, P, y, ind = self.transform_data(df_train, labels_train)
+        X, P, y, ind = self.transform_data(df_train, labels_train, verbose=verbose)
         if duplicate:
             X, P = np.concatenate([X] * 10, axis=0), np.concatenate([P] * 10, axis=0)
             y, ind = np.concatenate([y] * 10, axis=0), np.concatenate([ind] * 10, axis=0)
         self.X_train, self.P_train, self.y_train, self.ind_train = X, P, y, ind
 
         df_val, labels_val = df[val_ind], labels[val_ind]
-        X, P, y, ind = self.transform_data(df_val, labels_val)
+        X, P, y, ind = self.transform_data(df_val, labels_val, verbose=verbose)
         self.X_val, self.P_val, self.y_val, self.ind_val = X, P, y, ind
         del df_val, labels_val
 
         df_test, labels_test = df[test_ind], labels[test_ind]
-        X, P, y, ind = self.transform_data(df_test, labels_test)
+        X, P, y, ind = self.transform_data(df_test, labels_test, verbose=verbose)
         self.X_test, self.P_test, self.y_test, self.ind_test = X, P, y, ind
         del df_test, labels_test
 
@@ -261,7 +262,7 @@ class LGBMTrader(Trader):
         if load_from is not None:
             self.load(model_name=load_from, fast=fast_load)
 
-    def transform_data(self, df, labels, keep_last=False):
+    def transform_data(self, df, labels, keep_last=False, verbose=1):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -372,7 +373,7 @@ class LstmTrader(Trader):
         if load_from is not None:
             self.load(model_name=load_from, fast=fast_load)
 
-    def transform_data(self, df, labels, keep_last=False):
+    def transform_data(self, df, labels, keep_last=False, verbose=1):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -488,6 +489,7 @@ class LstmContextTrader(Trader):
 
     def __init__(self, h=10, seed=123, forecast=1,
                  t0='2000-01-01', t1='2019-01-01', t2='2020-01-01',
+                 noise_level=1.0, layer_coefficient=1.0, entropy_lambda=2e-4, learning_rate=1e-4,
                  normalize=False, load_from=None, fast_load=True):
         """
         Initialize method.
@@ -507,17 +509,18 @@ class LstmContextTrader(Trader):
         self.gpu = None
         self.model = None
         self.optimizer = None
+        self.patience = None
         self.verbose = None
 
-        self.noise_level = 0.5
-        self.layer_coefficient = 1.5
-        self.entropy_lambda = 2e-4
-        self.learning_rate = 1e-4
+        self.noise_level = noise_level
+        self.layer_coefficient = layer_coefficient
+        self.entropy_lambda = entropy_lambda
+        self.learning_rate = learning_rate
 
         if load_from is not None:
             self.load(model_name=load_from, fast=fast_load)
 
-    def transform_data(self, df, labels, keep_last=False):
+    def transform_data(self, df, labels, keep_last=False, verbose=1):
         """
         Given data and labels, transforms it into suitable format and return them.
         """
@@ -536,8 +539,7 @@ class LstmContextTrader(Trader):
         X, P, y, ind = [], [], [], []
         count = 0
 
-        from tqdm import tqdm
-        for i in tqdm(range(self.h - 1, len(dates))):
+        for i in tqdm(range(self.h - 1, len(dates)), disable=(verbose < 1)):
             day = dates[i]
             tmp = []
             for j, asset in enumerate(assets):
@@ -572,8 +574,8 @@ class LstmContextTrader(Trader):
         for i in range(self.X_train.shape[-2]):
             feature_tensor = noise_layer[:, :, i, :]
             # fourier_tensor = fftn(feature_tensor)
-            lstm_layer = tf.keras.layers.Flatten()(tf.keras.layers.Dense(10, name=f'lstm_{i}')(feature_tensor))
-            # lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f'lstm_{i}')(feature_tensor)
+            lstm_layer = tf.keras.layers.Flatten()(tf.keras.layers.Dense(lstm_size, name=f"asset_{i}")(feature_tensor))
+            # lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f"lstm_{i}")(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
         # conv = []
@@ -627,17 +629,11 @@ class LstmContextTrader(Trader):
         self.batch_size = batch_size
         self.buffer_size = buffer_size
         self.epochs = epochs
+        self.patience = patience
         self.verbose = verbose
 
         if not self.gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
-
-        # self.y_train = np.append(np.zeros((len(self.y_train), 1)), self.y_train, axis=1)
-        # self.y_test = np.append(np.zeros((len(self.y_test), 1)), self.y_test, axis=1)
-        # self.y_val = np.append(np.zeros((len(self.y_val), 1)), self.y_val, axis=1)
-        # self.y_train = (self.y_train == self.y_train.max(axis=1)[:, None]).astype(int)
-        # self.y_test = (self.y_test == self.y_test.max(axis=1)[:, None]).astype(int)
-        # self.y_val = (self.y_val == self.y_val.max(axis=1)[:, None]).astype(int)
 
         train_data = tf.data.Dataset.from_tensor_slices(({'input_X': self.X_train}, self.y_train))
         train_data = train_data.cache().shuffle(self.buffer_size).batch(self.batch_size)
@@ -649,12 +645,6 @@ class LstmContextTrader(Trader):
         if self.verbose > 0:
             super().train()
             self.model.summary()
-
-        # self.model.compile(loss='categorical_crossentropy',
-        #                    optimizer=tf.keras.optimizers.Adam(lr=1e-9),
-        #                    metrics=['accuracy'])
-        # self.model.fit(self.X_train, self.y_train, validation_data=(self.X_val, self.y_val),
-        #                batch_size=128, epochs=10, shuffle=True, verbose=True)
 
         train_loss_results = []
         epoch_loss_avg = tf.keras.metrics.Mean()
@@ -696,19 +686,19 @@ class LstmContextTrader(Trader):
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
 
-            if patience is not None:
+            if self.patience is not None:
                 if val_loss < best_loss:
                     no_progress = 0
                     best_loss, best_epoch = val_loss, epoch
                     tf.keras.models.save_model(self.model, '../models/best.h5', include_optimizer=True)
                 else:
                     no_progress += 1
-                if no_progress > patience:
+                if no_progress > self.patience:
                     if self.verbose > 0:
-                        print(f'No progress since {patience} epochs, early stopping')
+                        print(f'No progress since {self.patience} epochs, early stopping')
                     break
 
-        if patience is not None and best_epoch != self.epochs-1:
+        if self.patience is not None and best_epoch != self.epochs-1:
             if self.verbose > 0:
                 print(f'Restoring best model: val_loss was {best_loss:.5f} at epoch {best_epoch+1:03d}.')
             self.model = tf.keras.models.load_model('../models/best.h5', compile=False)
@@ -770,7 +760,7 @@ class LstmContextTrader(Trader):
             ref_evening_value = evaluate_portfolio(ref_portfolio, close_price)
             aapl_evening_value = evaluate_portfolio(aapl_portfolio, close_price)
 
-            # Finally we can compute profit/loss
+            # Finally, we can compute profit/loss
             profit_loss = (evening_value - morning_value)
             balance += profit_loss
             ref_balance += (ref_evening_value - ref_morning_value)

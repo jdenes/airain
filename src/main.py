@@ -24,9 +24,9 @@ FOLDER = '../data/yahoo/'
 COMPANIES = DJIA_PERFORMERS
 TRADEFREQ = 1
 INITIAL_GAMBLE = 45000
-VERSION = '0.1.0'
+VERSION = 'test'
 H = 10
-EPOCHS = 3000  # 1700
+EPOCHS = 30000  # 1700
 PATIENCE = 1000
 T0 = '2010-01-01'
 T1 = '2020-10-01'
@@ -53,24 +53,23 @@ def train_model(plot=True):
 
 def grid_search():
     grid = []
-    trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1)
-    trader.ingest_data(df, labels, duplicate=False)
-    for epochs in [1900, 2000, 2100]:
-        for coeff in [1.50]:
-            for entropy in [2e-4]:
-                for noise in [0.500]:
-                    print(f"Epochs: {epochs} - Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f}")
-                    trader.layer_coefficient = coeff
-                    trader.noise_level = noise
-                    trader.entropy_lambda = entropy
-                    trader.train(epochs=epochs, patience=PATIENCE, verbose=0)
+    for h in [10]:
+        for coeff in [1.0]:
+            for noise in [0.5, 1.0, 2.0, 3.0, 5.0]:
+                for ent in [1e-4, 2e-4, 3e-4, 5e-4, 1e-3]:
+                    logger.info(f"H: {h} - Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {ent:.4f}")
+                    trader = LstmContextTrader(h=h, normalize=True, t0=T0, t1=T1, t2=T2,
+                                               noise_level=noise, layer_coefficient=coeff,
+                                               entropy_lambda=ent, learning_rate=1e-4)
+                    trader.ingest_data(df, labels, duplicate=False, verbose=0)
+                    trader.train(epochs=50000, patience=1000, verbose=0)
                     balance = trader.test(companies=COMPANIES, test_on='test', verbose=0, plot=False)
-                    grid.append({'epochs': epochs, 'coeff': coeff, 'ent': entropy, 'noise': noise, 'balance': balance})
-                    print(f"Epochs: {epochs} - Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {entropy:.4f} - "
-                          f"Balance: {balance:.2f}")
-    print(grid)
-    print(pd.DataFrame(grid))
+                    grid.append({'h': h, 'coeff': coeff, 'ent': ent, 'noise': noise, 'balance': balance})
+                    logger.info(f"H: {h} - Coeff: {coeff:.1f} - Noise: {noise:.3f} - Entropy: {ent:.4f} - "
+                                f"Balance: {balance:.2f}")
+    logger.info(grid)
+    logger.info(pd.DataFrame(grid))
     pd.DataFrame(grid).to_csv('../outputs/gridsearch_2.csv')
 
 
