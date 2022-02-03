@@ -15,12 +15,18 @@ class Emulator:
         self.password = password
         self.mode = mode
         self.driver = webdriver.Firefox(log_path='../logs/geckodriver.log')
+
+    def start(self):
         self.driver.get("https://demo.trading212.com/")
         time.sleep(8)
+        xpath = "//div[@class='button_button__tDDzY button_accent__dYsGU " \
+                "cookies-notice_button__3K8cT cookies-notice_button-accent__2rm8R']"
+        self.driver.find_element_by_xpath(xpath).click()
         self.driver.find_element_by_xpath("//input[@name='email']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@name='password']").send_keys(self.password)
         self.driver.find_element_by_xpath("//input[@class='submit-button_input__3s_QD']").click()
         time.sleep(10)
+        return self
 
     def open_trade(self, order):
 

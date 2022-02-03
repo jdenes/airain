@@ -19,11 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Changed RNN for lighter and faster fully connected NN">
-      <change beforePath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dictionaries/Julien_Denes.xml" afterDir="false" />
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Refactored to take parameters as init input + grid search">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -371,13 +371,6 @@
       <workItem from="1608215422661" duration="4686000" />
       <workItem from="1608221621736" duration="38796000" />
     </task>
-    <task id="LOCAL-00010" summary="Split utils into subfiles + changed daily news aggregation">
-      <created>1606756419090</created>
-      <option name="number" value="00010" />
-      <option name="presentableId" value="LOCAL-00010" />
-      <option name="project" value="LOCAL" />
-      <updated>1606756419090</updated>
-    </task>
     <task id="LOCAL-00011" summary="Changed .format for f-strings">
       <created>1606758663053</created>
       <option name="number" value="00011" />
@@ -714,7 +707,14 @@
       <option name="project" value="LOCAL" />
       <updated>1643651487136</updated>
     </task>
-    <option name="localTasksCounter" value="59" />
+    <task id="LOCAL-00059" summary="Refactored to take parameters as init input + grid search">
+      <created>1643749454447</created>
+      <option name="number" value="00059" />
+      <option name="presentableId" value="LOCAL-00059" />
+      <option name="project" value="LOCAL" />
+      <updated>1643749454449</updated>
+    </task>
+    <option name="localTasksCounter" value="60" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -732,7 +732,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Clean, working code + experiments notes" />
     <MESSAGE value="Yes about as good as market on the long run" />
     <MESSAGE value="Fixed recommendations, used log in loss" />
     <MESSAGE value="Fixed data preparation, new model is ok" />
@@ -757,6 +756,7 @@
     <MESSAGE value="Minor modif on assets lists and versions name" />
     <MESSAGE value="Minor code rewriting" />
     <MESSAGE value="Changed RNN for lighter and faster fully connected NN" />
-    <option name="LAST_COMMIT_MESSAGE" value="Changed RNN for lighter and faster fully connected NN" />
+    <MESSAGE value="Refactored to take parameters as init input + grid search" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactored to take parameters as init input + grid search" />
   </component>
 </project>
