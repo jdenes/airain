@@ -55,4 +55,4 @@ python main.py
 ## Copyrights
 
 Rights are granted to anyone under a standard MIT license without any limitation (which means you can do whatever you want with it).
-Yet I'd love to know if this repo was of any use to you!
+Yet I'd love to know if this repo was of any use to you, so don't hesitate to reach out!
