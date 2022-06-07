@@ -5,6 +5,7 @@
 Airain is an research project aiming at building an AI able to suggest optimal portfolio allocation (currently for stocks and cryptocurrencies).
 On top of that, this AI is able to open and close its suggested positions.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
