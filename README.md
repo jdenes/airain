@@ -10,12 +10,12 @@ Airain is a research project aiming at building an AI able to suggest optimal po
 
 ## Features
 
-- 📡 data retrieval using Yahoo Finance API (code for Intrinio's API are also proposed)
-- 🏋️ model training (see the architecture below)
-- 🤺 model backtesting
-- 🦾 automated, fast order placing in Trading 212 using Selenium for Firefox
-- 🤖 background-running trader for automated data updating and opening/closing positions
-- 📈 graphical interface using Dash (under development)
+- 📡 Data retrieval using Yahoo Finance API (code for Intrinio's API are also proposed)
+- 🏋️ Model training (see the architecture below)
+- 🤺 Model backtesting
+- 🦾 Automated, fast order placing in Trading 212 using Selenium for Firefox
+- 🤖 Background-running trader for automated data updating and opening/closing positions
+- 📈 Graphical interface using Dash (under development)
 
 
 ## Installation
@@ -80,9 +80,9 @@ it terms of risk: it almost always chose a single asset. To balance this, we add
 between the proposed portfolio and the optimal one. Losses are implemented in `traders.py` as well.
 
 ### Other tested approaches
-- interpreting the task as a regression task, and trying to predict the price of each asset for next day: attempts with NN and LightGBM: explore `traders.py`
-- using Generative Adversarial Network (GAN) to create more training example: see `gan.py`
-- analysing the press around each asset to predict price, either as such (BERT model trained to predict the price) or as a feature. Explore `data_processing.py`
+- interpreting the task as a regression task, and trying to predict the price of each asset for next day: attempts with NN and LightGBM: explore `traders.py`.
+- using Generative Adversarial Network (GAN) to create more training example: see `gan.py`.
+- analysing the press around each asset to predict price, either as such (BERT model trained to predict the price) or as a feature. Explore `data_processing.py`.
 
 ### How does it perform?
 The overall conclusion is that it is able to beat a benchmark (a portfolio that is evenly distributed among each stock), but not the best stock.
