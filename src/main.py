@@ -45,11 +45,11 @@ def train_model(plot=True):
     trader = LstmContextTrader(h=H, normalize=True, t0=T0, t1=T1, t2=T2,
                                noise_level=3.0, layer_coefficient=1.0,
                                entropy_lambda=0e-4, learning_rate=1e-6)
-    # trader = LstmContextTrader(load_from=f'Huorn_{VERSION}', fast_load=False)
+    # trader = LstmContextTrader(load_from=f'ContextTrader_{VERSION}', fast_load=False)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1)
     trader.ingest_data(df, labels, duplicate=False)
     trader.train(epochs=EPOCHS, patience=PATIENCE, verbose=100)
-    trader.save(model_name=f'Huorn_{VERSION}')
+    trader.save(model_name=f'ContextTrader_{VERSION}')
     trader.test(companies=COMPANIES, test_on='test', plot=plot, noise=False)
     # trader.test(companies=COMPANIES, test_on='train', plot=plot, noise=False)
 
@@ -112,7 +112,7 @@ def yesterday_perf():
 
 def get_recommendations():
     now = dt.now()
-    trader = LstmContextTrader(load_from=f'Huorn_{VERSION}', fast_load=True)
+    trader = LstmContextTrader(load_from=f'ContextTrader_{VERSION}', fast_load=True)
     df, labels = load_data(FOLDER, COMPANIES, T0, T1, keep_last=True)
     bound = sorted(df.index.unique())[-H]
     df, labels = df[df.index >= bound], labels[df.index >= bound]
