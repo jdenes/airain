@@ -19,13 +19,16 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Fixed emulator for cookies button">
-      <change afterPath="$PROJECT_DIR$/src/gan.py" afterDir="false" />
+    <list default="true" id="7f565b22-2590-468e-955d-adf361936a79" name="Default Changelist" comment="Implemented GAN + minor changes">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api_emulator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/api_emulator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/data_preparation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_preparation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LICENSE.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/resources/Airain.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/resources/Posterama 2001 Bold.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/resources/star1.svg" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/traders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/traders.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,20 +76,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;exceleditor.install&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Julien Denes/Documents/BertAbs&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "exceleditor.install": "true",
+    "last_opened_file_path": "C:/Users/Julien Denes/Documents/Airain/resources",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Python&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Python"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Julien Denes\Documents\Airain\resources" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Julien Denes\Documents\Airain" />
       <recent name="C:\Users\Julien Denes\Documents\Airain\src\drafts" />
       <recent name="C:\Users\Julien Denes\Documents\Airain\src\utils" />
     </key>
@@ -371,13 +378,6 @@
       <workItem from="1608046378419" duration="44623000" />
       <workItem from="1608215422661" duration="4686000" />
       <workItem from="1608221621736" duration="38796000" />
-    </task>
-    <task id="LOCAL-00012" summary="Started to work with yahoo finance data">
-      <created>1607901683965</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1607901683965</updated>
     </task>
     <task id="LOCAL-00013" summary="Adapted code to work with yahoo data">
       <created>1607974853016</created>
@@ -715,11 +715,21 @@
       <option name="project" value="LOCAL" />
       <updated>1643914750090</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="Implemented GAN + minor changes">
+      <created>1654674465724</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1654674465724</updated>
+    </task>
+    <option name="localTasksCounter" value="62" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="requirements.txt" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -733,7 +743,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Fixed recommendations, used log in loss" />
     <MESSAGE value="Fixed data preparation, new model is ok" />
     <MESSAGE value="Current settings are great!!" />
     <MESSAGE value="Fixed emulator with new T212, added overall assets share plot on test" />
@@ -758,6 +767,7 @@
     <MESSAGE value="Changed RNN for lighter and faster fully connected NN" />
     <MESSAGE value="Refactored to take parameters as init input + grid search" />
     <MESSAGE value="Fixed emulator for cookies button" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixed emulator for cookies button" />
+    <MESSAGE value="Implemented GAN + minor changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented GAN + minor changes" />
   </component>
 </project>

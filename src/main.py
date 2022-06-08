@@ -8,10 +8,10 @@ from traders import LstmContextTrader
 from api_emulator import Emulator
 from utils.basics import write_data, safe_try, omega2assets
 from utils.logging import get_logger
-from utils.data_fetching import fetch_yahoo_data, fetch_poloniex_data, fetch_intrinio_data
+from utils.data_fetching import fetch_yahoo_data
 
 from data_preparation import load_data
-from utils.constants import DJIA, DJIA_PERFORMERS, CAC40, CAC40_PERFORMERS, DAX, LEVERAGES, PAIRS
+from utils.constants import DJIA, DJIA_PERFORMERS, LEVERAGES
 
 logger = get_logger()
 config = configparser.ConfigParser()
