@@ -181,10 +181,4 @@ if __name__ == "__main__":
     # fetch_poloniex_data(pairs=PAIRS)
     train_model()
     # grid_search()
-
-    # o = get_recommendations()
-    # print(o)
-    # place_orders(o)
-    # get_trades_results()
-    # yesterday_perf()
     # heartbeat()
