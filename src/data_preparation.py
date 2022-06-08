@@ -51,7 +51,7 @@ def load_data(folder, companies, t0, t1, start_from=None, keep_last=False):
         jpn.index = jpn.index.rename('date')
         jpn = jpn[['open', 'high', 'low', 'close']]
         jpn.columns = ['jpn_open', 'jpn_high', 'jpn_low', 'jpn_close']
-        jpn['jpn_labels'] = ((jpn['jpn_close'] - jpn['jpn_open']) > 0).astype(int)
+        jpn['jpn_labels'] = jpn['jpn_close'] / jpn['jpn_open']
         jpn = jpn.loc[~jpn.index.duplicated(keep='last')].sort_index()
         jpn = jpn.shift(-1).drop(jpn.tail(1).index)
         df = pd.concat([df, jpn], axis=1)

@@ -80,7 +80,7 @@ class Trader(object):
         test_ind = (df.index >= self.t2)
 
         df_train, labels_train = df[train_ind], labels[train_ind]
-        self.x_max, self.x_min = df_train.max(axis=0), df_train.min(axis=0)
+        self.x_max, self.x_min = 1.1 * df_train.max(axis=0), 0.9 * df_train.min(axis=0)
         self.p_max, self.p_min = self.x_max, self.x_min
         self.y_min, self.y_max = labels_train.min(), labels_train.max()
 
@@ -574,7 +574,8 @@ class LstmContextTrader(Trader):
         for i in range(self.X_train.shape[-2]):
             feature_tensor = noise_layer[:, :, i, :]
             # fourier_tensor = fftn(feature_tensor)
-            lstm_layer = tf.keras.layers.Flatten()(tf.keras.layers.Dense(lstm_size, name=f"asset_{i}")(feature_tensor))
+            lstm_layer = tf.keras.layers.Dense(lstm_size, name=f"asset_{i}")(feature_tensor)
+            lstm_layer = tf.keras.layers.Flatten()(lstm_layer)
             # lstm_layer = tf.keras.layers.SimpleRNN(lstm_size, name=f"lstm_{i}")(feature_tensor)
             lstm_layers.append(lstm_layer)
         """ Step 2: one dense layer per asset+cash to discuss independently about LSTM result, output in 1 dim """
@@ -587,6 +588,7 @@ class LstmContextTrader(Trader):
         # conv = tf.concat(conv, axis=1)
         """ Step 2bis: simply concatenate all outputs """
         conv = tf.concat(lstm_layers, axis=1)
+        # conv = tf.keras.layers.Dense(100)(conv)
         conv = tf.keras.layers.Dense(self.num_assets+1)(conv)
         """ Step 3: vote using softmax """
         output_layer = tf.keras.layers.Softmax(name='output')(conv)
@@ -603,10 +605,13 @@ class LstmContextTrader(Trader):
         """
         portfolio = self.model(features, training=training)
         portfolio_value = tf.math.reduce_sum(portfolio * returns, axis=1)
-        entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
-        # baseline = tf.nn.relu(tf.math.reduce_mean(returns, axis=1) - 1) + 1  # max(return, 1)
-        # norm_portfolio_value = tf.math.reduce_mean(tf.math.log(portfolio_value / baseline))
-        return tf.math.reduce_mean(-portfolio_value - self.entropy_lambda * entropy)
+        # entropy = -tf.math.reduce_sum(portfolio * tf.math.log(portfolio), axis=1)
+        # penalization = tf.math.reduce_max(portfolio, axis=1)
+        # baseline = tf.linalg.normalize(tf.nn.relu(returns - 1) + 1, axis=1)[0]  # max(return, 1)
+        baseline = tf.cast(tf.greater_equal(returns, tf.nn.top_k(returns, 1)[0]), tf.float64)
+        # return -tf.math.reduce_mean(portfolio_value - self.entropy_lambda * penalization)
+        cross_entropy = tf.keras.losses.CategoricalCrossentropy()(baseline, portfolio)
+        return self.entropy_lambda*cross_entropy - tf.math.reduce_mean(portfolio_value)
 
     def gradient(self, features, returns):
         """
@@ -681,7 +686,8 @@ class LstmContextTrader(Trader):
             val_loss = epoch_val_loss_avg.result()
             train_loss_results.append(train_loss)
             if self.verbose > 0:
-                print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
+                if epoch % verbose == 0:
+                    print(f"Epoch {epoch+1:03d}/{self.epochs} - loss: {train_loss:.5f} - val_loss: {val_loss:.5f}")
 
             epoch_loss_avg.reset_states()
             epoch_val_loss_avg.reset_states()
@@ -815,7 +821,7 @@ def fftn(x):
     """
     out = tf.cast(x, tf.complex64)
     real_axis = list(range(len(x.shape)))
-    for axis in reversed(real_axis):
+    for axis in list(reversed(real_axis))[:-1]:
         perm_axis = real_axis.copy()
         perm_axis[-1], perm_axis[axis] = perm_axis[axis], perm_axis[-1]
         out = tf.transpose(out, perm_axis)

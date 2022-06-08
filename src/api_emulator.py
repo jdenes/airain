@@ -25,7 +25,7 @@ class Emulator:
         self.driver.find_element_by_xpath("//input[@name='email']").send_keys(self.user_name)
         self.driver.find_element_by_xpath("//input[@name='password']").send_keys(self.password)
         self.driver.find_element_by_xpath("//input[@class='submit-button_input__3s_QD']").click()
-        time.sleep(10)
+        time.sleep(13)
         return self
 
     def open_trade(self, order):
