@@ -2,27 +2,22 @@
     <img src="./resources/airain.png" alt="AIRAIN" height="50px">
 </h1>
 
-Airain is an entrepreneurial research project aiming at building an AI able to predict the price evolution of any commodity
-(currency exchange rate, cryptocurrency, securities, etc.).
-On top of that, this AI is able to trade according to its prediction to maximize gain.
+Airain is an research project aiming at building an AI able to suggest optimal portfolio allocation (currently for stocks and cryptocurrencies).
+On top of that, this AI is able to open and close its suggested positions.
 
-![Python](https://img.shields.io/badge/python-v3.6+-green.svg)
-![License](https://img.shields.io/badge/copyrights-reserved-red.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
-Currently using Intrinio for data source and Trading 212 as broker.
+Currently using Yahoo Finance for data source and Trading 212 as broker.
 
 **Current features :**
-- data ingestion through Intrinio's API
+- data ingestion using Yahoo Finance (code for Intrinio's API are also proposed)
 - model training
 - model backtesting
 - order placing in Trading 212 using Selenium
 - automated trader for data updating and opening/closing positions
-- graphical interface (under development)
-
-
-## Example
+- graphical interface using Dash (under development)
 
 
 ## Installation
@@ -59,5 +54,5 @@ python main.py
 
 ## Copyrights
 
-All rights are reserved on this project, which means you cannot use it, modify it or redistribute it without explicit
-permission from the author.
+Rights are granted to anyone under a standard MIT license without any limitation (which means you can do whatever you want with it).
+Yet I'd love to know if this repo was of any use to you, so don't hesitate to reach out!
