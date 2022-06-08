@@ -18,7 +18,6 @@ def nice_plot(ind, curves_list, names_list, title):
     :rtype: None
     """
 
-    font_manager._rebuild()
     plt.rcParams['font.family'] = 'Lato'
     plt.rcParams['font.sans-serif'] = 'Lato'
     plt.rcParams['font.weight'] = 500
